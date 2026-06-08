@@ -8,6 +8,7 @@ use App\Domains\Companies\Models\Company;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
+use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -83,6 +84,7 @@ class ServiceOrderDraftIntakeTest extends TestCase
                 'customer_id',
                 'customer_contact_id',
                 'equipment_id',
+                'intake_checklist_template_id',
                 'reported_problem',
                 'intake_checklist',
             ]);
@@ -95,10 +97,12 @@ class ServiceOrderDraftIntakeTest extends TestCase
             email: 'other-intake@example.com',
             companyName: 'Other Intake Co',
         );
+        $template = $this->createTemplate($membership->company_id, 'Notebook');
+        $otherTemplate = $this->createTemplate($otherMembership->company_id, 'Notebook');
 
-        $firstDraftId = $this->createCompleteDraft($token, $customer, $contact, $equipment)->json('data.id');
-        $secondDraftId = $this->createCompleteDraft($token, $customer, $contact, $equipment)->json('data.id');
-        $otherDraftId = $this->createCompleteDraft($otherToken, $otherCustomer, $otherContact, $otherEquipment)->json('data.id');
+        $firstDraftId = $this->createCompleteDraft($token, $customer, $contact, $equipment, $template)->json('data.id');
+        $secondDraftId = $this->createCompleteDraft($token, $customer, $contact, $equipment, $template)->json('data.id');
+        $otherDraftId = $this->createCompleteDraft($otherToken, $otherCustomer, $otherContact, $otherEquipment, $otherTemplate)->json('data.id');
 
         $this->withToken($token)
             ->postJson('/api/v1/service-orders/drafts/'.$firstDraftId.'/open')
@@ -141,17 +145,32 @@ class ServiceOrderDraftIntakeTest extends TestCase
         Customer $customer,
         CustomerContact $contact,
         Equipment $equipment,
+        IntakeChecklistTemplate $template,
     ) {
         return $this->withToken($token)->postJson('/api/v1/service-orders/drafts', [
             'customer_id' => $customer->getKey(),
             'customer_contact_id' => $contact->getKey(),
             'equipment_id' => $equipment->getKey(),
+            'intake_checklist_template_id' => $template->getKey(),
             'equipment_description' => 'Notebook Dell Latitude 5420 com etiqueta patrimonial.',
             'reported_problem' => 'Nao liga.',
             'intake_checklist' => [
                 ['label' => 'Carregador entregue', 'checked' => true],
             ],
         ])->assertCreated();
+    }
+
+    protected function createTemplate(int $companyId, string $category): IntakeChecklistTemplate
+    {
+        return IntakeChecklistTemplate::query()->withoutGlobalScopes()->create([
+            'company_id' => $companyId,
+            'category' => $category,
+            'version' => 1,
+            'title' => 'Checklist '.$category,
+            'items' => [
+                ['key' => 'charger', 'label' => 'Carregador entregue', 'type' => 'boolean', 'required' => true],
+            ],
+        ]);
     }
 
     /**

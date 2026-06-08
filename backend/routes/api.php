@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\TenantContextController;
@@ -63,6 +64,12 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/equipments/{equipment}', [EquipmentController::class, 'update'])
         ->middleware('permission:equipments.manage')
         ->name('api.v1.equipments.update');
+    Route::get('/intake-checklist-templates', [IntakeChecklistTemplateController::class, 'index'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.intake-checklist-templates.index');
+    Route::post('/intake-checklist-templates', [IntakeChecklistTemplateController::class, 'store'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.intake-checklist-templates.store');
     Route::post('/service-orders/drafts', [ServiceOrderController::class, 'storeDraft'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.drafts.store');

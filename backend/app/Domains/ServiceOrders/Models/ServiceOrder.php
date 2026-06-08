@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'customer_id',
     'customer_contact_id',
     'equipment_id',
+    'intake_checklist_template_id',
     'reference',
     'draft_reference',
     'order_number',
@@ -25,6 +26,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'equipment_description',
     'reported_problem',
     'intake_checklist',
+    'intake_checklist_template_version',
+    'intake_checklist_template_snapshot',
+    'equipment_snapshot',
     'opened_at',
     'assigned_membership_id',
 ])]
@@ -43,6 +47,8 @@ class ServiceOrder extends Model
     {
         return [
             'intake_checklist' => AsArrayObject::class,
+            'intake_checklist_template_snapshot' => AsArrayObject::class,
+            'equipment_snapshot' => AsArrayObject::class,
             'opened_at' => 'datetime',
         ];
     }
@@ -60,6 +66,11 @@ class ServiceOrder extends Model
     public function equipment(): BelongsTo
     {
         return $this->belongsTo(Equipment::class);
+    }
+
+    public function intakeChecklistTemplate(): BelongsTo
+    {
+        return $this->belongsTo(IntakeChecklistTemplate::class);
     }
 
     public function assignedMembership(): BelongsTo

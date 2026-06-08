@@ -8,6 +8,7 @@ use App\Domains\Equipments\Models\Equipment;
 use App\Domains\ServiceOrders\Actions\OpenDraftServiceOrder;
 use App\Domains\ServiceOrders\Actions\ReserveDraftReference;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
+use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -36,6 +37,7 @@ class ServiceOrderController extends Controller
                 'customer_id' => $payload['customer_id'] ?? null,
                 'customer_contact_id' => $payload['customer_contact_id'] ?? null,
                 'equipment_id' => $payload['equipment_id'] ?? null,
+                'intake_checklist_template_id' => $payload['intake_checklist_template_id'] ?? null,
                 'reference' => $draftReference,
                 'draft_reference' => $draftReference,
                 'status' => ServiceOrder::STATUS_DRAFT,
@@ -76,6 +78,7 @@ class ServiceOrderController extends Controller
             'customer_id',
             'customer_contact_id',
             'equipment_id',
+            'intake_checklist_template_id',
             'equipment_description',
             'reported_problem',
             'intake_checklist',
@@ -176,6 +179,7 @@ class ServiceOrderController extends Controller
             'customer_id' => ['nullable', 'integer'],
             'customer_contact_id' => ['nullable', 'integer'],
             'equipment_id' => ['nullable', 'integer'],
+            'intake_checklist_template_id' => ['nullable', 'integer'],
             'equipment_description' => ['nullable', 'string'],
             'reported_problem' => ['nullable', 'string'],
             'intake_checklist' => ['nullable', 'array'],
@@ -203,6 +207,18 @@ class ServiceOrderController extends Controller
             abort_unless($customer !== null && $equipment->customer_id === $customer->getKey(), Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        if (($payload['intake_checklist_template_id'] ?? null) !== null) {
+            $template = IntakeChecklistTemplate::query()->findOrFail($payload['intake_checklist_template_id']);
+            abort_unless($template->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
+
+            if (($payload['equipment_id'] ?? null) !== null) {
+                abort_unless(
+                    isset($equipment) && $template->category === $equipment->category,
+                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                );
+            }
+        }
+
         return $payload;
     }
 
@@ -218,6 +234,7 @@ class ServiceOrderController extends Controller
             'customer_id' => ['required', 'integer'],
             'customer_contact_id' => ['required', 'integer'],
             'equipment_id' => ['required', 'integer'],
+            'intake_checklist_template_id' => ['required', 'integer'],
             'equipment_description' => ['required', 'string'],
             'reported_problem' => ['required', 'string'],
             'intake_checklist' => ['required', 'array', 'min:1'],
@@ -246,6 +263,10 @@ class ServiceOrderController extends Controller
             'equipment_description' => $serviceOrder->equipment_description,
             'reported_problem' => $serviceOrder->reported_problem,
             'intake_checklist' => $serviceOrder->intake_checklist,
+            'intake_checklist_template_id' => $serviceOrder->intake_checklist_template_id,
+            'intake_checklist_template_version' => $serviceOrder->intake_checklist_template_version,
+            'intake_checklist_template_snapshot' => $serviceOrder->intake_checklist_template_snapshot,
+            'equipment_snapshot' => $serviceOrder->equipment_snapshot,
             'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
             'assigned_membership_id' => $serviceOrder->assigned_membership_id,
         ];
