@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
+use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use Illuminate\Support\Facades\Route;
@@ -100,6 +101,15 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/quotes/{quoteRevision}/portal-token', QuotePortalTokenController::class)
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.quotes.portal-token.regenerate');
+    Route::post('/service-orders/{serviceOrder}/execution/start', [ServiceOrderExecutionController::class, 'start'])
+        ->middleware('permission:service_orders.execute')
+        ->name('api.v1.service-orders.execution.start');
+    Route::post('/service-orders/{serviceOrder}/execution/entries', [ServiceOrderExecutionController::class, 'recordWork'])
+        ->middleware('permission:service_orders.execute')
+        ->name('api.v1.service-orders.execution.entries.store');
+    Route::post('/service-orders/{serviceOrder}/execution/complete', [ServiceOrderExecutionController::class, 'complete'])
+        ->middleware('permission:service_orders.execute')
+        ->name('api.v1.service-orders.execution.complete');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');

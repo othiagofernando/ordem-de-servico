@@ -22,6 +22,7 @@ class RolePresetCatalog
                 'service_orders.manage',
                 'service_orders.assign',
                 'service_orders.diagnose',
+                'service_orders.execute',
             ],
             'manager' => [
                 'customers.view_any',
@@ -34,6 +35,7 @@ class RolePresetCatalog
                 'service_orders.manage',
                 'service_orders.assign',
                 'service_orders.diagnose',
+                'service_orders.execute',
             ],
             'attendant' => [
                 'customers.view_any',
@@ -46,6 +48,7 @@ class RolePresetCatalog
             'technician' => [
                 'service_orders.view_assigned',
                 'service_orders.diagnose',
+                'service_orders.execute',
             ],
             'finance' => [],
         ];

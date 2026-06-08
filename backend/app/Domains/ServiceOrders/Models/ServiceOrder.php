@@ -33,6 +33,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'diagnosis_internal_notes',
     'diagnosis_customer_summary',
     'diagnosis_completed_at',
+    'execution_started_at',
+    'execution_started_by_membership_id',
+    'final_test_results',
+    'technical_completed_at',
     'opened_at',
     'assigned_membership_id',
 ])]
@@ -44,6 +48,12 @@ class ServiceOrder extends Model
 
     public const STATUS_OPEN = 'open';
 
+    public const STATUS_IN_PROGRESS = 'in_progress';
+
+    public const STATUS_COMPLETED = 'completed';
+
+    public const STATUS_READY_FOR_PICKUP = 'ready_for_pickup';
+
     /**
      * @return array<string, string>
      */
@@ -53,7 +63,10 @@ class ServiceOrder extends Model
             'intake_checklist' => AsArrayObject::class,
             'intake_checklist_template_snapshot' => AsArrayObject::class,
             'equipment_snapshot' => AsArrayObject::class,
+            'final_test_results' => AsArrayObject::class,
             'diagnosis_completed_at' => 'datetime',
+            'execution_started_at' => 'datetime',
+            'technical_completed_at' => 'datetime',
             'opened_at' => 'datetime',
         ];
     }
@@ -83,6 +96,11 @@ class ServiceOrder extends Model
         return $this->belongsTo(Membership::class, 'assigned_membership_id');
     }
 
+    public function executionStartedByMembership(): BelongsTo
+    {
+        return $this->belongsTo(Membership::class, 'execution_started_by_membership_id');
+    }
+
     public function timelineEvents(): HasMany
     {
         return $this->hasMany(ServiceOrderTimelineEvent::class)->orderBy('occurred_at')->orderBy('id');
@@ -91,5 +109,10 @@ class ServiceOrder extends Model
     public function quoteRevisions(): HasMany
     {
         return $this->hasMany(QuoteRevision::class)->orderBy('revision_number');
+    }
+
+    public function executionEntries(): HasMany
+    {
+        return $this->hasMany(ServiceOrderExecutionEntry::class)->orderBy('id');
     }
 }
