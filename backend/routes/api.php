@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
+use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use Illuminate\Support\Facades\Route;
@@ -110,6 +111,21 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/execution/complete', [ServiceOrderExecutionController::class, 'complete'])
         ->middleware('permission:service_orders.execute')
         ->name('api.v1.service-orders.execution.complete');
+    Route::get('/service-orders/{serviceOrder}/financials', [ServiceOrderFinancialController::class, 'show'])
+        ->middleware('permission:service_orders.finance')
+        ->name('api.v1.service-orders.financials.show');
+    Route::post('/service-orders/{serviceOrder}/financials/charges/derive-approved-quote', [ServiceOrderFinancialController::class, 'deriveApprovedQuoteCharge'])
+        ->middleware('permission:service_orders.finance')
+        ->name('api.v1.service-orders.financials.charges.derive-approved-quote');
+    Route::post('/service-orders/{serviceOrder}/financials/charges/diagnostic-fee', [ServiceOrderFinancialController::class, 'addDiagnosticFee'])
+        ->middleware('permission:service_orders.finance')
+        ->name('api.v1.service-orders.financials.charges.diagnostic-fee');
+    Route::post('/service-orders/{serviceOrder}/financials/charges/adjustments', [ServiceOrderFinancialController::class, 'addAdjustment'])
+        ->middleware('permission:service_orders.finance')
+        ->name('api.v1.service-orders.financials.charges.adjustments');
+    Route::post('/service-orders/{serviceOrder}/financials/payments', [ServiceOrderFinancialController::class, 'recordPayment'])
+        ->middleware('permission:service_orders.finance')
+        ->name('api.v1.service-orders.financials.payments.store');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');

@@ -115,4 +115,14 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(ServiceOrderExecutionEntry::class)->orderBy('id');
     }
+
+    public function charges(): HasMany
+    {
+        return $this->hasMany(ServiceOrderCharge::class)->orderBy('id');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(ServiceOrderPayment::class)->orderBy('id');
+    }
 }
