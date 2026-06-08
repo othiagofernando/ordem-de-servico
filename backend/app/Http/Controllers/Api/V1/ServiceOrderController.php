@@ -10,12 +10,16 @@ use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\ReserveDraftReference;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
+use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -253,10 +257,94 @@ class ServiceOrderController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
-        $serviceOrders = $visibleServiceOrders->queryFor($membership)->get();
+        $serviceOrders = $this->buildFilteredVisibleQuery(request(), $visibleServiceOrders, $membership)
+            ->with(['customer', 'customerContact', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
+            ->get();
 
         return response()->json([
             'data' => $serviceOrders->map(fn (ServiceOrder $serviceOrder): array => $this->serializeServiceOrder($serviceOrder))->all(),
+            'meta' => [
+                'total' => $serviceOrders->count(),
+            ],
+        ]);
+    }
+
+    /**
+     * Return compact operational queue and reporting aggregates for visible service orders.
+     *
+     * @group Service Orders
+     */
+    public function overview(Request $request, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (
+            ! $membership->hasPermission('service_orders.view_any')
+            && ! $membership->hasPermission('service_orders.view_assigned')
+        ) {
+            return response()->json([
+                'message' => 'This membership cannot view service orders.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $query = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership);
+        $serviceOrders = $query
+            ->with(['assignedMembership.user', 'quoteRevisions', 'payments'])
+            ->get();
+
+        return response()->json([
+            'data' => [
+                'filters' => $request->only(['q', 'queue', 'assigned_membership_id', 'status']),
+                'totals' => [
+                    'service_orders' => $serviceOrders->count(),
+                ],
+                'by_status' => $serviceOrders
+                    ->groupBy('status')
+                    ->map(fn (Collection $orders): int => $orders->count())
+                    ->all(),
+                'technician_workload' => $serviceOrders
+                    ->filter(fn (ServiceOrder $serviceOrder): bool => $serviceOrder->assignedMembership !== null)
+                    ->groupBy('assigned_membership_id')
+                    ->map(function (Collection $orders): array {
+                        /** @var ServiceOrder $first */
+                        $first = $orders->first();
+
+                        return [
+                            'assigned_membership_id' => $first->assigned_membership_id,
+                            'assigned_membership_name' => $first->assignedMembership?->user?->name,
+                            'service_order_count' => $orders->count(),
+                        ];
+                    })
+                    ->values()
+                    ->all(),
+                'quote_outcomes' => $serviceOrders
+                    ->flatMap(fn (ServiceOrder $serviceOrder): Collection => $serviceOrder->quoteRevisions)
+                    ->groupBy('status')
+                    ->map(fn (Collection $quotes): int => $quotes->count())
+                    ->all(),
+                'received_amounts' => [
+                    'total_received_cents' => (int) $serviceOrders
+                        ->flatMap(fn (ServiceOrder $serviceOrder): Collection => $serviceOrder->payments)
+                        ->sum('amount_cents'),
+                    'by_payment_method' => $serviceOrders
+                        ->flatMap(fn (ServiceOrder $serviceOrder): Collection => $serviceOrder->payments)
+                        ->groupBy('payment_method')
+                        ->map(fn (Collection $payments): int => (int) $payments->sum('amount_cents'))
+                        ->all(),
+                ],
+                'warranty_returns' => [
+                    'total' => $serviceOrders->whereNotNull('warranty_origin_service_order_id')->count(),
+                    'by_decision_status' => $serviceOrders
+                        ->whereNotNull('warranty_origin_service_order_id')
+                        ->groupBy(fn (ServiceOrder $serviceOrder): string => $serviceOrder->warranty_decision_status ?? 'unreviewed')
+                        ->map(fn (Collection $orders): int => $orders->count())
+                        ->all(),
+                ],
+            ],
         ]);
     }
 
@@ -363,6 +451,10 @@ class ServiceOrderController extends Controller
      */
     protected function serializeServiceOrder(ServiceOrder $serviceOrder): array
     {
+        $latestQuote = $serviceOrder->relationLoaded('quoteRevisions')
+            ? $serviceOrder->quoteRevisions->sortByDesc('revision_number')->first()
+            : null;
+
         return [
             'id' => $serviceOrder->getKey(),
             'reference' => $serviceOrder->reference,
@@ -402,7 +494,110 @@ class ServiceOrderController extends Controller
             'warranty_decided_by_membership_id' => $serviceOrder->warranty_decided_by_membership_id,
             'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
             'assigned_membership_id' => $serviceOrder->assigned_membership_id,
+            'assigned_membership_name' => $serviceOrder->assignedMembership?->user?->name,
+            'customer_name' => $serviceOrder->customer?->name,
+            'customer_document' => $serviceOrder->customer?->document,
+            'customer_contact_name' => $serviceOrder->customerContact?->name,
+            'customer_contact_phone' => $serviceOrder->customerContact?->phone,
+            'equipment_serial_number' => $serviceOrder->equipment?->serial_number,
+            'equipment_brand' => $serviceOrder->equipment?->brand,
+            'equipment_model' => $serviceOrder->equipment?->model,
+            'latest_quote_status' => $latestQuote?->status,
         ];
+    }
+
+    protected function buildFilteredVisibleQuery(
+        Request $request,
+        VisibleServiceOrders $visibleServiceOrders,
+        $membership,
+    ): Builder {
+        $filters = $request->validate([
+            'q' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'queue' => [
+                'sometimes',
+                'nullable',
+                'string',
+                Rule::in([
+                    'drafts',
+                    'open',
+                    'pending_quote',
+                    'in_progress',
+                    'ready_for_pickup',
+                    'terminal',
+                    'warranty_returns',
+                ]),
+            ],
+            'assigned_membership_id' => ['sometimes', 'nullable', 'integer'],
+            'status' => ['sometimes', 'array'],
+            'status.*' => ['string'],
+        ]);
+
+        $query = $visibleServiceOrders->queryFor($membership);
+
+        if (filled($filters['assigned_membership_id'] ?? null)) {
+            $query->where('assigned_membership_id', $filters['assigned_membership_id']);
+        }
+
+        if (($filters['status'] ?? null) !== null) {
+            $query->whereIn('status', $filters['status']);
+        }
+
+        if (filled($filters['queue'] ?? null)) {
+            match ($filters['queue']) {
+                'drafts' => $query->where('status', ServiceOrder::STATUS_DRAFT),
+                'open' => $query->where('status', ServiceOrder::STATUS_OPEN),
+                'pending_quote' => $query->whereHas('quoteRevisions', fn (Builder $quoteQuery): Builder => $quoteQuery
+                    ->where('status', QuoteRevision::STATUS_PENDING)),
+                'in_progress' => $query->where('status', ServiceOrder::STATUS_IN_PROGRESS),
+                'ready_for_pickup' => $query->where('status', ServiceOrder::STATUS_READY_FOR_PICKUP),
+                'terminal' => $query->whereIn('status', [
+                    ServiceOrder::STATUS_DELIVERED,
+                    ServiceOrder::STATUS_CANCELLED,
+                    ServiceOrder::STATUS_NO_REPAIR,
+                ]),
+                'warranty_returns' => $query->whereNotNull('warranty_origin_service_order_id'),
+            };
+        }
+
+        if (filled($filters['q'] ?? null)) {
+            $term = trim((string) $filters['q']);
+            $normalizedDigits = preg_replace('/\D+/', '', $term) ?: null;
+            $useNormalizedPhoneSearch = $normalizedDigits !== null
+                && preg_match('/[[:alpha:]]/u', $term) !== 1;
+
+            $query->where(function (Builder $serviceOrderQuery) use ($term, $normalizedDigits, $useNormalizedPhoneSearch): void {
+                $serviceOrderQuery
+                    ->where('reference', 'like', '%'.$term.'%')
+                    ->orWhere('draft_reference', 'like', '%'.$term.'%')
+                    ->orWhere('title', 'like', '%'.$term.'%')
+                    ->orWhere('reported_problem', 'like', '%'.$term.'%')
+                    ->orWhere('order_number', is_numeric($term) ? (int) $term : -1)
+                    ->orWhereHas('customer', function (Builder $customerQuery) use ($term): void {
+                        $customerQuery
+                            ->where('name', 'like', '%'.$term.'%')
+                            ->orWhere('trade_name', 'like', '%'.$term.'%')
+                            ->orWhere('document', 'like', '%'.$term.'%');
+                    })
+                    ->orWhereHas('customerContact', function (Builder $contactQuery) use ($term, $normalizedDigits, $useNormalizedPhoneSearch): void {
+                        $contactQuery
+                            ->where('name', 'like', '%'.$term.'%')
+                            ->orWhere('phone', 'like', '%'.$term.'%')
+                            ->orWhere('email', 'like', '%'.$term.'%');
+
+                        if ($useNormalizedPhoneSearch && $normalizedDigits !== null) {
+                            $contactQuery->orWhere('normalized_phone', 'like', '%'.$normalizedDigits.'%');
+                        }
+                    })
+                    ->orWhereHas('equipment', function (Builder $equipmentQuery) use ($term): void {
+                        $equipmentQuery
+                            ->where('serial_number', 'like', '%'.$term.'%')
+                            ->orWhere('brand', 'like', '%'.$term.'%')
+                            ->orWhere('model', 'like', '%'.$term.'%');
+                    });
+            });
+        }
+
+        return $query;
     }
 
     protected function ensureServiceOrderBelongsToCurrentCompany(ServiceOrder $serviceOrder): void
