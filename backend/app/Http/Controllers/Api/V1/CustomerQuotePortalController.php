@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
+use App\Domains\Companies\Models\CompanyOperationalSetting;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
@@ -18,14 +20,18 @@ class CustomerQuotePortalController extends Controller
      *
      * @group Customer Portal
      */
-    public function show(string $token, NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates): JsonResponse
-    {
+    public function show(
+        string $token,
+        NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
+        ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+    ): JsonResponse {
         $quote = $this->resolveQuoteByPortalToken($token);
         $normalizeQuoteRevisionStates->handle($quote->serviceOrder);
         $quote->refresh();
+        $settings = $resolveCompanyOperationalSettings->handle($quote->serviceOrder->company);
 
         return response()->json([
-            'data' => $this->serializePortalQuote($quote),
+            'data' => $this->serializePortalQuote($quote, $settings),
         ]);
     }
 
@@ -39,10 +45,12 @@ class CustomerQuotePortalController extends Controller
         string $token,
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
     ): JsonResponse {
         $quote = $this->resolveQuoteByPortalToken($token);
         $normalizeQuoteRevisionStates->handle($quote->serviceOrder);
         $quote->refresh();
+        $settings = $resolveCompanyOperationalSettings->handle($quote->serviceOrder->company);
 
         $payload = $request->validate([
             'decision' => ['required', 'string', 'in:approve,reject'],
@@ -61,7 +69,7 @@ class CustomerQuotePortalController extends Controller
         if (in_array($quote->status, [QuoteRevision::STATUS_APPROVED, QuoteRevision::STATUS_REJECTED], true)) {
             if ($quote->status === $requestedStatus) {
                 return response()->json([
-                    'data' => $this->serializePortalQuote($quote),
+                    'data' => $this->serializePortalQuote($quote, $settings),
                 ]);
             }
 
@@ -100,14 +108,14 @@ class CustomerQuotePortalController extends Controller
         );
 
         return response()->json([
-            'data' => $this->serializePortalQuote($quote->fresh()),
+            'data' => $this->serializePortalQuote($quote->fresh(), $settings),
         ]);
     }
 
     protected function resolveQuoteByPortalToken(string $token): QuoteRevision
     {
         $quote = QuoteRevision::query()
-            ->with('serviceOrder')
+            ->with('serviceOrder.company')
             ->where('portal_token_hash', hash('sha256', $token))
             ->first();
 
@@ -121,9 +129,15 @@ class CustomerQuotePortalController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function serializePortalQuote(QuoteRevision $quote): array
+    protected function serializePortalQuote(QuoteRevision $quote, CompanyOperationalSetting $settings): array
     {
         return [
+            'company' => [
+                'brand_name' => $settings->brandName($quote->serviceOrder->company),
+            ],
+            'portal' => [
+                'intro_text' => $settings->portal_intro_text,
+            ],
             'service_order' => [
                 'id' => $quote->serviceOrder->getKey(),
                 'reference' => $quote->serviceOrder->reference,

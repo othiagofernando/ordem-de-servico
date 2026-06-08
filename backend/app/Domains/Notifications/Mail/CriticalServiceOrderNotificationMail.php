@@ -23,12 +23,14 @@ class CriticalServiceOrderNotificationMail extends Mailable
 
     public function content(): Content
     {
+        $payload = $this->delivery->payload?->getArrayCopy() ?? [];
+
         return new Content(
             view: 'emails.critical-service-order-notification',
             with: [
                 'delivery' => $this->delivery,
-                'payload' => $this->delivery->payload?->getArrayCopy() ?? [],
-                'companyName' => $this->delivery->company?->name ?? config('app.name'),
+                'payload' => $payload,
+                'companyName' => $payload['brand_name'] ?? $this->delivery->company?->name ?? config('app.name'),
             ],
         );
     }

@@ -2,6 +2,7 @@
 
 namespace App\Domains\Notifications\Actions;
 
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Notifications\Jobs\SendCriticalServiceOrderNotificationJob;
 use App\Domains\Notifications\Models\NotificationDelivery;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
@@ -9,6 +10,10 @@ use App\Domains\ServiceOrders\Models\ServiceOrder;
 
 class QueueCriticalServiceOrderNotification
 {
+    public function __construct(
+        protected ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+    ) {}
+
     public function handle(
         ServiceOrder $serviceOrder,
         string $eventType,
@@ -18,6 +23,17 @@ class QueueCriticalServiceOrderNotification
     ): ?NotificationDelivery {
         $serviceOrder->loadMissing(['company', 'customerContact']);
         $contact = $serviceOrder->customerContact;
+        $settings = $this->resolveCompanyOperationalSettings->handle($serviceOrder->company);
+        $brandName = $settings->brandName($serviceOrder->company);
+
+        if (! $settings->notificationEnabled($eventType)) {
+            return null;
+        }
+
+        $payload = [
+            'brand_name' => $brandName,
+            ...$payload,
+        ];
 
         if ($dedupeKey !== null) {
             $existing = NotificationDelivery::query()->where('dedupe_key', $dedupeKey)->first();
@@ -35,7 +51,7 @@ class QueueCriticalServiceOrderNotification
                 'event_type' => $eventType,
                 'recipient_email' => '',
                 'recipient_name' => $contact?->name,
-                'subject' => $this->subjectFor($serviceOrder, $eventType),
+                'subject' => $this->subjectFor($serviceOrder, $eventType, $brandName),
                 'payload' => $payload,
                 'status' => NotificationDelivery::STATUS_FAILED,
                 'error_message' => 'Missing customer contact e-mail.',
@@ -52,7 +68,7 @@ class QueueCriticalServiceOrderNotification
             'event_type' => $eventType,
             'recipient_email' => $contact->email,
             'recipient_name' => $contact->name,
-            'subject' => $this->subjectFor($serviceOrder, $eventType),
+            'subject' => $this->subjectFor($serviceOrder, $eventType, $brandName),
             'payload' => $payload,
             'status' => NotificationDelivery::STATUS_QUEUED,
             'queued_at' => now(),
@@ -65,16 +81,14 @@ class QueueCriticalServiceOrderNotification
         return $delivery;
     }
 
-    protected function subjectFor(ServiceOrder $serviceOrder, string $eventType): string
+    protected function subjectFor(ServiceOrder $serviceOrder, string $eventType, string $brandName): string
     {
-        $companyName = $serviceOrder->company?->name ?? config('app.name');
-
         return match ($eventType) {
-            'quote_available' => sprintf('[%s] Orçamento disponível para %s', $companyName, $serviceOrder->reference),
-            'quote_expiring' => sprintf('[%s] Orçamento expirando para %s', $companyName, $serviceOrder->reference),
-            'ready_for_pickup' => sprintf('[%s] Equipamento pronto para retirada: %s', $companyName, $serviceOrder->reference),
-            'payment_receipt' => sprintf('[%s] Recibo de pagamento: %s', $companyName, $serviceOrder->reference),
-            default => sprintf('[%s] Atualização da ordem de serviço %s', $companyName, $serviceOrder->reference),
+            'quote_available' => sprintf('[%s] Orçamento disponível para %s', $brandName, $serviceOrder->reference),
+            'quote_expiring' => sprintf('[%s] Orçamento expirando para %s', $brandName, $serviceOrder->reference),
+            'ready_for_pickup' => sprintf('[%s] Equipamento pronto para retirada: %s', $brandName, $serviceOrder->reference),
+            'payment_receipt' => sprintf('[%s] Recibo de pagamento: %s', $brandName, $serviceOrder->reference),
+            default => sprintf('[%s] Atualização da ordem de serviço %s', $brandName, $serviceOrder->reference),
         };
     }
 }

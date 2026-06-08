@@ -2,6 +2,10 @@
 
 <p>{{ $delivery->subject }}</p>
 
+@if(isset($payload['portal_intro_text']))
+<p>{{ $payload['portal_intro_text'] }}</p>
+@endif
+
 <p>Ordem de serviço: {{ $payload['service_order_reference'] ?? $delivery->serviceOrder?->reference }}</p>
 
 @if(isset($payload['valid_until']))

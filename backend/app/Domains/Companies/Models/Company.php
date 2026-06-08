@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Support\Str;
 
 #[Fillable([
@@ -48,5 +49,15 @@ class Company extends Model
     public function apiTokens(): HasMany
     {
         return $this->hasMany(ApiToken::class);
+    }
+
+    public function operationalSetting(): HasOne
+    {
+        return $this->hasOne(CompanyOperationalSetting::class);
+    }
+
+    public function settingAudits(): HasMany
+    {
+        return $this->hasMany(CompanySettingAudit::class);
     }
 }

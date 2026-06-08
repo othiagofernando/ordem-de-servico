@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\IssueQuotePortalToken;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
@@ -50,6 +51,7 @@ class QuoteRevisionController extends Controller
         IssueQuotePortalToken $issueQuotePortalToken,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
+        ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
     ): JsonResponse {
         $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -77,7 +79,7 @@ class QuoteRevisionController extends Controller
             'line_items.*.unit_price_cents' => ['required', 'integer', 'min:0'],
             'notes' => ['nullable', 'string'],
             'currency' => ['sometimes', 'string', 'size:3'],
-            'valid_until' => ['required', 'date'],
+            'valid_until' => ['sometimes', 'nullable', 'date'],
         ]);
 
         $quotes = $normalizeQuoteRevisionStates->handle($visible);
@@ -88,12 +90,19 @@ class QuoteRevisionController extends Controller
             ], Response::HTTP_CONFLICT);
         }
 
+        $visible->loadMissing('company');
+        $settings = $resolveCompanyOperationalSettings->handle($visible->company);
+        $validUntil = filled($payload['valid_until'] ?? null)
+            ? $payload['valid_until']
+            : now()->addDays($settings->default_quote_validity_days)->toIso8601String();
+
         $quote = DB::transaction(function () use (
             $visible,
             $payload,
             $membership,
             $issueQuotePortalToken,
             $recordTimelineEvent,
+            $validUntil,
         ): QuoteRevision {
             $nextRevisionNumber = ((int) $visible->quoteRevisions()->max('revision_number')) + 1;
             $lineItems = collect($payload['line_items'])->map(function (array $item): array {
@@ -116,7 +125,7 @@ class QuoteRevisionController extends Controller
                 'currency' => strtoupper((string) ($payload['currency'] ?? 'BRL')),
                 'total_cents' => $totalCents,
                 'notes' => $payload['notes'] ?? null,
-                'valid_until' => $payload['valid_until'],
+                'valid_until' => $validUntil,
                 'submitted_at' => now(),
             ]);
 

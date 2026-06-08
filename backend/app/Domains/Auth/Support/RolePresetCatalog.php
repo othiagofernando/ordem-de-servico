@@ -12,6 +12,7 @@ class RolePresetCatalog
         return [
             'administrator' => [
                 'memberships.manage',
+                'company_settings.manage',
                 'customers.view_any',
                 'customers.manage',
                 'equipments.view_any',
@@ -27,6 +28,7 @@ class RolePresetCatalog
                 'service_orders.override_delivery_balance',
             ],
             'manager' => [
+                'company_settings.manage',
                 'customers.view_any',
                 'customers.manage',
                 'equipments.view_any',
