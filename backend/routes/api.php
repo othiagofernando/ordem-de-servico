@@ -5,8 +5,11 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeRequestController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeVerifyController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkConsumeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
+use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\HealthController;
+use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
+use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use Illuminate\Support\Facades\Route;
@@ -27,7 +30,14 @@ Route::prefix('auth')->group(function (): void {
 });
 
 Route::middleware('auth.token')->group(function (): void {
+    Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
     Route::get('/tenant/context', TenantContextController::class)->name('api.v1.tenant.context');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)
         ->name('api.v1.tenant.memberships.show');
+    Route::patch('/tenant/memberships/{membership}/authorization', MembershipAuthorizationController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.authorization.update');
+    Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
+    Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
+        ->name('api.v1.service-orders.show');
 });
