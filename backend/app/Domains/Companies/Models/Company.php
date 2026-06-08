@@ -10,7 +10,15 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['name', 'document', 'email', 'phone', 'is_active'])]
+#[Fillable([
+    'name',
+    'document',
+    'email',
+    'phone',
+    'is_active',
+    'passwordless_code_enabled',
+    'magic_link_enabled',
+])]
 #[Hidden(['created_at', 'updated_at'])]
 class Company extends Model
 {
@@ -27,6 +35,8 @@ class Company extends Model
     {
         return [
             'is_active' => 'bool',
+            'passwordless_code_enabled' => 'bool',
+            'magic_link_enabled' => 'bool',
         ];
     }
 

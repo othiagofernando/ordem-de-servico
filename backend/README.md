@@ -7,6 +7,7 @@ Laravel 13 backend for the service-order platform foundation and tenant bootstra
 - Versioned API prefix at `/api/v1`
 - Health endpoint at `GET /api/v1/health`
 - Tenant context endpoint at `GET /api/v1/tenant/context`
+- Internal auth endpoints under `/api/v1/auth/*`
 - Generated Scribe docs at `GET /docs`
 - Queue and cache baseline using Laravel's built-in configuration
 

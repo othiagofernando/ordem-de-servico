@@ -30,6 +30,8 @@ php artisan route:list
 Foundation endpoints:
 
 - `GET /api/v1/health`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/select-company`
 - `GET /api/v1/tenant/context`
 - `GET /docs`
 

@@ -13,6 +13,12 @@ class Membership extends Model
 {
     use BelongsToCompany;
 
+    public const STATUS_INVITED = 'invited';
+
+    public const STATUS_ACTIVE = 'active';
+
+    public const STATUS_SUSPENDED = 'suspended';
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
