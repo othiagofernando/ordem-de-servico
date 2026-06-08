@@ -8,10 +8,12 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\CustomerQuotePortalController;
 use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
+use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\TenantContextController;
@@ -31,6 +33,13 @@ Route::prefix('auth')->group(function (): void {
         ->name('api.v1.auth.passwordless.magic-link.request');
     Route::post('/passwordless/magic-link/consume', PasswordlessMagicLinkConsumeController::class)
         ->name('api.v1.auth.passwordless.magic-link.consume');
+});
+
+Route::prefix('portal')->group(function (): void {
+    Route::get('/quotes/{token}', [CustomerQuotePortalController::class, 'show'])
+        ->name('api.v1.portal.quotes.show');
+    Route::post('/quotes/{token}/decision', [CustomerQuotePortalController::class, 'decide'])
+        ->name('api.v1.portal.quotes.decision');
 });
 
 Route::middleware('auth.token')->group(function (): void {
@@ -88,6 +97,9 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/quotes', [QuoteRevisionController::class, 'store'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.quotes.store');
+    Route::post('/service-orders/{serviceOrder}/quotes/{quoteRevision}/portal-token', QuotePortalTokenController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.quotes.portal-token.regenerate');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');

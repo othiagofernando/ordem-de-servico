@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\ServiceOrders\Actions\IssueQuotePortalToken;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -45,6 +46,7 @@ class QuoteRevisionController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
+        IssueQuotePortalToken $issueQuotePortalToken,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
     ): JsonResponse {
         $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
@@ -84,7 +86,13 @@ class QuoteRevisionController extends Controller
             ], Response::HTTP_CONFLICT);
         }
 
-        $quote = DB::transaction(function () use ($visible, $payload, $membership, $recordTimelineEvent): QuoteRevision {
+        $quote = DB::transaction(function () use (
+            $visible,
+            $payload,
+            $membership,
+            $issueQuotePortalToken,
+            $recordTimelineEvent,
+        ): QuoteRevision {
             $nextRevisionNumber = ((int) $visible->quoteRevisions()->max('revision_number')) + 1;
             $lineItems = collect($payload['line_items'])->map(function (array $item): array {
                 return [
@@ -110,6 +118,8 @@ class QuoteRevisionController extends Controller
                 'submitted_at' => now(),
             ]);
 
+            $portalToken = $issueQuotePortalToken->handle($quote);
+
             $recordTimelineEvent->handle(
                 $visible,
                 type: 'quote_submitted',
@@ -123,14 +133,17 @@ class QuoteRevisionController extends Controller
                     'valid_until' => $quote->valid_until?->toIso8601String(),
                     'total_cents' => $quote->total_cents,
                     'currency' => $quote->currency,
+                    'portal_token_expires_at' => $portalToken['expires_at']->toIso8601String(),
                 ],
             );
 
-            return $quote;
+            return $quote->forceFill([
+                'plain_text_portal_token' => $portalToken['plain_text_token'],
+            ]);
         });
 
         return response()->json([
-            'data' => $this->serializeQuote($quote),
+            'data' => $this->serializeQuote($quote, includePlainTextPortalToken: true),
         ], Response::HTTP_CREATED);
     }
 
@@ -156,9 +169,9 @@ class QuoteRevisionController extends Controller
     /**
      * @return array<string, mixed>
      */
-    protected function serializeQuote(QuoteRevision $quote): array
+    protected function serializeQuote(QuoteRevision $quote, bool $includePlainTextPortalToken = false): array
     {
-        return [
+        $data = [
             'id' => $quote->getKey(),
             'service_order_id' => $quote->service_order_id,
             'revision_number' => $quote->revision_number,
@@ -169,11 +182,18 @@ class QuoteRevisionController extends Controller
             'notes' => $quote->notes,
             'valid_until' => $quote->valid_until?->toIso8601String(),
             'submitted_at' => $quote->submitted_at?->toIso8601String(),
+            'portal_token_expires_at' => $quote->portal_token_expires_at?->toIso8601String(),
             'decisioned_at' => $quote->decisioned_at?->toIso8601String(),
             'decision_token_hash' => $quote->decision_token_hash,
             'decision_ip' => $quote->decision_ip,
             'decision_user_agent' => $quote->decision_user_agent,
             'decision_idempotency_key' => $quote->decision_idempotency_key,
         ];
+
+        if ($includePlainTextPortalToken) {
+            $data['portal_token'] = $quote->plain_text_portal_token ?? null;
+        }
+
+        return $data;
     }
 }

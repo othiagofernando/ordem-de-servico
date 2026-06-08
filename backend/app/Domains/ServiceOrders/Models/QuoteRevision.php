@@ -19,6 +19,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'notes',
     'valid_until',
     'submitted_at',
+    'portal_token_hash',
+    'portal_token_expires_at',
     'decisioned_at',
     'decision_token_hash',
     'decision_ip',
@@ -46,6 +48,7 @@ class QuoteRevision extends Model
             'line_items' => AsArrayObject::class,
             'valid_until' => 'datetime',
             'submitted_at' => 'datetime',
+            'portal_token_expires_at' => 'datetime',
             'decisioned_at' => 'datetime',
         ];
     }
