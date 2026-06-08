@@ -79,6 +79,11 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/drafts/{serviceOrder}/open', [ServiceOrderController::class, 'openDraft'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.drafts.open');
+    Route::put('/service-orders/{serviceOrder}/diagnosis', [ServiceOrderController::class, 'updateDiagnosis'])
+        ->middleware('permission:service_orders.diagnose')
+        ->name('api.v1.service-orders.diagnosis.update');
+    Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
+        ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');

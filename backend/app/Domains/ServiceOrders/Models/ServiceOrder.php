@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'company_id',
@@ -29,6 +30,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'intake_checklist_template_version',
     'intake_checklist_template_snapshot',
     'equipment_snapshot',
+    'diagnosis_internal_notes',
+    'diagnosis_customer_summary',
+    'diagnosis_completed_at',
     'opened_at',
     'assigned_membership_id',
 ])]
@@ -49,6 +53,7 @@ class ServiceOrder extends Model
             'intake_checklist' => AsArrayObject::class,
             'intake_checklist_template_snapshot' => AsArrayObject::class,
             'equipment_snapshot' => AsArrayObject::class,
+            'diagnosis_completed_at' => 'datetime',
             'opened_at' => 'datetime',
         ];
     }
@@ -76,5 +81,10 @@ class ServiceOrder extends Model
     public function assignedMembership(): BelongsTo
     {
         return $this->belongsTo(Membership::class, 'assigned_membership_id');
+    }
+
+    public function timelineEvents(): HasMany
+    {
+        return $this->hasMany(ServiceOrderTimelineEvent::class)->orderBy('occurred_at')->orderBy('id');
     }
 }

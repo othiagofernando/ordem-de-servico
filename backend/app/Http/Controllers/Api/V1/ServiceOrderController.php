@@ -6,10 +6,12 @@ use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
 use App\Domains\ServiceOrders\Actions\OpenDraftServiceOrder;
+use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\ReserveDraftReference;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -46,6 +48,17 @@ class ServiceOrderController extends Controller
                 'reported_problem' => $payload['reported_problem'] ?? null,
                 'intake_checklist' => $payload['intake_checklist'] ?? null,
             ]);
+
+            app(RecordServiceOrderTimelineEvent::class)->handle(
+                $serviceOrder,
+                type: 'draft_intake_started',
+                title: 'Draft intake started',
+                visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
+                actorMembership: currentMembership(),
+                payload: [
+                    'draft_reference' => $draftReference,
+                ],
+            );
 
             return $serviceOrder->load(['customer', 'customerContact', 'equipment', 'assignedMembership']);
         });
@@ -113,6 +126,106 @@ class ServiceOrderController extends Controller
 
         return response()->json([
             'data' => $this->serializeServiceOrder($opened),
+        ]);
+    }
+
+    /**
+     * Record or update structured diagnosis on a visible service order.
+     *
+     * @group Service Orders
+     */
+    public function updateDiagnosis(
+        Request $request,
+        ServiceOrder $serviceOrder,
+        VisibleServiceOrders $visibleServiceOrders,
+        RecordServiceOrderTimelineEvent $recordTimelineEvent,
+    ): JsonResponse {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (! $membership->hasPermission('service_orders.diagnose')) {
+            return response()->json([
+                'message' => 'This membership cannot record diagnosis.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $diagnosable = $visibleServiceOrders->queryFor($membership)
+            ->whereKey($serviceOrder->getKey())
+            ->first();
+
+        abort_if($diagnosable === null, Response::HTTP_NOT_FOUND);
+
+        $payload = $request->validate([
+            'internal_notes' => ['required', 'string'],
+            'customer_summary' => ['required', 'string'],
+        ]);
+
+        $diagnosable->forceFill([
+            'diagnosis_internal_notes' => $payload['internal_notes'],
+            'diagnosis_customer_summary' => $payload['customer_summary'],
+            'diagnosis_completed_at' => now(),
+        ])->save();
+
+        $recordTimelineEvent->handle(
+            $diagnosable,
+            type: 'diagnosis_recorded',
+            title: 'Diagnosis recorded',
+            visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
+            actorMembership: $membership,
+        );
+
+        $recordTimelineEvent->handle(
+            $diagnosable,
+            type: 'diagnosis_customer_summary_updated',
+            title: 'Diagnosis customer summary updated',
+            visibility: ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER,
+            actorMembership: $membership,
+        );
+
+        return response()->json([
+            'data' => $this->serializeServiceOrder($diagnosable->fresh([
+                'customer',
+                'customerContact',
+                'equipment',
+                'assignedMembership',
+            ])),
+        ]);
+    }
+
+    /**
+     * Return the internal chronological timeline for a visible service order.
+     *
+     * @group Service Orders
+     */
+    public function timeline(ServiceOrder $serviceOrder, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $visible = $visibleServiceOrders->queryFor($membership)
+            ->whereKey($serviceOrder->getKey())
+            ->first();
+
+        abort_if($visible === null, Response::HTTP_NOT_FOUND);
+
+        $visible->load(['timelineEvents.actorMembership']);
+
+        return response()->json([
+            'data' => $visible->timelineEvents->map(fn (ServiceOrderTimelineEvent $event): array => [
+                'id' => $event->getKey(),
+                'type' => $event->type,
+                'title' => $event->title,
+                'visibility' => $event->visibility,
+                'payload' => $event->payload,
+                'occurred_at' => $event->occurred_at?->toIso8601String(),
+                'actor_membership_id' => $event->actor_membership_id,
+            ])->all(),
         ]);
     }
 
@@ -267,6 +380,9 @@ class ServiceOrderController extends Controller
             'intake_checklist_template_version' => $serviceOrder->intake_checklist_template_version,
             'intake_checklist_template_snapshot' => $serviceOrder->intake_checklist_template_snapshot,
             'equipment_snapshot' => $serviceOrder->equipment_snapshot,
+            'diagnosis_internal_notes' => $serviceOrder->diagnosis_internal_notes,
+            'diagnosis_customer_summary' => $serviceOrder->diagnosis_customer_summary,
+            'diagnosis_completed_at' => $serviceOrder->diagnosis_completed_at?->toIso8601String(),
             'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
             'assigned_membership_id' => $serviceOrder->assigned_membership_id,
         ];

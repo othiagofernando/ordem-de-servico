@@ -5,6 +5,7 @@ namespace App\Domains\ServiceOrders\Actions;
 use App\Domains\ServiceOrders\Models\CompanyServiceOrderCounter;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
@@ -36,6 +37,18 @@ class OpenDraftServiceOrder
                 'intake_checklist_template_snapshot' => $this->snapshotTemplate($template),
                 'equipment_snapshot' => $this->snapshotEquipment($serviceOrder),
             ])->save();
+
+            app(RecordServiceOrderTimelineEvent::class)->handle(
+                $serviceOrder,
+                type: 'service_order_opened',
+                title: 'Service order opened',
+                visibility: ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER,
+                actorMembership: currentMembership(),
+                payload: [
+                    'reference' => $serviceOrder->reference,
+                    'order_number' => $serviceOrder->order_number,
+                ],
+            );
 
             return $serviceOrder->fresh([
                 'customer',
