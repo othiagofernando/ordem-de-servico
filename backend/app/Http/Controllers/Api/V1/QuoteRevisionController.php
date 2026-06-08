@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\IssueQuotePortalToken;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
@@ -48,6 +49,7 @@ class QuoteRevisionController extends Controller
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
         IssueQuotePortalToken $issueQuotePortalToken,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -142,9 +144,35 @@ class QuoteRevisionController extends Controller
             ]);
         });
 
+        $this->queueQuoteAvailableNotification(
+            $queueCriticalServiceOrderNotification,
+            $visible->fresh(['customerContact', 'company']),
+            $quote->fresh(),
+        );
+
         return response()->json([
             'data' => $this->serializeQuote($quote, includePlainTextPortalToken: true),
         ], Response::HTTP_CREATED);
+    }
+
+    protected function queueQuoteAvailableNotification(
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
+        ServiceOrder $serviceOrder,
+        QuoteRevision $quote,
+    ): void {
+        $queueCriticalServiceOrderNotification->handle(
+            $serviceOrder,
+            'quote_available',
+            [
+                'service_order_reference' => $serviceOrder->reference,
+                'quote_revision_id' => $quote->getKey(),
+                'revision_number' => $quote->revision_number,
+                'valid_until' => $quote->valid_until?->toIso8601String(),
+                'total_cents' => $quote->total_cents,
+                'currency' => $quote->currency,
+            ],
+            $quote,
+        );
     }
 
     protected function resolveVisibleServiceOrder(

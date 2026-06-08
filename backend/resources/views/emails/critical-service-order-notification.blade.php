@@ -1,0 +1,19 @@
+<p>{{ $companyName }}</p>
+
+<p>{{ $delivery->subject }}</p>
+
+<p>Ordem de serviço: {{ $payload['service_order_reference'] ?? $delivery->serviceOrder?->reference }}</p>
+
+@if(isset($payload['valid_until']))
+<p>Validade: {{ $payload['valid_until'] }}</p>
+@endif
+
+@if(isset($payload['amount_cents']))
+<p>Valor: {{ $payload['amount_cents'] }} {{ $payload['currency'] ?? 'BRL' }}</p>
+@endif
+
+@if(isset($payload['payment_method']))
+<p>Método de pagamento: {{ $payload['payment_method'] }}</p>
+@endif
+
+<p>Contato da empresa: {{ $delivery->company?->name }}</p>

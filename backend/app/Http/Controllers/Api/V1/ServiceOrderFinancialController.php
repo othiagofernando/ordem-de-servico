@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
@@ -153,6 +154,7 @@ class ServiceOrderFinancialController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $visible = $this->resolveFinanceableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -220,8 +222,21 @@ class ServiceOrderFinancialController extends Controller
             );
         });
 
+        $fresh = $visible->fresh(['charges', 'payments', 'customer', 'customerContact', 'company']);
+
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'payment_receipt',
+            [
+                'service_order_reference' => $fresh->reference,
+                'amount_cents' => $payload['amount_cents'],
+                'currency' => strtoupper((string) ($payload['currency'] ?? 'BRL')),
+                'payment_method' => $payload['payment_method'],
+            ],
+        );
+
         return response()->json([
-            'data' => $this->serializeFinancials($visible->fresh(['charges', 'payments', 'customer'])),
+            'data' => $this->serializeFinancials($fresh),
         ], Response::HTTP_CREATED);
     }
 

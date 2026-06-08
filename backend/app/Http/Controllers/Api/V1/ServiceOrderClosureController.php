@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
@@ -23,6 +24,7 @@ class ServiceOrderClosureController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $visible = $this->resolveClosableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -47,8 +49,19 @@ class ServiceOrderClosureController extends Controller
             actorMembership: $membership,
         );
 
+        $fresh = $visible->fresh(['customerContact', 'company']);
+
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'ready_for_pickup',
+            [
+                'service_order_reference' => $fresh->reference,
+                'status' => $fresh->status,
+            ],
+        );
+
         return response()->json([
-            'data' => $this->serializeServiceOrder($visible->fresh()),
+            'data' => $this->serializeServiceOrder($fresh),
         ]);
     }
 
