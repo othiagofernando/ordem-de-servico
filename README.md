@@ -30,7 +30,17 @@ php artisan route:list
 Foundation endpoints:
 
 - `GET /api/v1/health`
+- `GET /api/v1/tenant/context`
 - `GET /docs`
+
+Tenant bootstrap:
+
+```bash
+cd backend
+php artisan company:bootstrap "Acme Assistencia" "Admin User" admin@example.com --password=secret
+```
+
+The command creates the first company administrator, company membership, and a company-bound API token for authenticated tenant requests.
 
 ## Frontend workflow
 
