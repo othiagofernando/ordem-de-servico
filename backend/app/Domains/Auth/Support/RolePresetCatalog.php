@@ -14,6 +14,9 @@ class RolePresetCatalog
                 'memberships.manage',
                 'customers.view_any',
                 'customers.manage',
+                'equipments.view_any',
+                'equipments.manage',
+                'equipments.override_serial_uniqueness',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
                 'service_orders.assign',
@@ -21,6 +24,9 @@ class RolePresetCatalog
             'manager' => [
                 'customers.view_any',
                 'customers.manage',
+                'equipments.view_any',
+                'equipments.manage',
+                'equipments.override_serial_uniqueness',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
                 'service_orders.assign',
@@ -28,6 +34,8 @@ class RolePresetCatalog
             'attendant' => [
                 'customers.view_any',
                 'customers.manage',
+                'equipments.view_any',
+                'equipments.manage',
                 'service_orders.view_any',
             ],
             'technician' => [

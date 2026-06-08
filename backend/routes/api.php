@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\CustomerController;
+use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
@@ -50,6 +51,18 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/customers/{customer}', [CustomerController::class, 'update'])
         ->middleware('permission:customers.manage')
         ->name('api.v1.customers.update');
+    Route::get('/equipments', [EquipmentController::class, 'index'])
+        ->middleware('permission:equipments.view_any')
+        ->name('api.v1.equipments.index');
+    Route::post('/equipments', [EquipmentController::class, 'store'])
+        ->middleware('permission:equipments.manage')
+        ->name('api.v1.equipments.store');
+    Route::get('/equipments/{equipment}', [EquipmentController::class, 'show'])
+        ->middleware('permission:equipments.view_any')
+        ->name('api.v1.equipments.show');
+    Route::put('/equipments/{equipment}', [EquipmentController::class, 'update'])
+        ->middleware('permission:equipments.manage')
+        ->name('api.v1.equipments.update');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');
