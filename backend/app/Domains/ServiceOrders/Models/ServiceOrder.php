@@ -184,4 +184,9 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(ServiceOrderPayment::class)->orderBy('id');
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(ServiceOrderAttachment::class)->orderBy('id');
+    }
 }

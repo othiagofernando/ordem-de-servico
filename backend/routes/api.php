@@ -16,6 +16,7 @@ use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
+use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
 use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
@@ -160,4 +161,10 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');
+    Route::get('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'index'])
+        ->name('api.v1.service-orders.attachments.index');
+    Route::post('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'store'])
+        ->name('api.v1.service-orders.attachments.store');
+    Route::get('/service-orders/{serviceOrder}/attachments/{attachment}/download', [ServiceOrderAttachmentController::class, 'download'])
+        ->name('api.v1.service-orders.attachments.download');
 });

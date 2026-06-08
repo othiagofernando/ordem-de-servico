@@ -3,7 +3,7 @@
 Foundation endpoints for the Ordem de Servico API-first platform.
 
 <aside>
-    <strong>Base URL</strong>: <code>http://localhost</code>
+    <strong>Base URL</strong>: <code>http://ordem-de-servico.test</code>
 </aside>
 
     This foundation slice documents the first executable API surface for the service-order platform.
