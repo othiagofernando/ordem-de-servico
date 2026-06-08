@@ -25,6 +25,14 @@ class CurrentCompanyContext
         $this->apiToken = $apiToken;
     }
 
+    public function clear(): void
+    {
+        $this->company = null;
+        $this->membership = null;
+        $this->user = null;
+        $this->apiToken = null;
+    }
+
     public function company(): ?Company
     {
         return $this->company;

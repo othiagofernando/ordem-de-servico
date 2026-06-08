@@ -63,6 +63,15 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/equipments/{equipment}', [EquipmentController::class, 'update'])
         ->middleware('permission:equipments.manage')
         ->name('api.v1.equipments.update');
+    Route::post('/service-orders/drafts', [ServiceOrderController::class, 'storeDraft'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.drafts.store');
+    Route::put('/service-orders/drafts/{serviceOrder}', [ServiceOrderController::class, 'updateDraft'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.drafts.update');
+    Route::post('/service-orders/drafts/{serviceOrder}/open', [ServiceOrderController::class, 'openDraft'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.drafts.open');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');

@@ -19,6 +19,7 @@ class RolePresetCatalog
                 'equipments.override_serial_uniqueness',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
+                'service_orders.manage',
                 'service_orders.assign',
             ],
             'manager' => [
@@ -29,6 +30,7 @@ class RolePresetCatalog
                 'equipments.override_serial_uniqueness',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
+                'service_orders.manage',
                 'service_orders.assign',
             ],
             'attendant' => [
@@ -37,6 +39,7 @@ class RolePresetCatalog
                 'equipments.view_any',
                 'equipments.manage',
                 'service_orders.view_any',
+                'service_orders.manage',
             ],
             'technician' => [
                 'service_orders.view_assigned',

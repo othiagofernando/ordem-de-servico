@@ -157,7 +157,16 @@ Returns a successful health payload when the API is bootable.</a>
                     <a href="#service-orders">Service Orders</a>
                 </li>
                                     <ul id="tocify-subheader-service-orders" class="tocify-subheader">
-                                                    <li class="tocify-item level-2" data-unique="service-orders-GETapi-v1-service-orders">
+                                                    <li class="tocify-item level-2" data-unique="service-orders-POSTapi-v1-service-orders-drafts">
+                                <a href="#service-orders-POSTapi-v1-service-orders-drafts">Create a draft intake record with a temporary visible reference.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="service-orders-PUTapi-v1-service-orders-drafts--serviceOrder_id-">
+                                <a href="#service-orders-PUTapi-v1-service-orders-drafts--serviceOrder_id-">Update an existing draft intake record so staff can resume and complete it later.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="service-orders-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">
+                                <a href="#service-orders-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">Formally open a service order once minimum intake data has been completed.</a>
+                            </li>
+                                                                                <li class="tocify-item level-2" data-unique="service-orders-GETapi-v1-service-orders">
                                 <a href="#service-orders-GETapi-v1-service-orders">List tenant-scoped service orders visible to the active membership.</a>
                             </li>
                                                                                 <li class="tocify-item level-2" data-unique="service-orders-GETapi-v1-service-orders--serviceOrder_id-">
@@ -2528,7 +2537,366 @@ You can check the Dev Tools console for debugging information.</code></pre>
 
     <p>Applies the first record-scope rule: technicians only see service orders assigned to them.</p>
 
-                                <h2 id="service-orders-GETapi-v1-service-orders">List tenant-scoped service orders visible to the active membership.</h2>
+                                <h2 id="service-orders-POSTapi-v1-service-orders-drafts">Create a draft intake record with a temporary visible reference.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-service-orders-drafts">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://localhost/api/v1/service-orders/drafts" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://localhost/api/v1/service-orders/drafts"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-service-orders-drafts">
+</span>
+<span id="execution-results-POSTapi-v1-service-orders-drafts" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-service-orders-drafts"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-service-orders-drafts"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-service-orders-drafts" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-service-orders-drafts">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-service-orders-drafts" data-method="POST"
+      data-path="api/v1/service-orders/drafts"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-service-orders-drafts', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-service-orders-drafts"
+                    onclick="tryItOut('POSTapi-v1-service-orders-drafts');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-service-orders-drafts"
+                    onclick="cancelTryOut('POSTapi-v1-service-orders-drafts');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-service-orders-drafts"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/service-orders/drafts</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-service-orders-drafts"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-service-orders-drafts"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        </form>
+
+                    <h2 id="service-orders-PUTapi-v1-service-orders-drafts--serviceOrder_id-">Update an existing draft intake record so staff can resume and complete it later.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-PUTapi-v1-service-orders-drafts--serviceOrder_id-">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request PUT \
+    "http://localhost/api/v1/service-orders/drafts/16" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://localhost/api/v1/service-orders/drafts/16"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "PUT",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-PUTapi-v1-service-orders-drafts--serviceOrder_id-">
+</span>
+<span id="execution-results-PUTapi-v1-service-orders-drafts--serviceOrder_id-" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-PUTapi-v1-service-orders-drafts--serviceOrder_id-"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-PUTapi-v1-service-orders-drafts--serviceOrder_id-" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-PUTapi-v1-service-orders-drafts--serviceOrder_id-">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-PUTapi-v1-service-orders-drafts--serviceOrder_id-" data-method="PUT"
+      data-path="api/v1/service-orders/drafts/{serviceOrder_id}"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('PUTapi-v1-service-orders-drafts--serviceOrder_id-', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+                    onclick="tryItOut('PUTapi-v1-service-orders-drafts--serviceOrder_id-');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+                    onclick="cancelTryOut('PUTapi-v1-service-orders-drafts--serviceOrder_id-');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-darkblue">PUT</small>
+            <b><code>api/v1/service-orders/drafts/{serviceOrder_id}</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>serviceOrder_id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="serviceOrder_id"                data-endpoint="PUTapi-v1-service-orders-drafts--serviceOrder_id-"
+               value="16"
+               data-component="url">
+    <br>
+<p>The ID of the serviceOrder. Example: <code>16</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="service-orders-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">Formally open a service order once minimum intake data has been completed.</h2>
+
+<p>
+</p>
+
+
+
+<span id="example-requests-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">
+<blockquote>Example request:</blockquote>
+
+
+<div class="bash-example">
+    <pre><code class="language-bash">curl --request POST \
+    "http://localhost/api/v1/service-orders/drafts/16/open" \
+    --header "Content-Type: application/json" \
+    --header "Accept: application/json"</code></pre></div>
+
+
+<div class="javascript-example">
+    <pre><code class="language-javascript">const url = new URL(
+    "http://localhost/api/v1/service-orders/drafts/16/open"
+);
+
+const headers = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+};
+
+
+fetch(url, {
+    method: "POST",
+    headers,
+}).then(response =&gt; response.json());</code></pre></div>
+
+</span>
+
+<span id="example-responses-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">
+</span>
+<span id="execution-results-POSTapi-v1-service-orders-drafts--serviceOrder_id--open" hidden>
+    <blockquote>Received response<span
+                id="execution-response-status-POSTapi-v1-service-orders-drafts--serviceOrder_id--open"></span>:
+    </blockquote>
+    <pre class="json"><code id="execution-response-content-POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+      data-empty-response-text="<Empty response>" style="max-height: 400px;"></code></pre>
+</span>
+<span id="execution-error-POSTapi-v1-service-orders-drafts--serviceOrder_id--open" hidden>
+    <blockquote>Request failed with error:</blockquote>
+    <pre><code id="execution-error-message-POSTapi-v1-service-orders-drafts--serviceOrder_id--open">
+
+Tip: Check that you&#039;re properly connected to the network.
+If you&#039;re a maintainer of ths API, verify that your API is running and you&#039;ve enabled CORS.
+You can check the Dev Tools console for debugging information.</code></pre>
+</span>
+<form id="form-POSTapi-v1-service-orders-drafts--serviceOrder_id--open" data-method="POST"
+      data-path="api/v1/service-orders/drafts/{serviceOrder_id}/open"
+      data-authed="0"
+      data-hasfiles="0"
+      data-isarraybody="0"
+      autocomplete="off"
+      onsubmit="event.preventDefault(); executeTryOut('POSTapi-v1-service-orders-drafts--serviceOrder_id--open', this);">
+    <h3>
+        Request&nbsp;&nbsp;&nbsp;
+                    <button type="button"
+                    style="background-color: #8fbcd4; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-tryout-POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+                    onclick="tryItOut('POSTapi-v1-service-orders-drafts--serviceOrder_id--open');">Try it out ⚡
+            </button>
+            <button type="button"
+                    style="background-color: #c97a7e; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-canceltryout-POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+                    onclick="cancelTryOut('POSTapi-v1-service-orders-drafts--serviceOrder_id--open');" hidden>Cancel 🛑
+            </button>&nbsp;&nbsp;
+            <button type="submit"
+                    style="background-color: #6ac174; padding: 5px 10px; border-radius: 5px; border-width: thin;"
+                    id="btn-executetryout-POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+                    data-initial-text="Send Request 💥"
+                    data-loading-text="⏱ Sending..."
+                    hidden>Send Request 💥
+            </button>
+            </h3>
+            <p>
+            <small class="badge badge-black">POST</small>
+            <b><code>api/v1/service-orders/drafts/{serviceOrder_id}/open</code></b>
+        </p>
+                <h4 class="fancy-heading-panel"><b>Headers</b></h4>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Content-Type</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Content-Type"                data-endpoint="POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                                <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>Accept</code></b>&nbsp;&nbsp;
+&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="text" style="display: none"
+                              name="Accept"                data-endpoint="POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+               value="application/json"
+               data-component="header">
+    <br>
+<p>Example: <code>application/json</code></p>
+            </div>
+                        <h4 class="fancy-heading-panel"><b>URL Parameters</b></h4>
+                    <div style="padding-left: 28px; clear: unset;">
+                <b style="line-height: 2;"><code>serviceOrder_id</code></b>&nbsp;&nbsp;
+<small>integer</small>&nbsp;
+ &nbsp;
+ &nbsp;
+                <input type="number" style="display: none"
+               step="any"               name="serviceOrder_id"                data-endpoint="POSTapi-v1-service-orders-drafts--serviceOrder_id--open"
+               value="16"
+               data-component="url">
+    <br>
+<p>The ID of the serviceOrder. Example: <code>16</code></p>
+            </div>
+                    </form>
+
+                    <h2 id="service-orders-GETapi-v1-service-orders">List tenant-scoped service orders visible to the active membership.</h2>
 
 <p>
 </p>

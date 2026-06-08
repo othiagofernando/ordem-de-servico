@@ -4,14 +4,63 @@ namespace App\Domains\ServiceOrders\Models;
 
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Companies\Concerns\BelongsToCompany;
+use App\Domains\Customers\Models\Customer;
+use App\Domains\Customers\Models\CustomerContact;
+use App\Domains\Equipments\Models\Equipment;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['company_id', 'reference', 'title', 'status', 'assigned_membership_id'])]
+#[Fillable([
+    'company_id',
+    'customer_id',
+    'customer_contact_id',
+    'equipment_id',
+    'reference',
+    'draft_reference',
+    'order_number',
+    'title',
+    'status',
+    'equipment_description',
+    'reported_problem',
+    'intake_checklist',
+    'opened_at',
+    'assigned_membership_id',
+])]
 class ServiceOrder extends Model
 {
     use BelongsToCompany;
+
+    public const STATUS_DRAFT = 'draft';
+
+    public const STATUS_OPEN = 'open';
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'intake_checklist' => AsArrayObject::class,
+            'opened_at' => 'datetime',
+        ];
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
+    }
+
+    public function customerContact(): BelongsTo
+    {
+        return $this->belongsTo(CustomerContact::class);
+    }
+
+    public function equipment(): BelongsTo
+    {
+        return $this->belongsTo(Equipment::class);
+    }
 
     public function assignedMembership(): BelongsTo
     {
