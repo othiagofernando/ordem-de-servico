@@ -12,16 +12,22 @@ class RolePresetCatalog
         return [
             'administrator' => [
                 'memberships.manage',
+                'customers.view_any',
+                'customers.manage',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
                 'service_orders.assign',
             ],
             'manager' => [
+                'customers.view_any',
+                'customers.manage',
                 'service_orders.view_any',
                 'service_orders.view_assigned',
                 'service_orders.assign',
             ],
             'attendant' => [
+                'customers.view_any',
+                'customers.manage',
                 'service_orders.view_any',
             ],
             'technician' => [

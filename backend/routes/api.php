@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkConsumeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
+use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
@@ -37,6 +38,18 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/tenant/memberships/{membership}/authorization', MembershipAuthorizationController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.authorization.update');
+    Route::get('/customers', [CustomerController::class, 'index'])
+        ->middleware('permission:customers.view_any')
+        ->name('api.v1.customers.index');
+    Route::post('/customers', [CustomerController::class, 'store'])
+        ->middleware('permission:customers.manage')
+        ->name('api.v1.customers.store');
+    Route::get('/customers/{customer}', [CustomerController::class, 'show'])
+        ->middleware('permission:customers.view_any')
+        ->name('api.v1.customers.show');
+    Route::put('/customers/{customer}', [CustomerController::class, 'update'])
+        ->middleware('permission:customers.manage')
+        ->name('api.v1.customers.update');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');
