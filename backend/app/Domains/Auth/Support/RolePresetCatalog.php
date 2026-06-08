@@ -24,6 +24,7 @@ class RolePresetCatalog
                 'service_orders.diagnose',
                 'service_orders.execute',
                 'service_orders.finance',
+                'service_orders.override_delivery_balance',
             ],
             'manager' => [
                 'customers.view_any',
@@ -38,6 +39,7 @@ class RolePresetCatalog
                 'service_orders.diagnose',
                 'service_orders.execute',
                 'service_orders.finance',
+                'service_orders.override_delivery_balance',
             ],
             'attendant' => [
                 'customers.view_any',

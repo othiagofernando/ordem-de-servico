@@ -37,6 +37,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'execution_started_by_membership_id',
     'final_test_results',
     'technical_completed_at',
+    'delivered_at',
+    'delivered_by_membership_id',
+    'received_by_name',
+    'delivery_notes',
+    'terminalized_at',
+    'terminalized_by_membership_id',
+    'terminal_notes',
     'opened_at',
     'assigned_membership_id',
 ])]
@@ -54,6 +61,12 @@ class ServiceOrder extends Model
 
     public const STATUS_READY_FOR_PICKUP = 'ready_for_pickup';
 
+    public const STATUS_DELIVERED = 'delivered';
+
+    public const STATUS_CANCELLED = 'cancelled';
+
+    public const STATUS_NO_REPAIR = 'no_repair';
+
     /**
      * @return array<string, string>
      */
@@ -67,6 +80,8 @@ class ServiceOrder extends Model
             'diagnosis_completed_at' => 'datetime',
             'execution_started_at' => 'datetime',
             'technical_completed_at' => 'datetime',
+            'delivered_at' => 'datetime',
+            'terminalized_at' => 'datetime',
             'opened_at' => 'datetime',
         ];
     }
@@ -99,6 +114,16 @@ class ServiceOrder extends Model
     public function executionStartedByMembership(): BelongsTo
     {
         return $this->belongsTo(Membership::class, 'execution_started_by_membership_id');
+    }
+
+    public function deliveredByMembership(): BelongsTo
+    {
+        return $this->belongsTo(Membership::class, 'delivered_by_membership_id');
+    }
+
+    public function terminalizedByMembership(): BelongsTo
+    {
+        return $this->belongsTo(Membership::class, 'terminalized_by_membership_id');
     }
 
     public function timelineEvents(): HasMany

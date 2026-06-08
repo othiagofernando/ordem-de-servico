@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
+use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
@@ -126,6 +127,18 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/financials/payments', [ServiceOrderFinancialController::class, 'recordPayment'])
         ->middleware('permission:service_orders.finance')
         ->name('api.v1.service-orders.financials.payments.store');
+    Route::post('/service-orders/{serviceOrder}/ready-for-pickup', [ServiceOrderClosureController::class, 'readyForPickup'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.ready-for-pickup');
+    Route::post('/service-orders/{serviceOrder}/delivery', [ServiceOrderClosureController::class, 'deliver'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.delivery');
+    Route::post('/service-orders/{serviceOrder}/close/cancel', [ServiceOrderClosureController::class, 'cancel'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.close.cancel');
+    Route::post('/service-orders/{serviceOrder}/close/no-repair', [ServiceOrderClosureController::class, 'noRepair'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.close.no-repair');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
