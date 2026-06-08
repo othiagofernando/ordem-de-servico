@@ -87,4 +87,9 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(ServiceOrderTimelineEvent::class)->orderBy('occurred_at')->orderBy('id');
     }
+
+    public function quoteRevisions(): HasMany
+    {
+        return $this->hasMany(QuoteRevision::class)->orderBy('revision_number');
+    }
 }

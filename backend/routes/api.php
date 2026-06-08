@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
+use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
@@ -82,6 +83,11 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/service-orders/{serviceOrder}/diagnosis', [ServiceOrderController::class, 'updateDiagnosis'])
         ->middleware('permission:service_orders.diagnose')
         ->name('api.v1.service-orders.diagnosis.update');
+    Route::get('/service-orders/{serviceOrder}/quotes', [QuoteRevisionController::class, 'index'])
+        ->name('api.v1.service-orders.quotes.index');
+    Route::post('/service-orders/{serviceOrder}/quotes', [QuoteRevisionController::class, 'store'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.quotes.store');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
