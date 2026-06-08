@@ -19,6 +19,7 @@ use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
+use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use Illuminate\Support\Facades\Route;
@@ -139,6 +140,12 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/close/no-repair', [ServiceOrderClosureController::class, 'noRepair'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.close.no-repair');
+    Route::post('/service-orders/{serviceOrder}/warranty-returns', [ServiceOrderWarrantyController::class, 'store'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.warranty-returns.store');
+    Route::patch('/service-orders/{serviceOrder}/warranty-coverage', [ServiceOrderWarrantyController::class, 'decide'])
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.warranty-coverage.update');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');

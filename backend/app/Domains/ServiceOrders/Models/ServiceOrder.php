@@ -44,6 +44,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'terminalized_at',
     'terminalized_by_membership_id',
     'terminal_notes',
+    'warranty_origin_service_order_id',
+    'warranty_signal_status',
+    'warranty_signal_reason',
+    'warranty_signal_expires_at',
+    'warranty_decision_status',
+    'warranty_decision_override',
+    'warranty_decision_notes',
+    'warranty_decided_at',
+    'warranty_decided_by_membership_id',
     'opened_at',
     'assigned_membership_id',
 ])]
@@ -67,6 +76,18 @@ class ServiceOrder extends Model
 
     public const STATUS_NO_REPAIR = 'no_repair';
 
+    public const WARRANTY_SIGNAL_ELIGIBLE = 'eligible';
+
+    public const WARRANTY_SIGNAL_INELIGIBLE = 'ineligible';
+
+    public const WARRANTY_SIGNAL_UNKNOWN = 'unknown';
+
+    public const WARRANTY_DECISION_PENDING = 'pending_inspection';
+
+    public const WARRANTY_DECISION_COVERED = 'covered';
+
+    public const WARRANTY_DECISION_NOT_COVERED = 'not_covered';
+
     /**
      * @return array<string, string>
      */
@@ -82,6 +103,9 @@ class ServiceOrder extends Model
             'technical_completed_at' => 'datetime',
             'delivered_at' => 'datetime',
             'terminalized_at' => 'datetime',
+            'warranty_signal_expires_at' => 'datetime',
+            'warranty_decision_override' => 'boolean',
+            'warranty_decided_at' => 'datetime',
             'opened_at' => 'datetime',
         ];
     }
@@ -124,6 +148,16 @@ class ServiceOrder extends Model
     public function terminalizedByMembership(): BelongsTo
     {
         return $this->belongsTo(Membership::class, 'terminalized_by_membership_id');
+    }
+
+    public function warrantyOriginServiceOrder(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'warranty_origin_service_order_id');
+    }
+
+    public function warrantyDecidedByMembership(): BelongsTo
+    {
+        return $this->belongsTo(Membership::class, 'warranty_decided_by_membership_id');
     }
 
     public function timelineEvents(): HasMany
