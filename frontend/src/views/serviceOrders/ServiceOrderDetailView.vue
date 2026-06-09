@@ -405,18 +405,24 @@ const uploadLoading = ref(false)
 const uploadType = ref('intake_photo')
 const showUploadForm = ref(false)
 const uploadError = ref('')
+const signedServiceOrderCopyType = 'signed_service_order_copy'
 
 const attachmentTypeLabels: Record<string, string> = {
   intake_photo: 'Foto de Entrada',
   diagnostic_image: 'Imagem Diagnóstico',
   receipt: 'Recibo',
   term: 'Termo',
+  signed_service_order_copy: 'Via Assinada da O.S.',
   other: 'Outro',
 }
 
 function attachmentTypeLabel(type: string) {
   return attachmentTypeLabels[type] ?? type
 }
+
+const hasSignedServiceOrderCopy = computed(() =>
+  attachments.value.some((attachment) => attachment.attachment_type === signedServiceOrderCopyType),
+)
 
 async function uploadAttachment(e: Event) {
   const input = e.target as HTMLInputElement
@@ -1206,6 +1212,7 @@ async function downloadAttachment(attachmentId: number) {
                 <option value="diagnostic_image">Imagem Diagnóstico</option>
                 <option value="receipt">Recibo</option>
                 <option value="term">Termo</option>
+                <option :value="signedServiceOrderCopyType">Via Assinada da O.S.</option>
                 <option value="other">Outro</option>
               </select>
               <label class="cursor-pointer whitespace-nowrap rounded-xl border border-amber-500/30 px-4 py-2.5 text-sm text-amber-400 transition hover:bg-amber-500/10">
@@ -1214,6 +1221,12 @@ async function downloadAttachment(attachmentId: number) {
               </label>
             </div>
             <p v-if="uploadError" class="text-xs text-red-400">{{ uploadError }}</p>
+          </div>
+          <div
+            v-if="hasSignedServiceOrderCopy"
+            class="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
+          >
+            Via assinada da O.S. já vinculada a este atendimento.
           </div>
           <div v-if="attachments.length === 0" class="text-sm text-stone-500">Nenhum anexo.</div>
           <div v-else class="space-y-2">

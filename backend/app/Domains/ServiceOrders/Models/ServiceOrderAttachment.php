@@ -31,6 +31,8 @@ class ServiceOrderAttachment extends Model
 
     public const TYPE_TERM = 'term';
 
+    public const TYPE_SIGNED_SERVICE_ORDER_COPY = 'signed_service_order_copy';
+
     public const TYPE_OTHER = 'other';
 
     public const ALLOWED_TYPES = [
@@ -38,6 +40,7 @@ class ServiceOrderAttachment extends Model
         self::TYPE_DIAGNOSTIC_IMAGE,
         self::TYPE_RECEIPT,
         self::TYPE_TERM,
+        self::TYPE_SIGNED_SERVICE_ORDER_COPY,
         self::TYPE_OTHER,
     ];
 

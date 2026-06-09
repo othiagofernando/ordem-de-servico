@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
@@ -41,6 +42,7 @@ class ServiceOrderAttachmentController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
         $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -75,10 +77,12 @@ class ServiceOrderAttachmentController extends Controller
             'notes' => $payload['notes'] ?? null,
         ]);
 
+        $isSignedServiceOrderCopy = $attachment->attachment_type === ServiceOrderAttachment::TYPE_SIGNED_SERVICE_ORDER_COPY;
+
         $recordTimelineEvent->handle(
             $visible,
-            type: 'attachment_added',
-            title: 'Attachment added',
+            type: $isSignedServiceOrderCopy ? 'signed_service_order_copy_uploaded' : 'attachment_added',
+            title: $isSignedServiceOrderCopy ? 'Signed service order copy uploaded' : 'Attachment added',
             visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
             actorMembership: $membership,
             payload: [
@@ -87,6 +91,27 @@ class ServiceOrderAttachmentController extends Controller
                 'file_name' => $attachment->file_name,
             ],
         );
+
+        if ($isSignedServiceOrderCopy) {
+            $recordBusinessAudit->handle(
+                $visible->company_id,
+                'document',
+                'service_order_signed_copy_uploaded',
+                auditable: $visible,
+                actorMembership: $membership,
+                context: [
+                    'service_order_id' => $visible->getKey(),
+                    'attachment_id' => $attachment->getKey(),
+                    'attachment_type' => $attachment->attachment_type,
+                ],
+                afterValues: [
+                    'file_name' => $attachment->file_name,
+                    'mime_type' => $attachment->mime_type,
+                    'file_size_bytes' => $attachment->file_size_bytes,
+                    'notes' => $attachment->notes,
+                ],
+            );
+        }
 
         return response()->json([
             'data' => $this->serialize($attachment),

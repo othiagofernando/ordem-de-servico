@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Domains\Auditing\Models\BusinessAudit;
 use App\Domains\Auth\Actions\IssueApiToken;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Companies\Models\Company;
@@ -212,6 +213,50 @@ class ServiceOrderAttachmentTest extends TestCase
             'service_order_id' => $serviceOrderId,
             'type' => 'attachment_added',
         ]);
+    }
+
+    public function test_signed_service_order_copy_is_explicitly_identified_and_audited(): void
+    {
+        Storage::fake('local');
+
+        [$managerToken, $serviceOrderId] = $this->createOpenOrderScenario();
+
+        $uploadResponse = $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/attachments', [
+                'attachment_type' => ServiceOrderAttachment::TYPE_SIGNED_SERVICE_ORDER_COPY,
+                'notes' => 'Via assinada recebida no balcão.',
+                'file' => UploadedFile::fake()->create('os-assinada.pdf', 180, 'application/pdf'),
+            ]);
+
+        $uploadResponse->assertCreated()
+            ->assertJsonPath('data.attachment_type', ServiceOrderAttachment::TYPE_SIGNED_SERVICE_ORDER_COPY)
+            ->assertJsonPath('data.file_name', 'os-assinada.pdf');
+
+        $listResponse = $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/attachments');
+
+        $listResponse->assertOk()
+            ->assertJsonFragment([
+                'attachment_type' => ServiceOrderAttachment::TYPE_SIGNED_SERVICE_ORDER_COPY,
+                'file_name' => 'os-assinada.pdf',
+            ]);
+
+        $this->assertDatabaseHas('service_order_timeline_events', [
+            'service_order_id' => $serviceOrderId,
+            'type' => 'signed_service_order_copy_uploaded',
+            'title' => 'Signed service order copy uploaded',
+        ]);
+
+        $audit = BusinessAudit::query()
+            ->withoutGlobalScopes()
+            ->where('event_type', 'service_order_signed_copy_uploaded')
+            ->first();
+
+        $this->assertNotNull($audit);
+        $this->assertSame('document', $audit->category);
+        $this->assertSame($serviceOrderId, $audit->context['service_order_id'] ?? null);
+        $this->assertSame(ServiceOrderAttachment::TYPE_SIGNED_SERVICE_ORDER_COPY, $audit->context['attachment_type'] ?? null);
+        $this->assertSame('os-assinada.pdf', $audit->after_values['file_name'] ?? null);
     }
 
     /**
