@@ -330,9 +330,32 @@ class ServiceOrderController extends Controller
 
         return response()->json([
             'data' => [
+                'scope' => [
+                    'mode' => $membership->hasPermission('service_orders.view_any') ? 'tenant' : 'assigned',
+                    'membership_id' => $membership->getKey(),
+                    'membership_name' => $membership->user?->name,
+                ],
                 'filters' => $request->only(['q', 'queue', 'assigned_membership_id', 'status']),
                 'totals' => [
                     'service_orders' => $serviceOrders->count(),
+                ],
+                'queues' => $this->summarizeOperationalQueues($serviceOrders),
+                'attention' => [
+                    'unassigned_open' => $serviceOrders
+                        ->where('status', ServiceOrder::STATUS_OPEN)
+                        ->whereNull('assigned_membership_id')
+                        ->count(),
+                    'pending_quote' => $serviceOrders
+                        ->filter(fn (ServiceOrder $serviceOrder): bool => $serviceOrder->quoteRevisions
+                            ->contains(fn (QuoteRevision $quoteRevision): bool => $quoteRevision->status === QuoteRevision::STATUS_PENDING))
+                        ->count(),
+                    'ready_for_pickup' => $serviceOrders
+                        ->where('status', ServiceOrder::STATUS_READY_FOR_PICKUP)
+                        ->count(),
+                    'warranty_pending_review' => $serviceOrders
+                        ->whereNotNull('warranty_origin_service_order_id')
+                        ->whereNull('warranty_decision_status')
+                        ->count(),
                 ],
                 'by_status' => $serviceOrders
                     ->groupBy('status')
@@ -351,6 +374,7 @@ class ServiceOrderController extends Controller
                             'service_order_count' => $orders->count(),
                         ];
                     })
+                    ->sortByDesc('service_order_count')
                     ->values()
                     ->all(),
                 'quote_outcomes' => $serviceOrders
@@ -378,6 +402,31 @@ class ServiceOrderController extends Controller
                 ],
             ],
         ]);
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    protected function summarizeOperationalQueues(Collection $serviceOrders): array
+    {
+        return [
+            'drafts' => $serviceOrders->where('status', ServiceOrder::STATUS_DRAFT)->count(),
+            'open' => $serviceOrders->where('status', ServiceOrder::STATUS_OPEN)->count(),
+            'pending_quote' => $serviceOrders
+                ->filter(fn (ServiceOrder $serviceOrder): bool => $serviceOrder->quoteRevisions
+                    ->contains(fn (QuoteRevision $quoteRevision): bool => $quoteRevision->status === QuoteRevision::STATUS_PENDING))
+                ->count(),
+            'in_progress' => $serviceOrders->where('status', ServiceOrder::STATUS_IN_PROGRESS)->count(),
+            'ready_for_pickup' => $serviceOrders->where('status', ServiceOrder::STATUS_READY_FOR_PICKUP)->count(),
+            'terminal' => $serviceOrders
+                ->whereIn('status', [
+                    ServiceOrder::STATUS_DELIVERED,
+                    ServiceOrder::STATUS_CANCELLED,
+                    ServiceOrder::STATUS_NO_REPAIR,
+                ])
+                ->count(),
+            'warranty_returns' => $serviceOrders->whereNotNull('warranty_origin_service_order_id')->count(),
+        ];
     }
 
     /**

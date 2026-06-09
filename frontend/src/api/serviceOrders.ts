@@ -81,11 +81,28 @@ export type ServiceOrderQueue =
   | 'warranty_returns'
 
 export interface OverviewData {
+  scope: {
+    mode: 'tenant' | 'assigned'
+    membership_id: number
+    membership_name: string | null
+  }
+  filters: Record<string, unknown>
   totals: { service_orders: number }
+  queues: Record<string, number>
+  attention: {
+    unassigned_open: number
+    pending_quote: number
+    ready_for_pickup: number
+    warranty_pending_review: number
+  }
   by_status: Record<string, number>
   technician_workload: Array<{ assigned_membership_id: number; assigned_membership_name: string | null; service_order_count: number }>
   quote_outcomes: Record<string, number>
   received_amounts: { total_received_cents: number; by_payment_method: Record<string, number> }
+  warranty_returns: {
+    total: number
+    by_decision_status: Record<string, number>
+  }
 }
 
 export function listServiceOrders(params?: { q?: string; queue?: ServiceOrderQueue; status?: string[] }) {

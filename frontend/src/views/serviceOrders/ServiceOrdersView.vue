@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
-import { RouterLink, useRoute } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { listServiceOrders, type ServiceOrder, type ServiceOrderQueue } from '../../api/serviceOrders'
 
 const route = useRoute()
+const router = useRouter()
 const orders = ref<ServiceOrder[]>([])
 const total = ref(0)
 const loading = ref(true)
@@ -46,19 +47,58 @@ async function load() {
   }
 }
 
+function normalizedQueue(value: unknown): ServiceOrderQueue | '' {
+  if (
+    value === 'drafts' ||
+    value === 'open' ||
+    value === 'pending_quote' ||
+    value === 'in_progress' ||
+    value === 'ready_for_pickup' ||
+    value === 'terminal' ||
+    value === 'warranty_returns'
+  ) {
+    return value
+  }
+
+  return ''
+}
+
+function syncStateFromRoute() {
+  q.value = typeof route.query.q === 'string' ? route.query.q : ''
+  activeQueue.value = normalizedQueue(route.query.queue)
+}
+
+function syncRouteQuery(nextQueue: ServiceOrderQueue | '', nextSearch: string) {
+  const queue = nextQueue || undefined
+  const search = nextSearch.trim() || undefined
+
+  if (route.query.queue === queue && route.query.q === search) {
+    return
+  }
+
+  router.replace({
+    name: 'service-orders',
+    query: {
+      ...route.query,
+      queue,
+      q: search,
+    },
+  })
+}
+
 watch(q, () => {
   clearTimeout(searchTimer)
-  searchTimer = setTimeout(load, 300)
+  searchTimer = setTimeout(() => syncRouteQuery(activeQueue.value, q.value), 300)
 })
 
-watch(activeQueue, load)
+watch(activeQueue, (value) => syncRouteQuery(value, q.value))
 
-onMounted(() => {
-  if (route.query.status) {
-    // handled by status filter in queue
-  }
+watch(() => [route.query.queue, route.query.q], () => {
+  syncStateFromRoute()
   load()
-})
+}, { immediate: true })
+
+onMounted(syncStateFromRoute)
 
 function formatDate(dt: string | null) {
   if (!dt) return '—'

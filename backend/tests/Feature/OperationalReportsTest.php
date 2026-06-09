@@ -68,8 +68,19 @@ class OperationalReportsTest extends TestCase
         $this->withToken($managerToken)
             ->getJson('/api/v1/service-orders/reports/overview')
             ->assertOk()
-            ->assertJsonPath('data.totals.service_orders', 4)
-            ->assertJsonPath('data.by_status.open', 1)
+            ->assertJsonPath('data.scope.mode', 'tenant')
+            ->assertJsonPath('data.totals.service_orders', 5)
+            ->assertJsonPath('data.queues.open', 2)
+            ->assertJsonPath('data.queues.pending_quote', 1)
+            ->assertJsonPath('data.queues.in_progress', 1)
+            ->assertJsonPath('data.queues.ready_for_pickup', 1)
+            ->assertJsonPath('data.queues.terminal', 1)
+            ->assertJsonPath('data.queues.warranty_returns', 1)
+            ->assertJsonPath('data.attention.unassigned_open', 1)
+            ->assertJsonPath('data.attention.pending_quote', 1)
+            ->assertJsonPath('data.attention.ready_for_pickup', 1)
+            ->assertJsonPath('data.attention.warranty_pending_review', 0)
+            ->assertJsonPath('data.by_status.open', 2)
             ->assertJsonPath('data.by_status.in_progress', 1)
             ->assertJsonPath('data.by_status.ready_for_pickup', 1)
             ->assertJsonPath('data.by_status.delivered', 1)
@@ -85,7 +96,12 @@ class OperationalReportsTest extends TestCase
         $technicianOverview = $this->withToken($techAlphaToken)
             ->getJson('/api/v1/service-orders/reports/overview')
             ->assertOk()
+            ->assertJsonPath('data.scope.mode', 'assigned')
             ->assertJsonPath('data.totals.service_orders', 2)
+            ->assertJsonPath('data.queues.open', 1)
+            ->assertJsonPath('data.queues.pending_quote', 1)
+            ->assertJsonPath('data.queues.in_progress', 1)
+            ->assertJsonPath('data.attention.unassigned_open', 0)
             ->assertJsonPath('data.by_status.open', 1)
             ->assertJsonPath('data.by_status.in_progress', 1)
             ->assertJsonMissingPath('data.by_status.ready_for_pickup')
@@ -101,6 +117,36 @@ class OperationalReportsTest extends TestCase
                 ->values()
                 ->all(),
         );
+    }
+
+    public function test_operational_overview_requires_service_order_visibility_permission(): void
+    {
+        $company = Company::query()->create([
+            'name' => 'Restricted Reports',
+            'email' => 'restricted.reports@example.com',
+            'is_active' => true,
+        ]);
+
+        $user = User::query()->create([
+            'name' => 'Restricted User',
+            'email' => 'restricted.user@example.com',
+            'password' => Hash::make('secret-pass'),
+        ]);
+
+        $membership = Membership::query()->withoutGlobalScopes()->create([
+            'company_id' => $company->getKey(),
+            'user_id' => $user->getKey(),
+            'role' => 'custom_restricted',
+            'status' => Membership::STATUS_ACTIVE,
+            'permissions' => [],
+        ]);
+
+        $token = app(IssueApiToken::class)->handle($user, $membership, 'reports-restricted')['plain_text_token'];
+
+        $this->withToken($token)
+            ->getJson('/api/v1/service-orders/reports/overview')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'This membership cannot view service orders.');
     }
 
     /**
@@ -214,6 +260,21 @@ class OperationalReportsTest extends TestCase
             ],
         );
 
+        $this->makeOrder(
+            $company,
+            $techAlphaMembership,
+            [
+                'reference' => 'OS-UNASSIGNED-005',
+                'status' => ServiceOrder::STATUS_OPEN,
+                'customer_name' => 'Cliente Sem Técnico',
+                'customer_document' => '444.444.444-44',
+                'contact_phone' => '(11) 90000-0004',
+                'normalized_phone' => '11900000004',
+                'serial_number' => 'SER-UNASSIGNED-005',
+                'assigned_membership_id' => null,
+            ],
+        );
+
         QuoteRevision::query()->create([
             'company_id' => $company->getKey(),
             'service_order_id' => $searchOrder->getKey(),
@@ -320,7 +381,9 @@ class OperationalReportsTest extends TestCase
             'title' => 'Ordem '.$attributes['reference'],
             'status' => $attributes['status'],
             'reported_problem' => 'Problema '.$attributes['reference'],
-            'assigned_membership_id' => $assignedMembership->getKey(),
+            'assigned_membership_id' => array_key_exists('assigned_membership_id', $attributes)
+                ? $attributes['assigned_membership_id']
+                : $assignedMembership->getKey(),
             'warranty_origin_service_order_id' => $attributes['warranty_origin_service_order_id'] ?? null,
             'warranty_decision_status' => $attributes['warranty_decision_status'] ?? null,
         ]);
