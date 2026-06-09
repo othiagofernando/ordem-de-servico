@@ -556,11 +556,28 @@ class ServiceOrderController extends Controller
     {
         $equipmentSnapshot = collect($serviceOrder->equipment_snapshot ?? []);
         $checklist = collect($serviceOrder->intake_checklist ?? [])
-            ->map(fn (mixed $item): array => [
-                'label' => (string) data_get($item, 'label', 'Item sem descricao'),
-                'checked' => (bool) data_get($item, 'checked', false),
-                'notes' => data_get($item, 'notes'),
-            ])
+            ->map(function (mixed $item): array {
+                $normalized = match (true) {
+                    $item instanceof \ArrayObject => $item->getArrayCopy(),
+                    is_array($item) => $item,
+                    is_object($item) => (array) $item,
+                    default => [],
+                };
+
+                $label = isset($normalized['label']) && is_string($normalized['label']) && trim($normalized['label']) !== ''
+                    ? trim($normalized['label'])
+                    : 'Item sem descricao';
+
+                $notes = isset($normalized['notes']) && is_string($normalized['notes']) && trim($normalized['notes']) !== ''
+                    ? trim($normalized['notes'])
+                    : null;
+
+                return [
+                    'label' => $label,
+                    'checked' => (bool) ($normalized['checked'] ?? false),
+                    'notes' => $notes,
+                ];
+            })
             ->values()
             ->all();
 

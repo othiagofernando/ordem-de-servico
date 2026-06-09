@@ -86,11 +86,6 @@ const router = createRouter({
           component: () => import('../views/serviceOrders/ServiceOrderDetailView.vue'),
         },
         {
-          path: 'ordens-de-servico/:id/imprimir',
-          name: 'service-orders.print',
-          component: () => import('../views/serviceOrders/ServiceOrderPrintView.vue'),
-        },
-        {
           path: 'membros',
           name: 'members',
           component: () => import('../views/members/MembersView.vue'),
@@ -123,6 +118,12 @@ const router = createRouter({
       path: '/portal/:token',
       name: 'portal',
       component: () => import('../views/portal/CustomerPortalView.vue'),
+    },
+    {
+      path: '/ordens-de-servico/:id/imprimir',
+      name: 'service-orders.print',
+      component: () => import('../views/serviceOrders/ServiceOrderPrintView.vue'),
+      meta: { requiresAuth: true },
     },
   ],
 })

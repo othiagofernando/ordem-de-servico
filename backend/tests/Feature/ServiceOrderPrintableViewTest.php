@@ -33,6 +33,8 @@ class ServiceOrderPrintableViewTest extends TestCase
             ->assertJsonPath('data.service_order.equipment.brand', 'Dell')
             ->assertJsonPath('data.service_order.equipment.serial_number', 'PRINT-001-'.$companyId)
             ->assertJsonPath('data.service_order.intake_checklist.0.label', 'Carregador entregue')
+            ->assertJsonPath('data.service_order.intake_checklist.0.checked', true)
+            ->assertJsonPath('data.service_order.intake_checklist.0.notes', 'Fonte original do cliente')
             ->assertJsonPath('data.service_order.signature_blocks.0.label', 'Assinatura do cliente')
             ->assertJsonPath('data.copies.0.label', 'Via da empresa')
             ->assertJsonPath('data.copies.1.label', 'Via do cliente');
