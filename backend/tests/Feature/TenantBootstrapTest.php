@@ -63,6 +63,82 @@ class TenantBootstrapTest extends TestCase
             ->assertJsonPath('user.email', 'tech@example.com');
     }
 
+    public function test_authenticated_bootstrap_returns_active_context_permissions_and_available_memberships(): void
+    {
+        $user = User::query()->create([
+            'name' => 'Operador Multiempresa',
+            'email' => 'multi@example.com',
+            'password' => 'secret-pass',
+        ]);
+
+        $companyA = Company::query()->create([
+            'name' => 'Empresa A',
+            'email' => 'a@example.com',
+            'is_active' => true,
+        ]);
+
+        $companyB = Company::query()->create([
+            'name' => 'Empresa B',
+            'email' => 'b@example.com',
+            'is_active' => true,
+        ]);
+
+        $membershipA = Membership::query()->withoutGlobalScopes()->create([
+            'company_id' => $companyA->getKey(),
+            'user_id' => $user->getKey(),
+            'role' => 'administrator',
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+
+        $membershipB = Membership::query()->withoutGlobalScopes()->create([
+            'company_id' => $companyB->getKey(),
+            'user_id' => $user->getKey(),
+            'role' => 'technician',
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+
+        $otherUser = User::query()->create([
+            'name' => 'Outro Usuario',
+            'email' => 'other@example.com',
+            'password' => 'secret-pass',
+        ]);
+
+        Membership::query()->withoutGlobalScopes()->create([
+            'company_id' => $companyA->getKey(),
+            'user_id' => $otherUser->getKey(),
+            'role' => 'attendant',
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+
+        $plainTextToken = Str::random(64);
+
+        ApiToken::query()->create([
+            'company_id' => $companyA->getKey(),
+            'user_id' => $user->getKey(),
+            'name' => 'bootstrap-test',
+            'token_hash' => hash('sha256', $plainTextToken),
+            'expires_at' => now()->addDay(),
+        ]);
+
+        $this->withToken($plainTextToken)
+            ->getJson('/api/v1/auth/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('context.company.id', $companyA->getKey())
+            ->assertJsonPath('context.company.name', 'Empresa A')
+            ->assertJsonPath('context.membership.id', $membershipA->getKey())
+            ->assertJsonPath('context.membership.role', 'administrator')
+            ->assertJsonPath('context.user.email', 'multi@example.com')
+            ->assertJsonFragment(['memberships.manage'])
+            ->assertJsonCount(2, 'memberships')
+            ->assertJsonPath('memberships.0.id', $membershipA->getKey())
+            ->assertJsonPath('memberships.0.company_id', $companyA->getKey())
+            ->assertJsonPath('memberships.0.is_active_context', true)
+            ->assertJsonPath('memberships.1.id', $membershipB->getKey())
+            ->assertJsonPath('memberships.1.company_id', $companyB->getKey())
+            ->assertJsonPath('memberships.1.is_active_context', false)
+            ->assertJsonMissing(['other@example.com']);
+    }
+
     public function test_tenant_scoped_membership_lookup_hides_other_company_records(): void
     {
         [$plainTextToken, $currentMembership] = $this->createTenantAccess(

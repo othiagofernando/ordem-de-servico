@@ -1,23 +1,22 @@
 import { defineStore } from 'pinia'
-import { apiGet, apiPost } from '../api/client'
+import { apiPost } from '../api/client'
 import {
+  getAuthBootstrap,
   login as apiLogin,
   selectCompany as apiSelectCompany,
   verifyPasswordlessCode,
   consumeMagicLink,
+  type BootstrapMembership,
+  type TenantContext,
 } from '../api/auth'
 import type { LoginMultiResult } from '../api/auth'
-
-interface TenantContext {
-  company: { id: number; uuid: string; name: string } | null
-  membership: { id: number; role: string; status: string } | null
-  user: { id: number; name: string; email: string } | null
-}
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem('access_token') as string | null,
     context: null as TenantContext | null,
+    memberships: [] as BootstrapMembership[],
+    permissions: [] as string[],
     pendingSelection: null as LoginMultiResult | null,
     loading: false,
   }),
@@ -28,6 +27,7 @@ export const useAuthStore = defineStore('auth', {
     company: (state) => state.context?.company ?? null,
     membership: (state) => state.context?.membership ?? null,
     role: (state) => state.context?.membership?.role ?? null,
+    membershipCount: (state) => state.memberships.length,
   },
 
   actions: {
@@ -66,8 +66,10 @@ export const useAuthStore = defineStore('auth', {
     },
 
     async loadContext() {
-      const res = await apiGet<TenantContext>('/tenant/context')
-      this.context = res
+      const res = await getAuthBootstrap()
+      this.context = res.context
+      this.memberships = res.memberships
+      this.permissions = res.permissions
     },
 
     async loginWithCode(email: string, company_uuid: string, code: string) {
@@ -104,6 +106,8 @@ export const useAuthStore = defineStore('auth', {
       } finally {
         this.token = null
         this.context = null
+        this.memberships = []
+        this.permissions = []
         this.pendingSelection = null
         localStorage.removeItem('access_token')
       }

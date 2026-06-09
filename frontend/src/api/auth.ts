@@ -1,4 +1,4 @@
-import { API_BASE, apiPost } from './client'
+import { API_BASE, apiGet, apiPost } from './client'
 
 export interface LoginSingleResult {
   token_type: string
@@ -59,6 +59,28 @@ export interface MembershipInvitation {
   expires_at: string | null
 }
 
+export interface TenantContext {
+  company: { id: number; uuid: string; name: string } | null
+  membership: { id: number; role: string; status: string } | null
+  user: { id: number; name: string; email: string } | null
+}
+
+export interface BootstrapMembership {
+  id: number
+  company_id: number
+  company_uuid: string
+  company_name: string
+  role: string
+  status: string
+  is_active_context: boolean
+}
+
+export interface AuthBootstrap {
+  context: TenantContext
+  permissions: string[]
+  memberships: BootstrapMembership[]
+}
+
 export function fetchInvitation(token: string) {
   return fetch(`${API_BASE}/auth/invitations/${token}`, {
     headers: { Accept: 'application/json' },
@@ -76,4 +98,8 @@ export function acceptInvitation(
   payload?: { name?: string; password?: string; password_confirmation?: string },
 ) {
   return apiPost<LoginSingleResult & { user: { name: string; email: string } }>(`/auth/invitations/${token}/accept`, payload)
+}
+
+export function getAuthBootstrap() {
+  return apiGet<AuthBootstrap>('/auth/bootstrap')
 }

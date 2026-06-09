@@ -57,6 +57,7 @@ const navLinks = [
           <p class="text-xs text-stone-500">Empresa</p>
           <p class="mt-0.5 truncate text-sm font-medium text-stone-200">{{ auth.company?.name ?? '—' }}</p>
           <p class="text-xs text-stone-500 capitalize">{{ auth.role }}</p>
+          <p v-if="auth.membershipCount > 1" class="text-xs text-stone-500">{{ auth.membershipCount }} empresas vinculadas</p>
         </div>
         <button
           class="w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-stone-400 transition hover:border-red-500/30 hover:text-red-400"

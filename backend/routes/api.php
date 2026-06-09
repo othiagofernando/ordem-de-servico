@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessCompanyLookupController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkConsumeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
+use App\Http\Controllers\Api\V1\Auth\BootstrapController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\BusinessAuditController;
 use App\Http\Controllers\Api\V1\CompanyOperationalSettingController;
@@ -64,6 +65,7 @@ Route::prefix('portal')->group(function (): void {
 
 Route::middleware('auth.token')->group(function (): void {
     Route::post('/auth/logout', LogoutController::class)->name('api.v1.auth.logout');
+    Route::get('/auth/bootstrap', BootstrapController::class)->name('api.v1.auth.bootstrap');
     Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
     Route::get('/audit-logs', BusinessAuditController::class)
         ->middleware('permission:company_settings.manage')
