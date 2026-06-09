@@ -7,11 +7,14 @@ use App\Domains\Notifications\Jobs\SendCriticalServiceOrderNotificationJob;
 use App\Domains\Notifications\Models\NotificationDelivery;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Support\Logging\StructuredLogContext;
+use Illuminate\Support\Facades\Log;
 
 class QueueCriticalServiceOrderNotification
 {
     public function __construct(
         protected ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+        protected StructuredLogContext $structuredLogContext,
     ) {}
 
     public function handle(
@@ -76,7 +79,24 @@ class QueueCriticalServiceOrderNotification
             'dedupe_key' => $dedupeKey,
         ]);
 
-        SendCriticalServiceOrderNotificationJob::dispatch($delivery->getKey());
+        Log::info('notification.delivery.queued', [
+            'notification_delivery_id' => $delivery->getKey(),
+            'event_type' => $delivery->event_type,
+            'service_order_id' => $delivery->service_order_id,
+            'quote_revision_id' => $delivery->quote_revision_id,
+        ]);
+
+        SendCriticalServiceOrderNotificationJob::dispatch(
+            $delivery->getKey(),
+            $this->structuredLogContext->correlationId(),
+            [
+                'actor_membership_id' => currentMembership()?->getKey(),
+                'actor_user_id' => auth()->id(),
+                'company_id' => $serviceOrder->company_id,
+                'service_order_id' => $serviceOrder->getKey(),
+                'quote_revision_id' => $quoteRevision?->getKey(),
+            ],
+        );
 
         return $delivery;
     }

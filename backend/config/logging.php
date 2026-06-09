@@ -1,5 +1,7 @@
 <?php
 
+use App\Support\Logging\ConfigureStructuredLogger;
+use Monolog\Formatter\JsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -54,8 +56,19 @@ return [
 
         'stack' => [
             'driver' => 'stack',
-            'channels' => explode(',', (string) env('LOG_STACK', 'single')),
+            'channels' => array_values(array_unique([
+                ...explode(',', (string) env('LOG_STACK', 'single')),
+                'structured',
+            ])),
             'ignore_exceptions' => false,
+        ],
+
+        'structured' => [
+            'driver' => 'single',
+            'path' => storage_path('logs/structured.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'tap' => [ConfigureStructuredLogger::class],
+            'replace_placeholders' => true,
         ],
 
         'single' => [
@@ -101,7 +114,7 @@ return [
             'handler_with' => [
                 'stream' => 'php://stderr',
             ],
-            'formatter' => env('LOG_STDERR_FORMATTER'),
+            'formatter' => env('LOG_STDERR_FORMATTER', JsonFormatter::class),
             'processors' => [PsrLogMessageProcessor::class],
         ],
 

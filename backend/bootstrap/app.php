@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\AuthorizeMembershipPermission;
+use App\Http\Middleware\EstablishStructuredLogContext;
 use App\Http\Middleware\FlushCurrentCompanyContext;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(FlushCurrentCompanyContext::class);
+        $middleware->append(EstablishStructuredLogContext::class);
 
         $middleware->alias([
             'auth.token' => AuthenticateApiToken::class,

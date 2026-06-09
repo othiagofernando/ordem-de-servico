@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Domains\Auth\Models\ApiToken;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Companies\Support\CurrentCompanyContext;
+use App\Support\Logging\StructuredLogContext;
 use Closure;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,10 @@ use Symfony\Component\HttpFoundation\Response;
 
 class AuthenticateApiToken
 {
+    public function __construct(
+        protected StructuredLogContext $structuredLogContext,
+    ) {}
+
     public function handle(Request $request, Closure $next): Response
     {
         $plainTextToken = $request->bearerToken();
@@ -44,6 +49,12 @@ class AuthenticateApiToken
 
         auth()->setUser($apiToken->user);
         app(CurrentCompanyContext::class)->set($apiToken->company, $membership, $apiToken->user, $apiToken);
+        $this->structuredLogContext->share([
+            'company_id' => $apiToken->company_id,
+            'actor_membership_id' => $membership->getKey(),
+            'actor_user_id' => $apiToken->user_id,
+            'api_token_id' => $apiToken->getKey(),
+        ]);
 
         $apiToken->forceFill([
             'last_used_at' => now(),
