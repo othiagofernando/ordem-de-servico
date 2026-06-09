@@ -88,6 +88,30 @@ class ServiceOrderClosureWorkflowTest extends TestCase
             ->assertJsonFragment(['type' => 'service_order_delivered']);
     }
 
+    public function test_delivery_can_proceed_with_outstanding_balance_when_company_policy_disables_the_gate(): void
+    {
+        [$managerToken, $attendantToken, , $serviceOrderId] = $this->createReadyForPickupScenario(
+            totalPaidCents: 20000,
+        );
+
+        $this->withToken($managerToken)
+            ->putJson('/api/v1/company/settings', [
+                'block_delivery_with_outstanding_balance' => false,
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', false);
+
+        $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/delivery', [
+                'received_by_name' => 'Cliente Flexibilizado',
+                'notes' => 'Entrega permitida pela politica operacional da empresa.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', ServiceOrder::STATUS_DELIVERED)
+            ->assertJsonPath('data.received_by_name', 'Cliente Flexibilizado')
+            ->assertJsonPath('data.delivery_notes', 'Entrega permitida pela politica operacional da empresa.');
+    }
+
     public function test_terminal_outcomes_support_cancelled_and_no_repair_and_refuse_further_transitions(): void
     {
         [$managerToken, , , $serviceOrderId] = $this->createTechnicallyCompletedScenario();

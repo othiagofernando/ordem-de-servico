@@ -32,6 +32,10 @@ class CompanyOperationalSettingsTest extends TestCase
             'manager_membership_id' => $managerMembershipId,
             'technician_token' => $technicianToken,
             'service_order_id' => $serviceOrderId,
+            'customer_id' => $customerId,
+            'customer_contact_id' => $customerContactId,
+            'equipment_id' => $equipmentId,
+            'intake_checklist_template_id' => $intakeChecklistTemplateId,
         ] = $this->createServiceOrderScenario('alpha');
 
         [
@@ -42,20 +46,26 @@ class CompanyOperationalSettingsTest extends TestCase
             ->getJson('/api/v1/company/settings')
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Acme alpha')
+            ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
+            ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $this->withToken($managerToken)
             ->putJson('/api/v1/company/settings', [
                 'brand_name' => 'Laboratorio Alpha',
+                'service_order_reference_prefix' => 'lab',
                 'portal_intro_text' => 'Revise aqui o status e aprove o orcamento desta ordem.',
                 'default_quote_validity_days' => 5,
+                'block_delivery_with_outstanding_balance' => false,
                 'notify_quote_available' => false,
             ])
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Laboratorio Alpha')
+            ->assertJsonPath('data.service_orders.reference_prefix', 'LAB')
             ->assertJsonPath('data.portal.intro_text', 'Revise aqui o status e aprove o orcamento desta ordem.')
             ->assertJsonPath('data.quotes.default_validity_days', 5)
+            ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', false)
             ->assertJsonPath('data.notifications.quote_available', false);
 
         $this->assertDatabaseHas('company_setting_audits', [
@@ -68,11 +78,20 @@ class CompanyOperationalSettingsTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(
-            ['brand_name', 'portal_intro_text', 'default_quote_validity_days', 'notify_quote_available'],
+            [
+                'brand_name',
+                'service_order_reference_prefix',
+                'portal_intro_text',
+                'default_quote_validity_days',
+                'block_delivery_with_outstanding_balance',
+                'notify_quote_available',
+            ],
             $audit->changed_keys,
         );
         $this->assertSame(7, $audit->before_values['default_quote_validity_days']);
         $this->assertSame(5, $audit->after_values['default_quote_validity_days']);
+        $this->assertTrue($audit->before_values['block_delivery_with_outstanding_balance']);
+        $this->assertFalse($audit->after_values['block_delivery_with_outstanding_balance']);
         $this->assertTrue($audit->before_values['notify_quote_available']);
         $this->assertFalse($audit->after_values['notify_quote_available']);
 
@@ -80,8 +99,30 @@ class CompanyOperationalSettingsTest extends TestCase
             ->getJson('/api/v1/company/settings')
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Acme beta')
+            ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
+            ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
             ->assertJsonPath('data.notifications.quote_available', true);
+
+        $secondDraftId = $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/drafts', [
+                'customer_id' => $customerId,
+                'customer_contact_id' => $customerContactId,
+                'equipment_id' => $equipmentId,
+                'intake_checklist_template_id' => $intakeChecklistTemplateId,
+                'equipment_description' => 'Segundo equipamento de teste.',
+                'reported_problem' => 'Precisa abrir com prefixo customizado.',
+                'intake_checklist' => [
+                    ['label' => 'Carregador entregue', 'checked' => true],
+                ],
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/drafts/'.$secondDraftId.'/open')
+            ->assertOk()
+            ->assertJsonPath('data.reference', 'LAB-000002');
 
         $this->withToken($technicianToken)
             ->putJson('/api/v1/service-orders/'.$serviceOrderId.'/diagnosis', [
@@ -129,7 +170,11 @@ class CompanyOperationalSettingsTest extends TestCase
      *     manager_token: string,
      *     manager_membership_id: int,
      *     technician_token: string,
-     *     service_order_id: int
+     *     service_order_id: int,
+     *     customer_id: int,
+     *     customer_contact_id: int,
+     *     equipment_id: int,
+     *     intake_checklist_template_id: int
      * }
      */
     protected function createServiceOrderScenario(string $suffix): array
@@ -243,6 +288,10 @@ class CompanyOperationalSettingsTest extends TestCase
             'manager_membership_id' => $managerMembership->getKey(),
             'technician_token' => $technicianToken,
             'service_order_id' => $serviceOrderId,
+            'customer_id' => $customer->getKey(),
+            'customer_contact_id' => $contact->getKey(),
+            'equipment_id' => $equipment->getKey(),
+            'intake_checklist_template_id' => $template->getKey(),
         ];
     }
 }

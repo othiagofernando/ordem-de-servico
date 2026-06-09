@@ -3,8 +3,10 @@ import { apiGet, apiPut } from './client'
 export interface CompanySettings {
   company_id: number
   branding: { brand_name: string }
+  service_orders: { reference_prefix: string }
   portal: { intro_text: string | null }
   quotes: { default_validity_days: number }
+  finance: { block_delivery_with_outstanding_balance: boolean }
   notifications: {
     quote_available: boolean
     quote_expiring: boolean
@@ -19,8 +21,10 @@ export interface CompanySettings {
 
 export interface SettingsPayload {
   brand_name?: string | null
+  service_order_reference_prefix?: string | null
   portal_intro_text?: string | null
   default_quote_validity_days?: number
+  block_delivery_with_outstanding_balance?: boolean
   notify_quote_available?: boolean
   notify_quote_expiring?: boolean
   notify_ready_for_pickup?: boolean

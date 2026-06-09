@@ -11,8 +11,10 @@ const settings = ref<CompanySettings | null>(null)
 
 const form = ref({
   brand_name: '',
+  service_order_reference_prefix: 'OS',
   portal_intro_text: '',
   default_quote_validity_days: 7,
+  block_delivery_with_outstanding_balance: true,
   notify_quote_available: true,
   notify_quote_expiring: true,
   notify_ready_for_pickup: true,
@@ -27,8 +29,10 @@ onMounted(async () => {
     settings.value = res.data
     form.value = {
       brand_name: res.data.branding.brand_name ?? '',
+      service_order_reference_prefix: res.data.service_orders.reference_prefix,
       portal_intro_text: res.data.portal.intro_text ?? '',
       default_quote_validity_days: res.data.quotes.default_validity_days,
+      block_delivery_with_outstanding_balance: res.data.finance.block_delivery_with_outstanding_balance,
       notify_quote_available: res.data.notifications.quote_available,
       notify_quote_expiring: res.data.notifications.quote_expiring,
       notify_ready_for_pickup: res.data.notifications.ready_for_pickup,
@@ -50,8 +54,10 @@ async function save() {
   try {
     const res = await updateSettings({
       brand_name: form.value.brand_name || null,
+      service_order_reference_prefix: form.value.service_order_reference_prefix || null,
       portal_intro_text: form.value.portal_intro_text || null,
       default_quote_validity_days: form.value.default_quote_validity_days,
+      block_delivery_with_outstanding_balance: form.value.block_delivery_with_outstanding_balance,
       notify_quote_available: form.value.notify_quote_available,
       notify_quote_expiring: form.value.notify_quote_expiring,
       notify_ready_for_pickup: form.value.notify_ready_for_pickup,
@@ -94,6 +100,20 @@ async function save() {
         </div>
       </div>
 
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Ordem de Serviço</h2>
+        <div>
+          <label class="mb-1.5 block text-sm text-stone-300">Prefixo da Numeração</label>
+          <input
+            v-model="form.service_order_reference_prefix"
+            class="input w-48 uppercase"
+            maxlength="20"
+            placeholder="OS"
+          />
+          <p class="mt-1 text-xs text-stone-500">Aplicado às próximas O.S. abertas e aos retornos em garantia. Ex.: OS-000123.</p>
+        </div>
+      </div>
+
       <!-- Portal do Cliente -->
       <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Portal do Cliente</h2>
@@ -109,6 +129,19 @@ async function save() {
         <div>
           <label class="mb-1.5 block text-sm text-stone-300">Validade Padrão (dias)</label>
           <input v-model.number="form.default_quote_validity_days" type="number" min="1" max="30" class="input w-40" />
+        </div>
+      </div>
+
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Financeiro Operacional</h2>
+        <div class="space-y-4">
+          <label class="flex cursor-pointer items-center gap-3">
+            <input v-model="form.block_delivery_with_outstanding_balance" type="checkbox" class="size-4 rounded accent-amber-500" />
+            <div>
+              <p class="text-sm text-stone-200">Bloquear entrega com saldo pendente</p>
+              <p class="text-xs text-stone-500">Quando ativo, a entrega exige quitação total ou override privilegiado.</p>
+            </div>
+          </label>
         </div>
       </div>
 

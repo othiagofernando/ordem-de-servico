@@ -2,6 +2,7 @@
 
 namespace App\Domains\ServiceOrders\Actions;
 
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\ServiceOrders\Models\CompanyServiceOrderCounter;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
@@ -11,6 +12,10 @@ use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class OpenDraftServiceOrder
 {
+    public function __construct(
+        protected ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+    ) {}
+
     public function handle(ServiceOrder $serviceOrder): ServiceOrder
     {
         if ($serviceOrder->status !== ServiceOrder::STATUS_DRAFT) {
@@ -20,15 +25,16 @@ class OpenDraftServiceOrder
         return DB::transaction(function () use ($serviceOrder): ServiceOrder {
             $counter = $this->lockCounter($serviceOrder->company_id);
             $currentNumber = $counter->next_service_order_number;
-            $serviceOrder->loadMissing(['equipment', 'intakeChecklistTemplate']);
+            $serviceOrder->loadMissing(['company', 'equipment', 'intakeChecklistTemplate']);
             $template = $serviceOrder->intakeChecklistTemplate;
+            $settings = $this->resolveCompanyOperationalSettings->handle($serviceOrder->company);
 
             $counter->forceFill([
                 'next_service_order_number' => $currentNumber + 1,
             ])->save();
 
             $serviceOrder->forceFill([
-                'reference' => sprintf('OS-%06d', $currentNumber),
+                'reference' => sprintf('%s-%06d', $settings->serviceOrderReferencePrefix(), $currentNumber),
                 'order_number' => $currentNumber,
                 'status' => ServiceOrder::STATUS_OPEN,
                 'opened_at' => now(),

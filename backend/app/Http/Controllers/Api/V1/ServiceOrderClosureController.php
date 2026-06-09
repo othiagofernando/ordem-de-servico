@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -75,6 +76,7 @@ class ServiceOrderClosureController extends Controller
         Request $request,
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
+        ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
@@ -98,14 +100,17 @@ class ServiceOrderClosureController extends Controller
 
         $outstandingBalanceCents = $this->outstandingBalanceCents($visible);
         $allowBalanceOverride = (bool) ($payload['allow_balance_override'] ?? false);
+        $visible->loadMissing('company');
+        $settings = $resolveCompanyOperationalSettings->handle($visible->company);
+        $blockDeliveryWithOutstandingBalance = $settings->block_delivery_with_outstanding_balance;
 
-        if ($outstandingBalanceCents > 0 && ! $allowBalanceOverride) {
+        if ($blockDeliveryWithOutstandingBalance && $outstandingBalanceCents > 0 && ! $allowBalanceOverride) {
             throw ValidationException::withMessages([
                 'outstanding_balance_cents' => 'Outstanding balance must be settled before delivery unless a privileged override is used.',
             ]);
         }
 
-        if ($outstandingBalanceCents > 0 && $allowBalanceOverride) {
+        if ($blockDeliveryWithOutstandingBalance && $outstandingBalanceCents > 0 && $allowBalanceOverride) {
             if (! $membership?->hasPermission('service_orders.override_delivery_balance')) {
                 abort(Response::HTTP_FORBIDDEN, 'This membership cannot override delivery balance gates.');
             }

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\CompanyServiceOrderCounter;
@@ -29,6 +30,7 @@ class ServiceOrderWarrantyController extends Controller
         Request $request,
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
+        ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
@@ -54,9 +56,12 @@ class ServiceOrderWarrantyController extends Controller
             $signalStatus,
             $signalReason,
             $signalExpiresAt,
+            $resolveCompanyOperationalSettings,
             $recordTimelineEvent,
         ): ServiceOrder {
             $orderNumber = $this->nextServiceOrderNumber($original->company_id);
+            $original->loadMissing('company');
+            $settings = $resolveCompanyOperationalSettings->handle($original->company);
 
             $returnOrder = ServiceOrder::query()->create([
                 'company_id' => $original->company_id,
@@ -64,7 +69,7 @@ class ServiceOrderWarrantyController extends Controller
                 'customer_contact_id' => $original->customer_contact_id,
                 'equipment_id' => $original->equipment_id,
                 'intake_checklist_template_id' => $original->intake_checklist_template_id,
-                'reference' => sprintf('OS-%06d', $orderNumber),
+                'reference' => sprintf('%s-%06d', $settings->serviceOrderReferencePrefix(), $orderNumber),
                 'order_number' => $orderNumber,
                 'title' => $payload['reported_problem'],
                 'status' => ServiceOrder::STATUS_OPEN,

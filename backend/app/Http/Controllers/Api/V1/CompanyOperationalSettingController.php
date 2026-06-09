@@ -51,8 +51,10 @@ class CompanyOperationalSettingController extends Controller
 
         $payload = $request->validate([
             'brand_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'service_order_reference_prefix' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/'],
             'portal_intro_text' => ['sometimes', 'nullable', 'string', 'max:2000'],
             'default_quote_validity_days' => ['sometimes', 'integer', 'min:1', 'max:30'],
+            'block_delivery_with_outstanding_balance' => ['sometimes', 'boolean'],
             'notify_quote_available' => ['sometimes', 'boolean'],
             'notify_quote_expiring' => ['sometimes', 'boolean'],
             'notify_ready_for_pickup' => ['sometimes', 'boolean'],
@@ -64,6 +66,12 @@ class CompanyOperationalSettingController extends Controller
         $authKeys = ['passwordless_code_enabled', 'magic_link_enabled'];
         $authPayload = collect($payload)->only($authKeys)->all();
         $settingsPayload = collect($payload)->except($authKeys)->all();
+
+        if (array_key_exists('service_order_reference_prefix', $settingsPayload)) {
+            $settingsPayload['service_order_reference_prefix'] = filled($settingsPayload['service_order_reference_prefix'] ?? null)
+                ? str($settingsPayload['service_order_reference_prefix'])->trim()->upper()->value()
+                : null;
+        }
 
         if ($authPayload !== []) {
             $company->update($authPayload);
@@ -114,11 +122,17 @@ class CompanyOperationalSettingController extends Controller
             'branding' => [
                 'brand_name' => $settings->brandName($company),
             ],
+            'service_orders' => [
+                'reference_prefix' => $settings->serviceOrderReferencePrefix(),
+            ],
             'portal' => [
                 'intro_text' => $settings->portal_intro_text,
             ],
             'quotes' => [
                 'default_validity_days' => $settings->default_quote_validity_days,
+            ],
+            'finance' => [
+                'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
             ],
             'notifications' => [
                 'quote_available' => $settings->notify_quote_available,
@@ -140,8 +154,10 @@ class CompanyOperationalSettingController extends Controller
     {
         return [
             'brand_name' => $settings->brand_name,
+            'service_order_reference_prefix' => $settings->service_order_reference_prefix,
             'portal_intro_text' => $settings->portal_intro_text,
             'default_quote_validity_days' => $settings->default_quote_validity_days,
+            'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
             'notify_quote_available' => $settings->notify_quote_available,
             'notify_quote_expiring' => $settings->notify_quote_expiring,
             'notify_ready_for_pickup' => $settings->notify_ready_for_pickup,
