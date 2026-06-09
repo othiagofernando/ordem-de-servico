@@ -234,6 +234,38 @@ class ServiceOrderController extends Controller
     }
 
     /**
+     * Return a printable payload for one formally opened service order.
+     *
+     * @group Service Orders
+     */
+    public function printable(ServiceOrder $serviceOrder, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        $visible = $visibleServiceOrders->queryFor($membership)
+            ->whereKey($serviceOrder->getKey())
+            ->first();
+
+        abort_if($visible === null, Response::HTTP_NOT_FOUND);
+
+        if ($visible->status === ServiceOrder::STATUS_DRAFT) {
+            return response()->json([
+                'message' => 'Only formally opened service orders can expose a printable version.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        $visible->load(['company', 'customer', 'customerContact', 'equipment']);
+
+        return response()->json([
+            'data' => $this->serializePrintableServiceOrder($visible),
+        ]);
+    }
+
+    /**
      * List tenant-scoped service orders visible to the active membership.
      *
      * @group Service Orders
@@ -514,6 +546,78 @@ class ServiceOrderController extends Controller
             'equipment_brand' => $serviceOrder->equipment?->brand,
             'equipment_model' => $serviceOrder->equipment?->model,
             'latest_quote_status' => $latestQuote?->status,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function serializePrintableServiceOrder(ServiceOrder $serviceOrder): array
+    {
+        $equipmentSnapshot = collect($serviceOrder->equipment_snapshot ?? []);
+        $checklist = collect($serviceOrder->intake_checklist ?? [])
+            ->map(fn (mixed $item): array => [
+                'label' => (string) data_get($item, 'label', 'Item sem descricao'),
+                'checked' => (bool) data_get($item, 'checked', false),
+                'notes' => data_get($item, 'notes'),
+            ])
+            ->values()
+            ->all();
+
+        $observations = collect($checklist)
+            ->pluck('notes')
+            ->filter(fn (mixed $note): bool => is_string($note) && trim($note) !== '')
+            ->map(fn (string $note): string => 'Checklist: '.trim($note));
+
+        if (is_string($equipmentSnapshot->get('accessories')) && trim((string) $equipmentSnapshot->get('accessories')) !== '') {
+            $observations->prepend('Acessorios informados: '.trim((string) $equipmentSnapshot->get('accessories')));
+        }
+
+        if (is_string($equipmentSnapshot->get('notes')) && trim((string) $equipmentSnapshot->get('notes')) !== '') {
+            $observations->push('Observacoes do equipamento: '.trim((string) $equipmentSnapshot->get('notes')));
+        }
+
+        return [
+            'generated_at' => now()->toIso8601String(),
+            'company' => [
+                'name' => $serviceOrder->company?->name,
+                'document' => $serviceOrder->company?->document,
+                'email' => $serviceOrder->company?->email,
+                'phone' => $serviceOrder->company?->phone,
+            ],
+            'service_order' => [
+                'id' => $serviceOrder->getKey(),
+                'reference' => $serviceOrder->reference,
+                'order_number' => $serviceOrder->order_number,
+                'status' => $serviceOrder->status,
+                'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
+                'title' => $serviceOrder->title,
+                'reported_problem' => $serviceOrder->reported_problem,
+                'equipment_description' => $serviceOrder->equipment_description ?: $equipmentSnapshot->get('captured_description'),
+                'customer' => [
+                    'name' => $serviceOrder->customer?->name,
+                    'document' => $serviceOrder->customer?->document,
+                    'contact_name' => $serviceOrder->customerContact?->name,
+                    'contact_phone' => $serviceOrder->customerContact?->phone,
+                ],
+                'equipment' => [
+                    'category' => $equipmentSnapshot->get('category') ?: $serviceOrder->equipment?->category,
+                    'brand' => $equipmentSnapshot->get('brand') ?: $serviceOrder->equipment?->brand,
+                    'model' => $equipmentSnapshot->get('model') ?: $serviceOrder->equipment?->model,
+                    'serial_number' => $equipmentSnapshot->get('serial_number') ?: $serviceOrder->equipment?->serial_number,
+                    'accessories' => $equipmentSnapshot->get('accessories'),
+                ],
+                'intake_checklist' => $checklist,
+                'observations' => $observations->values()->all(),
+                'signature_blocks' => [
+                    ['key' => 'customer', 'label' => 'Assinatura do cliente'],
+                    ['key' => 'attendant', 'label' => 'Assinatura do atendente'],
+                ],
+            ],
+            'copies' => [
+                ['key' => 'company', 'label' => 'Via da empresa'],
+                ['key' => 'customer', 'label' => 'Via do cliente'],
+            ],
         ];
     }
 

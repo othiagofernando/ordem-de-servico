@@ -185,6 +185,8 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.service-orders.warranty-coverage.update');
     Route::get('/service-orders/{serviceOrder}/timeline', [ServiceOrderController::class, 'timeline'])
         ->name('api.v1.service-orders.timeline');
+    Route::get('/service-orders/{serviceOrder}/printable', [ServiceOrderController::class, 'printable'])
+        ->name('api.v1.service-orders.printable');
     Route::get('/service-orders/reports/overview', [ServiceOrderController::class, 'overview'])
         ->name('api.v1.service-orders.reports.overview');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');

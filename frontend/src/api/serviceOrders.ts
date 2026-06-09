@@ -274,6 +274,47 @@ export function getAttachments(id: number) {
   return apiGet<{ data: Attachment[] }>(`/service-orders/${id}/attachments`)
 }
 
+export interface PrintableServiceOrderPayload {
+  generated_at: string
+  company: {
+    name: string | null
+    document: string | null
+    email: string | null
+    phone: string | null
+  }
+  service_order: {
+    id: number
+    reference: string
+    order_number: number | null
+    status: ServiceOrderStatus
+    opened_at: string | null
+    title: string
+    reported_problem: string | null
+    equipment_description: string | null
+    customer: {
+      name: string | null
+      document: string | null
+      contact_name: string | null
+      contact_phone: string | null
+    }
+    equipment: {
+      category: string | null
+      brand: string | null
+      model: string | null
+      serial_number: string | null
+      accessories: string | null
+    }
+    intake_checklist: Array<{ label: string; checked: boolean; notes: string | null }>
+    observations: string[]
+    signature_blocks: Array<{ key: string; label: string }>
+  }
+  copies: Array<{ key: string; label: string }>
+}
+
+export function getPrintableServiceOrder(id: number) {
+  return apiGet<{ data: PrintableServiceOrderPayload }>(`/service-orders/${id}/printable`)
+}
+
 export function deriveQuoteCharge(id: number) {
   return apiPost(`/service-orders/${id}/financials/charges/derive-approved-quote`)
 }

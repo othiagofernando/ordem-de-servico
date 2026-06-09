@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { useRoute, RouterLink } from 'vue-router'
+import { useRoute, useRouter, RouterLink } from 'vue-router'
 import {
   getServiceOrder, getTimeline, getQuotes, updateDiagnosis,
   openDraft, startExecution, completeExecutionWithTests, markReadyForPickup, deliver,
@@ -16,6 +16,7 @@ import { API_BASE } from '../../api/client'
 import { ApiError } from '../../api/client'
 
 const route = useRoute()
+const router = useRouter()
 const os = ref<ServiceOrder | null>(null)
 const timeline = ref<TimelineEvent[]>([])
 const quotes = ref<QuoteRevision[]>([])
@@ -141,6 +142,11 @@ const canWorkEntries  = computed(() => os.value?.status === 'in_progress')
 const canWarrantyReturn = computed(() => os.value?.status === 'delivered' && !os.value?.warranty_origin_service_order_id)
 const isWarrantyReturn  = computed(() => !!os.value?.warranty_origin_service_order_id)
 const canDecideWarranty = computed(() => isWarrantyReturn.value && os.value?.warranty_decision_status === 'pending')
+const printableHref = computed(() => (
+  os.value && os.value.status !== 'draft'
+    ? router.resolve({ name: 'service-orders.print', params: { id: os.value.id } }).href
+    : '#'
+))
 
 async function reload() {
   const [osRes, tlRes, qtRes] = await Promise.all([
@@ -491,6 +497,15 @@ async function downloadAttachment(attachmentId: number) {
 
       <!-- Ações primárias -->
       <div class="flex flex-wrap gap-2">
+        <a
+          v-if="os.status !== 'draft'"
+          :href="printableHref"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
+        >
+          Imprimir OS
+        </a>
         <button
           v-if="canOpenDraft"
           :disabled="actionLoading"
