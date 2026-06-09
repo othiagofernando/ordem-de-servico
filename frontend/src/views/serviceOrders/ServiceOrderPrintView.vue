@@ -107,6 +107,19 @@ const openedDateLabel = computed(() => {
   return new Date(openedAt).toLocaleDateString("pt-BR");
 });
 
+const documentIssuedAtLabel = computed(() => {
+  const issuedAt = payload.value?.document.issued_at;
+  if (!issuedAt) return "";
+
+  return new Date(issuedAt).toLocaleString("pt-BR");
+});
+
+const documentIssueTypeLabel = computed(() =>
+  payload.value?.document.issue_type === "reprint"
+    ? "Reimpressao"
+    : "Primeira emissao",
+);
+
 function printDocument() {
   window.print();
 }
@@ -202,6 +215,10 @@ onMounted(async () => {
               >
                 {{ copy.label }}
               </p>
+              <div class="mt-1 space-y-0.5 text-[11px] text-stone-600">
+                <p>Versao: {{ payload.document.version }}</p>
+                <p>Tipo: {{ documentIssueTypeLabel }}</p>
+              </div>
             </div>
             <div class="text-right">
               <p>
@@ -212,6 +229,12 @@ onMounted(async () => {
                 }}
               </p>
               <p v-if="openedDateLabel">Abertura: {{ openedDateLabel }}</p>
+              <p v-if="documentIssuedAtLabel">
+                Emitido em: {{ documentIssuedAtLabel }}
+              </p>
+              <p v-if="payload.document.issued_by_name">
+                Emitido por: {{ payload.document.issued_by_name }}
+              </p>
             </div>
           </div>
         </header>

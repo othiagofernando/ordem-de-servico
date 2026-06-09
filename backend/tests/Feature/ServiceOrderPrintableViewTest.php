@@ -9,6 +9,8 @@ use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
+use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderPrintSnapshot;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
@@ -35,6 +37,9 @@ class ServiceOrderPrintableViewTest extends TestCase
             ->assertJsonPath('data.service_order.intake_checklist.0.label', 'Carregador entregue')
             ->assertJsonPath('data.service_order.intake_checklist.0.checked', true)
             ->assertJsonPath('data.service_order.intake_checklist.0.notes', 'Fonte original do cliente')
+            ->assertJsonPath('data.document.version', 1)
+            ->assertJsonPath('data.document.issue_type', 'initial_issue')
+            ->assertJsonPath('data.document.issue_count', 1)
             ->assertJsonPath('data.service_order.signature_blocks.0.label', 'Assinatura do cliente')
             ->assertJsonPath('data.copies.0.label', 'Via da empresa')
             ->assertJsonPath('data.copies.1.label', 'Via do cliente');
@@ -65,6 +70,71 @@ class ServiceOrderPrintableViewTest extends TestCase
         $this->withToken($tokenB)
             ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/printable')
             ->assertNotFound();
+    }
+
+    public function test_reprints_use_immutable_snapshot_and_register_audit_trail(): void
+    {
+        [$token, $serviceOrderId, $companyId] = $this->createOpenedServiceOrderScenario();
+
+        $firstPayload = $this->withToken($token)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/printable')
+            ->assertOk()
+            ->json('data');
+
+        $serviceOrder = ServiceOrder::query()->findOrFail($serviceOrderId);
+        $serviceOrder->forceFill([
+            'reported_problem' => 'Problema alterado apos emissao.',
+            'equipment_description' => 'Descricao alterada apos emissao.',
+        ])->save();
+
+        $serviceOrder->customer()->update([
+            'name' => 'Cliente Alterado',
+            'document' => '999.999.999-99',
+        ]);
+
+        $serviceOrder->equipment()->update([
+            'brand' => 'Lenovo',
+            'model' => 'ThinkPad',
+            'serial_number' => 'CHANGED-SERIAL',
+        ]);
+
+        $secondResponse = $this->withToken($token)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/printable')
+            ->assertOk()
+            ->assertJsonPath('data.document.issue_type', 'reprint')
+            ->assertJsonPath('data.document.version', 1)
+            ->assertJsonPath('data.document.issue_count', 2)
+            ->assertJsonPath('data.service_order.customer.name', 'Cliente Impressao')
+            ->assertJsonPath('data.service_order.equipment.brand', 'Dell')
+            ->assertJsonPath('data.service_order.equipment.serial_number', 'PRINT-001-'.$companyId)
+            ->assertJsonPath('data.service_order.reported_problem', 'Nao liga e apresenta odor de queimado.')
+            ->assertJsonPath('data.service_order.equipment_description', 'Notebook Dell Latitude 5520 com etiqueta patrimonial.');
+
+        $this->assertSame($firstPayload['generated_at'], $secondResponse->json('data.generated_at'));
+
+        $snapshot = ServiceOrderPrintSnapshot::query()->withoutGlobalScopes()->where('service_order_id', $serviceOrderId)->first();
+        $this->assertNotNull($snapshot);
+        $this->assertSame(2, $snapshot->issue_count);
+
+        $this->assertDatabaseCount('service_order_print_snapshots', 1);
+        $this->assertDatabaseHas('service_order_timeline_events', [
+            'service_order_id' => $serviceOrderId,
+            'type' => 'printable_snapshot_issued',
+        ]);
+        $this->assertDatabaseHas('service_order_timeline_events', [
+            'service_order_id' => $serviceOrderId,
+            'type' => 'printable_snapshot_reissued',
+        ]);
+        $this->assertDatabaseHas('business_audits', [
+            'company_id' => $serviceOrder->company_id,
+            'category' => 'service_order_document',
+            'event_type' => 'printable_snapshot_issued',
+        ]);
+        $this->assertDatabaseHas('business_audits', [
+            'company_id' => $serviceOrder->company_id,
+            'category' => 'service_order_document',
+            'event_type' => 'printable_snapshot_reissued',
+        ]);
     }
 
     /**

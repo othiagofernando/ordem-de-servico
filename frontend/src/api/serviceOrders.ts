@@ -417,6 +417,17 @@ export function getAttachments(id: number) {
 
 export interface PrintableServiceOrderPayload {
   generated_at: string
+  document: {
+    version: number
+    issue_count: number
+    issue_type: 'initial_issue' | 'reprint'
+    snapshot_issued_at: string | null
+    snapshot_issued_by_membership_id: number | null
+    snapshot_issued_by_name: string | null
+    issued_at: string | null
+    issued_by_membership_id: number | null
+    issued_by_name: string | null
+  }
   company: {
     name: string | null
     document: string | null

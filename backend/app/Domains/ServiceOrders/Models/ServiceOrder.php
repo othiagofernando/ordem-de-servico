@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'company_id',
@@ -188,5 +189,10 @@ class ServiceOrder extends Model
     public function attachments(): HasMany
     {
         return $this->hasMany(ServiceOrderAttachment::class)->orderBy('id');
+    }
+
+    public function printSnapshot(): HasOne
+    {
+        return $this->hasOne(ServiceOrderPrintSnapshot::class);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
@@ -12,6 +13,7 @@ use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderPrintSnapshot;
 use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Database\Eloquent\Builder;
@@ -21,6 +23,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use App\Domains\Auth\Models\Membership;
 use Symfony\Component\HttpFoundation\Response;
 
 class ServiceOrderController extends Controller
@@ -238,7 +241,12 @@ class ServiceOrderController extends Controller
      *
      * @group Service Orders
      */
-    public function printable(ServiceOrder $serviceOrder, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    public function printable(
+        ServiceOrder $serviceOrder,
+        VisibleServiceOrders $visibleServiceOrders,
+        RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
+    ): JsonResponse
     {
         $membership = currentMembership();
 
@@ -258,10 +266,118 @@ class ServiceOrderController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $visible->load(['company', 'customer', 'customerContact', 'equipment']);
+        $visible->load(['company', 'customer', 'customerContact', 'equipment', 'printSnapshot.firstIssuedByMembership.user', 'printSnapshot.lastIssuedByMembership.user']);
+
+        $snapshot = DB::transaction(function () use ($visible, $membership, $recordTimelineEvent, $recordBusinessAudit): ServiceOrderPrintSnapshot {
+            $existingSnapshot = $visible->printSnapshot()->withoutGlobalScopes()->first();
+
+            if ($existingSnapshot === null) {
+                $payload = $this->serializePrintableServiceOrder($visible);
+                $issuedAt = now();
+
+                $snapshot = ServiceOrderPrintSnapshot::query()->withoutGlobalScopes()->create([
+                    'company_id' => $visible->company_id,
+                    'service_order_id' => $visible->getKey(),
+                    'version' => 1,
+                    'payload' => $payload,
+                    'first_issued_by_membership_id' => $membership?->getKey(),
+                    'first_issued_at' => $issuedAt,
+                    'last_issued_by_membership_id' => $membership?->getKey(),
+                    'last_issued_at' => $issuedAt,
+                    'issue_count' => 1,
+                ]);
+
+                $recordTimelineEvent->handle(
+                    $visible,
+                    type: 'printable_snapshot_issued',
+                    title: 'Printable service order issued',
+                    visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
+                    actorMembership: $membership,
+                    payload: [
+                        'snapshot_version' => $snapshot->version,
+                        'issue_type' => 'initial_issue',
+                        'issue_count' => 1,
+                    ],
+                );
+
+                $recordBusinessAudit->handle(
+                    $visible->company_id,
+                    'service_order_document',
+                    'printable_snapshot_issued',
+                    $visible,
+                    $membership,
+                    context: [
+                        'snapshot_version' => $snapshot->version,
+                        'issue_type' => 'initial_issue',
+                        'issue_count' => 1,
+                    ],
+                    afterValues: [
+                        'first_issued_at' => $issuedAt->toIso8601String(),
+                        'first_issued_by_membership_id' => $membership?->getKey(),
+                    ],
+                );
+
+                return $snapshot->fresh(['firstIssuedByMembership.user', 'lastIssuedByMembership.user']);
+            }
+
+            $issuedAt = now();
+            $previousIssueCount = $existingSnapshot->issue_count;
+            $previousIssuedAt = $existingSnapshot->last_issued_at?->toIso8601String();
+            $previousIssuedBy = $existingSnapshot->last_issued_by_membership_id;
+            $issueCount = $previousIssueCount + 1;
+
+            $existingSnapshot->forceFill([
+                'last_issued_by_membership_id' => $membership?->getKey(),
+                'last_issued_at' => $issuedAt,
+                'issue_count' => $issueCount,
+            ])->save();
+
+            $recordTimelineEvent->handle(
+                $visible,
+                type: 'printable_snapshot_reissued',
+                title: 'Printable service order reissued',
+                visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
+                actorMembership: $membership,
+                payload: [
+                    'snapshot_version' => $existingSnapshot->version,
+                    'issue_type' => 'reprint',
+                    'issue_count' => $issueCount,
+                ],
+            );
+
+            $recordBusinessAudit->handle(
+                $visible->company_id,
+                'service_order_document',
+                'printable_snapshot_reissued',
+                $visible,
+                $membership,
+                context: [
+                    'snapshot_version' => $existingSnapshot->version,
+                    'issue_type' => 'reprint',
+                    'issue_count' => $issueCount,
+                ],
+                beforeValues: [
+                    'issue_count' => $previousIssueCount,
+                    'last_issued_at' => $previousIssuedAt,
+                    'last_issued_by_membership_id' => $previousIssuedBy,
+                ],
+                afterValues: [
+                    'issue_count' => $issueCount,
+                    'last_issued_at' => $issuedAt->toIso8601String(),
+                    'last_issued_by_membership_id' => $membership?->getKey(),
+                ],
+            );
+
+            return $existingSnapshot->fresh(['firstIssuedByMembership.user', 'lastIssuedByMembership.user']);
+        });
 
         return response()->json([
-            'data' => $this->serializePrintableServiceOrder($visible),
+            'data' => $this->decoratePrintablePayloadWithDocumentMetadata(
+                $snapshot->payload,
+                $snapshot,
+                $membership,
+                $snapshot->issue_count === 1 ? 'initial_issue' : 'reprint',
+            ),
         ]);
     }
 
@@ -913,6 +1029,31 @@ class ServiceOrderController extends Controller
                 ['key' => 'customer', 'label' => 'Via do cliente'],
             ],
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    protected function decoratePrintablePayloadWithDocumentMetadata(
+        array $payload,
+        ServiceOrderPrintSnapshot $snapshot,
+        ?Membership $currentMembership,
+        string $issueType,
+    ): array {
+        $payload['document'] = [
+            'version' => $snapshot->version,
+            'issue_count' => $snapshot->issue_count,
+            'issue_type' => $issueType,
+            'snapshot_issued_at' => $snapshot->first_issued_at?->toIso8601String(),
+            'snapshot_issued_by_membership_id' => $snapshot->first_issued_by_membership_id,
+            'snapshot_issued_by_name' => $snapshot->firstIssuedByMembership?->user?->name,
+            'issued_at' => $snapshot->last_issued_at?->toIso8601String(),
+            'issued_by_membership_id' => $snapshot->last_issued_by_membership_id,
+            'issued_by_name' => $snapshot->lastIssuedByMembership?->user?->name ?? $currentMembership?->user?->name,
+        ];
+
+        return $payload;
     }
 
     /**
