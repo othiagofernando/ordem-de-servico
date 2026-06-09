@@ -109,6 +109,12 @@ const router = createRouter({
       meta: { guest: true },
     },
     {
+      path: '/convites/:token',
+      name: 'membership-invitation',
+      component: () => import('../views/auth/MembershipInvitationView.vue'),
+      meta: { guest: true },
+    },
+    {
       path: '/portal/:token',
       name: 'portal',
       component: () => import('../views/portal/CustomerPortalView.vue'),

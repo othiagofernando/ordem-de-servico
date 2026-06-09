@@ -26,6 +26,8 @@ class AuthChallenge extends Model
 
     public const TYPE_MAGIC_LINK = 'magic_link';
 
+    public const TYPE_MEMBERSHIP_INVITATION = 'membership_invitation';
+
     protected function casts(): array
     {
         return [

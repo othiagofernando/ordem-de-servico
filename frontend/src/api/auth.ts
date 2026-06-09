@@ -1,4 +1,4 @@
-import { apiPost } from './client'
+import { API_BASE, apiPost } from './client'
 
 export interface LoginSingleResult {
   token_type: string
@@ -49,4 +49,31 @@ export function requestMagicLink(email: string, company_uuid: string) {
 
 export function consumeMagicLink(token: string) {
   return apiPost<LoginSingleResult>('/auth/passwordless/magic-link/consume', { token })
+}
+
+export interface MembershipInvitation {
+  company: { uuid: string; name: string }
+  user: { name: string; email: string }
+  membership: { id: number; role: string; status: string }
+  requires_password_setup: boolean
+  expires_at: string | null
+}
+
+export function fetchInvitation(token: string) {
+  return fetch(`${API_BASE}/auth/invitations/${token}`, {
+    headers: { Accept: 'application/json' },
+  }).then(async (res) => {
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      throw new Error((data as { message?: string }).message ?? 'Erro ao carregar convite.')
+    }
+    return res.json() as Promise<{ data: MembershipInvitation }>
+  })
+}
+
+export function acceptInvitation(
+  token: string,
+  payload?: { name?: string; password?: string; password_confirmation?: string },
+) {
+  return apiPost<LoginSingleResult & { user: { name: string; email: string } }>(`/auth/invitations/${token}/accept`, payload)
 }

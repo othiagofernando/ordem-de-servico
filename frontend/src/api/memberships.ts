@@ -1,13 +1,29 @@
-import { apiGet } from './client'
+import { apiGet, apiPatch, apiPost } from './client'
 
 export interface Membership {
   id: number
+  user_id: number
   role: string
   status: string
   user_name: string | null
   user_email: string | null
 }
 
-export function listMemberships() {
-  return apiGet<{ data: Membership[] }>('/tenant/memberships')
+export function listMemberships(includeInactive = false) {
+  const query = includeInactive ? '?include_inactive=1' : ''
+
+  return apiGet<{ data: Membership[] }>(`/tenant/memberships${query}`)
+}
+
+export function inviteMembership(payload: { name: string; email: string; role: string }) {
+  return apiPost<{
+    data: {
+      membership: { id: number; user_id: number; role: string; status: string }
+      invitation: { token: string; accept_url: string; requires_password_setup: boolean }
+    }
+  }>('/tenant/memberships/invitations', payload)
+}
+
+export function updateMembershipStatus(membershipId: number, status: 'active' | 'suspended') {
+  return apiPatch<{ data: Membership }>(`/tenant/memberships/${membershipId}/status`, { status })
 }

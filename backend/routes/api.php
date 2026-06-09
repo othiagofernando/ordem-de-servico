@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
+use App\Http\Controllers\Api\V1\Auth\MembershipInvitationAcceptController;
+use App\Http\Controllers\Api\V1\Auth\MembershipInvitationShowController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeRequestController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeVerifyController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCompanyLookupController;
@@ -16,6 +18,7 @@ use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
+use App\Http\Controllers\Api\V1\MembershipStatusController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
@@ -27,6 +30,7 @@ use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
 use App\Http\Controllers\Api\V1\ServiceOrderAssignmentController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
+use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +39,9 @@ Route::get('/health', HealthController::class)->name('api.v1.health');
 Route::prefix('auth')->group(function (): void {
     Route::post('/login', LoginController::class)->name('api.v1.auth.login');
     Route::post('/select-company', SelectCompanyController::class)->name('api.v1.auth.select-company');
+    Route::get('/invitations/{token}', MembershipInvitationShowController::class)->name('api.v1.auth.invitations.show');
+    Route::post('/invitations/{token}/accept', MembershipInvitationAcceptController::class)
+        ->name('api.v1.auth.invitations.accept');
     Route::post('/passwordless/code/request', PasswordlessCodeRequestController::class)
         ->name('api.v1.auth.passwordless.code.request');
     Route::post('/passwordless/code/verify', PasswordlessCodeVerifyController::class)
@@ -68,9 +75,15 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)
         ->name('api.v1.tenant.memberships.show');
+    Route::post('/tenant/memberships/invitations', TenantMembershipInvitationController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.invitations.store');
     Route::patch('/tenant/memberships/{membership}/authorization', MembershipAuthorizationController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.authorization.update');
+    Route::patch('/tenant/memberships/{membership}/status', MembershipStatusController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.status.update');
     Route::get('/customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view_any')
         ->name('api.v1.customers.index');
