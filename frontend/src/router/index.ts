@@ -125,6 +125,24 @@ const router = createRouter({
       component: () => import('../views/portal/CustomerPortalView.vue'),
     },
     {
+      path: '/portal/:token/documentos/orcamento',
+      name: 'portal.documents.quote',
+      component: () => import('../views/portal/PortalDocumentView.vue'),
+      meta: { documentType: 'quote' },
+    },
+    {
+      path: '/portal/:token/documentos/recibos/:paymentId',
+      name: 'portal.documents.receipt',
+      component: () => import('../views/portal/PortalDocumentView.vue'),
+      meta: { documentType: 'receipt' },
+    },
+    {
+      path: '/portal/:token/documentos/termo-entrega',
+      name: 'portal.documents.delivery',
+      component: () => import('../views/portal/PortalDocumentView.vue'),
+      meta: { documentType: 'delivery_term' },
+    },
+    {
       path: '/ordens-de-servico/:id/imprimir',
       name: 'service-orders.print',
       component: () => import('../views/serviceOrders/ServiceOrderPrintView.vue'),

@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Companies\Models\CompanyOperationalSetting;
+use App\Domains\ServiceOrders\Actions\BuildOperationalDocumentPayload;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
+use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderPayment;
 use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -33,6 +36,71 @@ class CustomerQuotePortalController extends Controller
 
         return response()->json([
             'data' => $this->serializePortalQuote($quote, $settings),
+        ]);
+    }
+
+    /**
+     * View the printable current quote document through the same portal token.
+     *
+     * @group Customer Portal
+     */
+    public function documentQuote(
+        string $token,
+        NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
+        BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+    ): JsonResponse {
+        $quote = $this->resolveQuoteByPortalToken($token);
+        $normalizeQuoteRevisionStates->handle($quote->serviceOrder);
+        $quote->refresh();
+
+        return response()->json([
+            'data' => $buildOperationalDocumentPayload->quote($quote->serviceOrder, $quote),
+        ]);
+    }
+
+    /**
+     * View one payment receipt document through the portal token of the same service order.
+     *
+     * @group Customer Portal
+     */
+    public function documentReceipt(
+        string $token,
+        ServiceOrderPayment $payment,
+        BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+    ): JsonResponse {
+        $quote = $this->resolveQuoteByPortalToken($token);
+        $serviceOrder = $quote->serviceOrder->loadMissing(['company', 'customer', 'customerContact']);
+
+        abort_if(
+            $payment->service_order_id !== $serviceOrder->getKey() || $payment->company_id !== $serviceOrder->company_id,
+            Response::HTTP_NOT_FOUND,
+        );
+
+        return response()->json([
+            'data' => $buildOperationalDocumentPayload->receipt($serviceOrder, $payment),
+        ]);
+    }
+
+    /**
+     * View the printable delivery term document through the portal token.
+     *
+     * @group Customer Portal
+     */
+    public function documentDelivery(
+        string $token,
+        BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+    ): JsonResponse {
+        $quote = $this->resolveQuoteByPortalToken($token);
+        $serviceOrder = $quote->serviceOrder->loadMissing(['company', 'customer', 'customerContact', 'equipment', 'charges', 'payments']);
+
+        if ($serviceOrder->status !== ServiceOrder::STATUS_DELIVERED || $serviceOrder->delivered_at === null) {
+            return response()->json([
+                'message' => 'This service order does not yet expose a delivery term.',
+            ], Response::HTTP_UNPROCESSABLE_ENTITY);
+        }
+
+        return response()->json([
+            'data' => $buildOperationalDocumentPayload->delivery($serviceOrder),
         ]);
     }
 
@@ -140,7 +208,10 @@ class CustomerQuotePortalController extends Controller
             ->with([
                 'serviceOrder.company',
                 'serviceOrder.customer',
+                'serviceOrder.customerContact',
                 'serviceOrder.equipment',
+                'serviceOrder.payments',
+                'serviceOrder.charges',
                 'serviceOrder.timelineEvents',
             ])
             ->where('portal_token_hash', hash('sha256', $token))
@@ -161,6 +232,15 @@ class CustomerQuotePortalController extends Controller
         $serviceOrder = $quote->serviceOrder;
         $customerTimeline = $serviceOrder->timelineEvents
             ->where('visibility', ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER)
+            ->values();
+        $paymentDocuments = $serviceOrder->payments
+            ->map(fn (ServiceOrderPayment $payment): array => [
+                'payment_id' => $payment->getKey(),
+                'amount_cents' => $payment->amount_cents,
+                'currency' => $payment->currency,
+                'payment_method' => $payment->payment_method,
+                'received_at' => $payment->received_at?->toIso8601String(),
+            ])
             ->values();
 
         return [
@@ -199,6 +279,15 @@ class CustomerQuotePortalController extends Controller
                     'title' => $event->title,
                     'occurred_at' => $event->occurred_at?->toIso8601String(),
                 ])->all(),
+                'documents' => [
+                    'quote' => [
+                        'available' => true,
+                    ],
+                    'receipts' => $paymentDocuments->all(),
+                    'delivery_term' => [
+                        'available' => $serviceOrder->status === ServiceOrder::STATUS_DELIVERED && $serviceOrder->delivered_at !== null,
+                    ],
+                ],
             ],
             'quote' => [
                 'id' => $quote->getKey(),

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
 import { API_BASE } from '../../api/client'
 
 const route = useRoute()
@@ -25,6 +25,17 @@ interface PortalData {
     customer: { id: number; name: string } | null
     equipment: { description: string | null; category: string | null; brand: string | null; model: string | null } | null
     timeline: Array<{ id: number; type: string; title: string; occurred_at: string | null }>
+    documents: {
+      quote: { available: boolean }
+      receipts: Array<{
+        payment_id: number
+        amount_cents: number
+        currency: string
+        payment_method: string
+        received_at: string | null
+      }>
+      delivery_term: { available: boolean }
+    }
   }
   quote: {
     id: number
@@ -120,9 +131,49 @@ function fmtDate(dt: string) {
   return new Date(dt).toLocaleDateString('pt-BR')
 }
 
+function fmtDateMaybe(dt: string | null) {
+  return dt ? fmtDate(dt) : 'Data não informada'
+}
+
 function orderStatusLabel(status: string) {
   return statusLabels[status] ?? status
 }
+
+const availableDocuments = computed(() => {
+  if (!data.value) return []
+
+  const docs: Array<
+    | { key: string; label: string; to: { name: string; params: Record<string, string | number> }; helper?: string }
+  > = []
+
+  if (data.value.service_order.documents.quote.available) {
+    docs.push({
+      key: 'quote',
+      label: 'Ver orçamento',
+      to: { name: 'portal.documents.quote', params: { token } },
+      helper: `Revisão ${data.value.quote.revision_number}`,
+    })
+  }
+
+  data.value.service_order.documents.receipts.forEach((receipt) => {
+    docs.push({
+      key: `receipt-${receipt.payment_id}`,
+      label: 'Ver recibo',
+      to: { name: 'portal.documents.receipt', params: { token, paymentId: receipt.payment_id } },
+      helper: `${fmtMoney(receipt.amount_cents)} · ${fmtDateMaybe(receipt.received_at)}`,
+    })
+  })
+
+  if (data.value.service_order.documents.delivery_term.available) {
+    docs.push({
+      key: 'delivery-term',
+      label: 'Ver termo de entrega',
+      to: { name: 'portal.documents.delivery', params: { token } },
+    })
+  }
+
+  return docs
+})
 
 onMounted(load)
 </script>
@@ -186,6 +237,24 @@ onMounted(load)
               <p class="text-sm font-medium text-stone-100">{{ event.title }}</p>
               <p v-if="event.occurred_at" class="mt-1 text-xs text-stone-500">{{ fmtDate(event.occurred_at) }}</p>
             </div>
+          </div>
+        </div>
+
+        <div v-if="availableDocuments.length > 0" class="mb-4 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 class="mb-4 text-sm font-semibold text-stone-300">Documentos</h2>
+          <div class="space-y-3">
+            <RouterLink
+              v-for="document in availableDocuments"
+              :key="document.key"
+              :to="document.to"
+              class="flex items-center justify-between rounded-xl border border-white/10 bg-black/20 px-4 py-3 transition hover:border-amber-500/30 hover:bg-amber-500/5"
+            >
+              <div>
+                <p class="text-sm font-medium text-stone-200">{{ document.label }}</p>
+                <p v-if="document.helper" class="mt-1 text-xs text-stone-500">{{ document.helper }}</p>
+              </div>
+              <span class="text-xs text-amber-300">Abrir</span>
+            </RouterLink>
           </div>
         </div>
 

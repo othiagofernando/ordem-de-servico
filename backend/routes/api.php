@@ -62,6 +62,12 @@ Route::prefix('portal')->group(function (): void {
         ->name('api.v1.portal.quotes.show');
     Route::post('/quotes/{token}/decision', [CustomerQuotePortalController::class, 'decide'])
         ->name('api.v1.portal.quotes.decision');
+    Route::get('/quotes/{token}/documents/quote', [CustomerQuotePortalController::class, 'documentQuote'])
+        ->name('api.v1.portal.quotes.documents.quote');
+    Route::get('/quotes/{token}/documents/payments/{payment}/receipt', [CustomerQuotePortalController::class, 'documentReceipt'])
+        ->name('api.v1.portal.quotes.documents.receipt');
+    Route::get('/quotes/{token}/documents/delivery-term', [CustomerQuotePortalController::class, 'documentDelivery'])
+        ->name('api.v1.portal.quotes.documents.delivery');
 });
 
 Route::middleware('auth.token')->group(function (): void {

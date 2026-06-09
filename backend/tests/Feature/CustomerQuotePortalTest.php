@@ -135,20 +135,65 @@ class CustomerQuotePortalTest extends TestCase
         $this->assertNotSame($otherServiceOrderId, $response->json('data.service_order.id'));
     }
 
+    public function test_portal_exposes_operational_documents_for_the_same_service_order_only(): void
+    {
+        [
+            'portal_token' => $portalToken,
+            'other_portal_token' => $otherPortalToken,
+            'service_order_id' => $serviceOrderId,
+            'payment_id' => $paymentId,
+            'other_payment_id' => $otherPaymentId,
+        ] = $this->createDeliveredPortalDocumentScenario();
+
+        $portalResponse = $this->getJson('/api/v1/portal/quotes/'.$portalToken)
+            ->assertOk()
+            ->assertJsonPath('data.service_order.documents.quote.available', true)
+            ->assertJsonPath('data.service_order.documents.receipts.0.payment_id', $paymentId)
+            ->assertJsonPath('data.service_order.documents.delivery_term.available', true);
+
+        $timeline = collect($portalResponse->json('data.service_order.timeline'))->pluck('type')->all();
+        $this->assertContains('payment_received', $timeline);
+        $this->assertContains('service_order_ready_for_pickup', $timeline);
+        $this->assertContains('service_order_delivered', $timeline);
+
+        $this->getJson('/api/v1/portal/quotes/'.$portalToken.'/documents/quote')
+            ->assertOk()
+            ->assertJsonPath('data.document_type', 'quote')
+            ->assertJsonPath('data.service_order.id', $serviceOrderId);
+
+        $this->getJson('/api/v1/portal/quotes/'.$portalToken.'/documents/payments/'.$paymentId.'/receipt')
+            ->assertOk()
+            ->assertJsonPath('data.document_type', 'receipt')
+            ->assertJsonPath('data.receipt.payment_id', $paymentId);
+
+        $this->getJson('/api/v1/portal/quotes/'.$portalToken.'/documents/delivery-term')
+            ->assertOk()
+            ->assertJsonPath('data.document_type', 'delivery_term')
+            ->assertJsonPath('data.service_order.id', $serviceOrderId);
+
+        $this->getJson('/api/v1/portal/quotes/'.$portalToken.'/documents/payments/'.$otherPaymentId.'/receipt')
+            ->assertNotFound();
+
+        $this->getJson('/api/v1/portal/quotes/'.$otherPortalToken.'/documents/payments/'.$paymentId.'/receipt')
+            ->assertNotFound();
+    }
+
     /**
      * @return array{string, string, ServiceOrder, int}
      */
     protected function createPortalQuoteScenario(): array
     {
+        $suffix = (string) (Company::query()->count() + 1);
+
         $company = Company::query()->create([
             'name' => 'Acme Assistencia',
-            'email' => 'portal@example.com',
+            'email' => 'portal'.$suffix.'@example.com',
             'is_active' => true,
         ]);
 
         $attendantUser = User::query()->create([
             'name' => 'Attendant Portal',
-            'email' => 'attendant.portal@example.com',
+            'email' => 'attendant.portal'.$suffix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -161,7 +206,7 @@ class CustomerQuotePortalTest extends TestCase
 
         $technicianUser = User::query()->create([
             'name' => 'Technician Portal',
-            'email' => 'technician.portal@example.com',
+            'email' => 'technician.portal'.$suffix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -183,9 +228,9 @@ class CustomerQuotePortalTest extends TestCase
             'customer_id' => $customer->getKey(),
             'label' => 'principal',
             'name' => 'Contato Portal',
-            'email' => 'cliente.portal@example.com',
+            'email' => 'cliente.portal'.$suffix.'@example.com',
             'phone' => '(11) 94444-3333',
-            'normalized_email' => 'cliente.portal@example.com',
+            'normalized_email' => 'cliente.portal'.$suffix.'@example.com',
             'normalized_phone' => '11944443333',
         ]);
 
@@ -330,6 +375,163 @@ class CustomerQuotePortalTest extends TestCase
             ->postJson('/api/v1/service-orders/drafts/'.$serviceOrderId.'/open')
             ->assertOk();
 
+        $technicianMembership = Membership::query()->withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->where('role', 'technician')
+            ->firstOrFail();
+
+        ServiceOrder::query()->findOrFail($serviceOrderId)
+            ->forceFill([
+                'assigned_membership_id' => $technicianMembership->getKey(),
+            ])
+            ->save();
+
         return $serviceOrderId;
+    }
+
+    /**
+     * @return array{
+     *   portal_token: string,
+     *   other_portal_token: string,
+     *   service_order_id: int,
+     *   payment_id: int,
+     *   other_payment_id: int
+     * }
+     */
+    protected function createDeliveredPortalDocumentScenario(): array
+    {
+        [$portalToken, $attendantToken, $serviceOrder] = $this->createPortalQuoteScenario();
+
+        $company = Company::query()->findOrFail($serviceOrder->company_id);
+
+        $financeUser = User::query()->create([
+            'name' => 'Finance Portal',
+            'email' => 'finance.portal@example.com',
+            'password' => Hash::make('secret-pass'),
+        ]);
+
+        $financeMembership = Membership::query()->withoutGlobalScopes()->create([
+            'company_id' => $company->getKey(),
+            'user_id' => $financeUser->getKey(),
+            'role' => 'finance',
+            'status' => Membership::STATUS_ACTIVE,
+        ]);
+
+        $financeToken = app(IssueApiToken::class)->handle(
+            $financeUser,
+            $financeMembership,
+            'portal-finance-test',
+        )['plain_text_token'];
+
+        $this->postJson('/api/v1/portal/quotes/'.$portalToken.'/decision', [
+            'decision' => 'approve',
+        ])->assertOk();
+
+        $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/financials/charges/derive-approved-quote')
+            ->assertCreated();
+
+        $paymentId = $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/financials/payments', [
+                'amount_cents' => 20000,
+                'payment_method' => 'pix',
+                'notes' => 'Entrada do portal.',
+            ])
+            ->assertCreated()
+            ->json('data.payments.0.id');
+
+        $technicianMembershipId = ServiceOrder::query()->findOrFail($serviceOrder->getKey())->assigned_membership_id;
+        $technicianMembership = Membership::query()->withoutGlobalScopes()->findOrFail($technicianMembershipId);
+        $technicianToken = app(IssueApiToken::class)->handle(
+            $technicianMembership->user,
+            $technicianMembership,
+            'portal-tech-repeat-test',
+        )['plain_text_token'];
+
+        $this->withToken($technicianToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/execution/start')
+            ->assertOk();
+
+        $this->withToken($technicianToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/execution/complete', [
+                'final_test_results' => [
+                    ['label' => 'Liga corretamente', 'passed' => true],
+                ],
+            ])
+            ->assertOk();
+
+        $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/ready-for-pickup')
+            ->assertOk();
+
+        $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/financials/payments', [
+                'amount_cents' => 30000,
+                'payment_method' => 'cash',
+                'notes' => 'Quitacao final.',
+            ])
+            ->assertCreated();
+
+        $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrder->getKey().'/delivery', [
+                'received_by_name' => 'Cliente Portal',
+                'notes' => 'Entrega registrada no portal.',
+            ])
+            ->assertOk();
+
+        $otherServiceOrderId = $this->createSecondPortalServiceOrder($attendantToken, $serviceOrder->company_id);
+        $technicianMembershipId = ServiceOrder::query()->findOrFail($otherServiceOrderId)->assigned_membership_id;
+        $technicianMembership = Membership::query()->withoutGlobalScopes()->findOrFail($technicianMembershipId);
+        $technicianToken = app(IssueApiToken::class)->handle(
+            $technicianMembership->user,
+            $technicianMembership,
+            'portal-second-tech-test',
+        )['plain_text_token'];
+
+        $this->withToken($technicianToken)
+            ->putJson('/api/v1/service-orders/'.$otherServiceOrderId.'/diagnosis', [
+                'internal_notes' => 'Segundo equipamento precisa de reparo.',
+                'customer_summary' => 'Segundo equipamento aguardando reparo.',
+            ])->assertOk();
+
+        $otherQuote = $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/'.$otherServiceOrderId.'/quotes', [
+                'valid_until' => now()->addDay()->toIso8601String(),
+                'notes' => 'Segundo orçamento.',
+                'line_items' => [
+                    [
+                        'description' => 'Troca de conector',
+                        'quantity' => 1,
+                        'unit_price_cents' => 18000,
+                    ],
+                ],
+            ])
+            ->assertCreated();
+
+        $otherPortalToken = $otherQuote->json('data.portal_token');
+
+        $this->postJson('/api/v1/portal/quotes/'.$otherPortalToken.'/decision', [
+            'decision' => 'approve',
+        ])->assertOk();
+
+        $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$otherServiceOrderId.'/financials/charges/derive-approved-quote')
+            ->assertCreated();
+
+        $otherPaymentId = $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$otherServiceOrderId.'/financials/payments', [
+                'amount_cents' => 10000,
+                'payment_method' => 'pix',
+            ])
+            ->assertCreated()
+            ->json('data.payments.0.id');
+
+        return [
+            'portal_token' => $portalToken,
+            'other_portal_token' => $otherPortalToken,
+            'service_order_id' => $serviceOrder->getKey(),
+            'payment_id' => $paymentId,
+            'other_payment_id' => $otherPaymentId,
+        ];
     }
 }
