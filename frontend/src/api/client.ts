@@ -60,3 +60,26 @@ export function apiPut<T>(path: string, body?: unknown) {
 export function apiPatch<T>(path: string, body?: unknown) {
   return apiFetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined })
 }
+
+export async function apiDownload(path: string, filename: string, accept = 'text/csv') {
+  const token = getToken()
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      Accept: accept,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new ApiError(res.status, data, (data as { message?: string }).message ?? `HTTP ${res.status}`)
+  }
+
+  const blob = await res.blob()
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
+}

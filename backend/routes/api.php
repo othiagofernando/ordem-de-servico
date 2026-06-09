@@ -191,6 +191,10 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.service-orders.printable');
     Route::get('/service-orders/reports/overview', [ServiceOrderController::class, 'overview'])
         ->name('api.v1.service-orders.reports.overview');
+    Route::get('/service-orders/reports/service-orders', [ServiceOrderController::class, 'serviceOrderReport'])
+        ->name('api.v1.service-orders.reports.service-orders');
+    Route::get('/service-orders/reports/financial', [ServiceOrderController::class, 'financialReport'])
+        ->name('api.v1.service-orders.reports.financial');
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');

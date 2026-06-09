@@ -405,6 +405,234 @@ class ServiceOrderController extends Controller
     }
 
     /**
+     * Return a filterable service order report for the visible scope.
+     *
+     * @group Service Orders
+     */
+    public function serviceOrderReport(Request $request, VisibleServiceOrders $visibleServiceOrders)
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (
+            ! $membership->hasPermission('service_orders.view_any')
+            && ! $membership->hasPermission('service_orders.view_assigned')
+        ) {
+            return response()->json([
+                'message' => 'This membership cannot view service orders.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $serviceOrders = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
+            ->with(['customer', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
+            ->get();
+
+        $rows = $serviceOrders->map(fn (ServiceOrder $serviceOrder): array => [
+            'id' => $serviceOrder->getKey(),
+            'reference' => $serviceOrder->reference,
+            'order_number' => $serviceOrder->order_number,
+            'status' => $serviceOrder->status,
+            'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
+            'customer_name' => $serviceOrder->customer?->name,
+            'customer_document' => $serviceOrder->customer?->document,
+            'equipment_summary' => trim(collect([
+                $serviceOrder->equipment?->brand,
+                $serviceOrder->equipment?->model,
+                $serviceOrder->equipment?->serial_number ? 'S/N '.$serviceOrder->equipment->serial_number : null,
+            ])->filter()->implode(' ')),
+            'assigned_membership_name' => $serviceOrder->assignedMembership?->user?->name,
+            'latest_quote_status' => $serviceOrder->quoteRevisions->sortByDesc('revision_number')->first()?->status,
+            'warranty_decision_status' => $serviceOrder->warranty_decision_status,
+        ]);
+
+        if ($request->query('format') === 'csv') {
+            return $this->downloadCsv(
+                'relatorio-ordens-servico.csv',
+                ['Referencia', 'Numero OS', 'Status', 'Abertura', 'Cliente', 'Documento', 'Equipamento', 'Tecnico', 'Ultimo Orcamento', 'Garantia'],
+                $rows->map(fn (array $row): array => [
+                    $row['reference'],
+                    $row['order_number'] ?? '',
+                    $row['status'],
+                    $row['opened_at'] ?? '',
+                    $row['customer_name'] ?? '',
+                    $row['customer_document'] ?? '',
+                    $row['equipment_summary'] ?? '',
+                    $row['assigned_membership_name'] ?? '',
+                    $row['latest_quote_status'] ?? '',
+                    $row['warranty_decision_status'] ?? '',
+                ]),
+            );
+        }
+
+        return response()->json([
+            'data' => $rows->all(),
+            'meta' => [
+                'total' => $rows->count(),
+                'by_status' => $serviceOrders
+                    ->groupBy('status')
+                    ->map(fn (Collection $group): int => $group->count())
+                    ->all(),
+            ],
+            'filters' => $request->only(['q', 'queue', 'assigned_membership_id', 'status', 'opened_from', 'opened_to']),
+        ]);
+    }
+
+    /**
+     * Return a filterable financial report for visible service orders.
+     *
+     * @group Service Orders
+     */
+    public function financialReport(Request $request, VisibleServiceOrders $visibleServiceOrders)
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (! $membership->hasPermission('service_orders.finance')) {
+            return response()->json([
+                'message' => 'This membership cannot view financial reports.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        if (
+            ! $membership->hasPermission('service_orders.view_any')
+            && ! $membership->hasPermission('service_orders.view_assigned')
+        ) {
+            return response()->json([
+                'message' => 'This membership cannot view service orders.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $filters = $request->validate([
+            'payment_method' => ['sometimes', 'nullable', 'string', 'max:50'],
+            'balance_state' => ['sometimes', 'nullable', Rule::in(['settled', 'outstanding'])],
+            'received_from' => ['sometimes', 'nullable', 'date'],
+            'received_to' => ['sometimes', 'nullable', 'date'],
+        ]);
+
+        $serviceOrders = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
+            ->with(['customer', 'assignedMembership.user', 'charges', 'payments'])
+            ->get()
+            ->filter(function (ServiceOrder $serviceOrder) use ($filters): bool {
+                $payments = $serviceOrder->payments;
+
+                if (filled($filters['payment_method'] ?? null) && ! $payments->contains('payment_method', $filters['payment_method'])) {
+                    return false;
+                }
+
+                if (filled($filters['received_from'] ?? null) || filled($filters['received_to'] ?? null)) {
+                    $payments = $payments->filter(function ($payment) use ($filters): bool {
+                        $receivedAt = $payment->received_at?->toDateString();
+
+                        if ($receivedAt === null) {
+                            return false;
+                        }
+
+                        if (filled($filters['received_from'] ?? null) && $receivedAt < $filters['received_from']) {
+                            return false;
+                        }
+
+                        if (filled($filters['received_to'] ?? null) && $receivedAt > $filters['received_to']) {
+                            return false;
+                        }
+
+                        return true;
+                    });
+
+                    if ($payments->isEmpty()) {
+                        return false;
+                    }
+                }
+
+                $summary = $this->summarizeFinancials($serviceOrder);
+                $isOutstanding = $summary['outstanding_balance_cents'] > 0;
+
+                if (($filters['balance_state'] ?? null) === 'outstanding' && ! $isOutstanding) {
+                    return false;
+                }
+
+                if (($filters['balance_state'] ?? null) === 'settled' && $isOutstanding) {
+                    return false;
+                }
+
+                return true;
+            })
+            ->values();
+
+        $rows = $serviceOrders->map(function (ServiceOrder $serviceOrder): array {
+            $summary = $this->summarizeFinancials($serviceOrder);
+
+            return [
+                'service_order_id' => $serviceOrder->getKey(),
+                'reference' => $serviceOrder->reference,
+                'order_number' => $serviceOrder->order_number,
+                'status' => $serviceOrder->status,
+                'customer_name' => $serviceOrder->customer?->name,
+                'assigned_membership_name' => $serviceOrder->assignedMembership?->user?->name,
+                'total_charged_cents' => $summary['total_charged_cents'],
+                'total_paid_cents' => $summary['total_paid_cents'],
+                'outstanding_balance_cents' => $summary['outstanding_balance_cents'],
+                'payment_methods' => $serviceOrder->payments
+                    ->pluck('payment_method')
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->all(),
+                'last_payment_at' => $serviceOrder->payments
+                    ->sortByDesc(fn ($payment) => $payment->received_at?->getTimestamp() ?? 0)
+                    ->first()?->received_at?->toIso8601String(),
+            ];
+        });
+
+        if ($request->query('format') === 'csv') {
+            return $this->downloadCsv(
+                'relatorio-financeiro.csv',
+                ['Referencia', 'Numero OS', 'Status', 'Cliente', 'Tecnico', 'Cobrado', 'Pago', 'Saldo', 'Meios de pagamento', 'Ultimo pagamento'],
+                $rows->map(fn (array $row): array => [
+                    $row['reference'],
+                    $row['order_number'] ?? '',
+                    $row['status'],
+                    $row['customer_name'] ?? '',
+                    $row['assigned_membership_name'] ?? '',
+                    $row['total_charged_cents'],
+                    $row['total_paid_cents'],
+                    $row['outstanding_balance_cents'],
+                    implode(', ', $row['payment_methods']),
+                    $row['last_payment_at'] ?? '',
+                ]),
+            );
+        }
+
+        return response()->json([
+            'data' => $rows->all(),
+            'meta' => [
+                'total' => $rows->count(),
+                'totals' => [
+                    'total_charged_cents' => (int) $rows->sum('total_charged_cents'),
+                    'total_paid_cents' => (int) $rows->sum('total_paid_cents'),
+                    'outstanding_balance_cents' => (int) $rows->sum('outstanding_balance_cents'),
+                ],
+            ],
+            'filters' => $request->only([
+                'q',
+                'assigned_membership_id',
+                'status',
+                'opened_from',
+                'opened_to',
+                'payment_method',
+                'balance_state',
+                'received_from',
+                'received_to',
+            ]),
+        ]);
+    }
+
+    /**
      * @return array<string, int>
      */
     protected function summarizeOperationalQueues(Collection $serviceOrders): array
@@ -687,6 +915,22 @@ class ServiceOrderController extends Controller
         ];
     }
 
+    /**
+     * @return array<string, int|string>
+     */
+    protected function summarizeFinancials(ServiceOrder $serviceOrder): array
+    {
+        $totalChargedCents = (int) $serviceOrder->charges->sum('amount_cents');
+        $totalPaidCents = (int) $serviceOrder->payments->sum('amount_cents');
+
+        return [
+            'currency' => (string) ($serviceOrder->charges->first()?->currency ?? $serviceOrder->payments->first()?->currency ?? 'BRL'),
+            'total_charged_cents' => $totalChargedCents,
+            'total_paid_cents' => $totalPaidCents,
+            'outstanding_balance_cents' => $totalChargedCents - $totalPaidCents,
+        ];
+    }
+
     protected function buildFilteredVisibleQuery(
         Request $request,
         VisibleServiceOrders $visibleServiceOrders,
@@ -711,6 +955,8 @@ class ServiceOrderController extends Controller
             'assigned_membership_id' => ['sometimes', 'nullable', 'integer'],
             'status' => ['sometimes', 'array'],
             'status.*' => ['string'],
+            'opened_from' => ['sometimes', 'nullable', 'date'],
+            'opened_to' => ['sometimes', 'nullable', 'date'],
         ]);
 
         $query = $visibleServiceOrders->queryFor($membership);
@@ -721,6 +967,14 @@ class ServiceOrderController extends Controller
 
         if (($filters['status'] ?? null) !== null) {
             $query->whereIn('status', $filters['status']);
+        }
+
+        if (filled($filters['opened_from'] ?? null)) {
+            $query->whereDate('opened_at', '>=', $filters['opened_from']);
+        }
+
+        if (filled($filters['opened_to'] ?? null)) {
+            $query->whereDate('opened_at', '<=', $filters['opened_to']);
         }
 
         if (filled($filters['queue'] ?? null)) {
@@ -779,6 +1033,28 @@ class ServiceOrderController extends Controller
         }
 
         return $query;
+    }
+
+    protected function downloadCsv(string $fileName, array $header, Collection $rows)
+    {
+        return response()->streamDownload(function () use ($header, $rows): void {
+            $handle = fopen('php://output', 'w');
+
+            if ($handle === false) {
+                return;
+            }
+
+            fwrite($handle, "\xEF\xBB\xBF");
+            fputcsv($handle, $header, ';');
+
+            foreach ($rows as $row) {
+                fputcsv($handle, $row, ';');
+            }
+
+            fclose($handle);
+        }, $fileName, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+        ]);
     }
 
     protected function ensureServiceOrderBelongsToCurrentCompany(ServiceOrder $serviceOrder): void

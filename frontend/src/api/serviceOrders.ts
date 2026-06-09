@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPut, apiPatch } from './client'
+import { apiDownload, apiGet, apiPost, apiPut, apiPatch } from './client'
 
 export type ServiceOrderStatus =
   | 'draft'
@@ -105,6 +105,82 @@ export interface OverviewData {
   }
 }
 
+export interface ServiceOrderReportRow {
+  id: number
+  reference: string
+  order_number: number | null
+  status: string
+  opened_at: string | null
+  customer_name: string | null
+  customer_document: string | null
+  equipment_summary: string
+  assigned_membership_name: string | null
+  latest_quote_status: string | null
+  warranty_decision_status: string | null
+}
+
+export interface ServiceOrderReportResponse {
+  data: ServiceOrderReportRow[]
+  meta: {
+    total: number
+    by_status: Record<string, number>
+  }
+  filters: Record<string, unknown>
+}
+
+export interface FinancialReportRow {
+  service_order_id: number
+  reference: string
+  order_number: number | null
+  status: string
+  customer_name: string | null
+  assigned_membership_name: string | null
+  total_charged_cents: number
+  total_paid_cents: number
+  outstanding_balance_cents: number
+  payment_methods: string[]
+  last_payment_at: string | null
+}
+
+export interface FinancialReportResponse {
+  data: FinancialReportRow[]
+  meta: {
+    total: number
+    totals: {
+      total_charged_cents: number
+      total_paid_cents: number
+      outstanding_balance_cents: number
+    }
+  }
+  filters: Record<string, unknown>
+}
+
+export interface ServiceOrderReportFilters {
+  q?: string
+  queue?: ServiceOrderQueue
+  opened_from?: string
+  opened_to?: string
+}
+
+export interface FinancialReportFilters {
+  q?: string
+  payment_method?: string
+  balance_state?: 'settled' | 'outstanding'
+  received_from?: string
+  received_to?: string
+}
+
+function buildReportQuery(filters: Record<string, string | undefined>) {
+  const qs = new URLSearchParams()
+
+  Object.entries(filters).forEach(([key, value]) => {
+    if (value) qs.set(key, value)
+  })
+
+  const query = qs.toString()
+  return query ? `?${query}` : ''
+}
+
 export function listServiceOrders(params?: { q?: string; queue?: ServiceOrderQueue; status?: string[] }) {
   const qs = new URLSearchParams()
   if (params?.q) qs.set('q', params.q)
@@ -124,6 +200,54 @@ export function getTimeline(id: number) {
 
 export function getOverview() {
   return apiGet<{ data: OverviewData }>('/service-orders/reports/overview')
+}
+
+export function getServiceOrderReport(filters?: ServiceOrderReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    queue: filters?.queue,
+    opened_from: filters?.opened_from,
+    opened_to: filters?.opened_to,
+  })
+
+  return apiGet<ServiceOrderReportResponse>(`/service-orders/reports/service-orders${query}`)
+}
+
+export function downloadServiceOrderReportCsv(filters?: ServiceOrderReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    queue: filters?.queue,
+    opened_from: filters?.opened_from,
+    opened_to: filters?.opened_to,
+    format: 'csv',
+  })
+
+  return apiDownload(`/service-orders/reports/service-orders${query}`, 'relatorio-ordens-servico.csv')
+}
+
+export function getFinancialReport(filters?: FinancialReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    payment_method: filters?.payment_method,
+    balance_state: filters?.balance_state,
+    received_from: filters?.received_from,
+    received_to: filters?.received_to,
+  })
+
+  return apiGet<FinancialReportResponse>(`/service-orders/reports/financial${query}`)
+}
+
+export function downloadFinancialReportCsv(filters?: FinancialReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    payment_method: filters?.payment_method,
+    balance_state: filters?.balance_state,
+    received_from: filters?.received_from,
+    received_to: filters?.received_to,
+    format: 'csv',
+  })
+
+  return apiDownload(`/service-orders/reports/financial${query}`, 'relatorio-financeiro.csv')
 }
 
 export function createDraft(payload: ServiceOrderDraftPayload) {

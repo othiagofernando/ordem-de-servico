@@ -9,6 +9,7 @@ use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
+use App\Domains\ServiceOrders\Models\ServiceOrderCharge;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Domains\ServiceOrders\Models\ServiceOrderPayment;
 use App\Models\User;
@@ -87,8 +88,8 @@ class OperationalReportsTest extends TestCase
             ->assertJsonPath('data.quote_outcomes.approved', 1)
             ->assertJsonPath('data.quote_outcomes.rejected', 1)
             ->assertJsonPath('data.quote_outcomes.pending', 1)
-            ->assertJsonPath('data.received_amounts.total_received_cents', 25000)
-            ->assertJsonPath('data.received_amounts.by_payment_method.pix', 10000)
+            ->assertJsonPath('data.received_amounts.total_received_cents', 35000)
+            ->assertJsonPath('data.received_amounts.by_payment_method.pix', 20000)
             ->assertJsonPath('data.received_amounts.by_payment_method.cash', 15000)
             ->assertJsonPath('data.warranty_returns.total', 1)
             ->assertJsonPath('data.warranty_returns.by_decision_status.covered', 1);
@@ -106,7 +107,7 @@ class OperationalReportsTest extends TestCase
             ->assertJsonPath('data.by_status.in_progress', 1)
             ->assertJsonMissingPath('data.by_status.ready_for_pickup')
             ->assertJsonPath('data.quote_outcomes.pending', 1)
-            ->assertJsonPath('data.received_amounts.total_received_cents', 10000);
+            ->assertJsonPath('data.received_amounts.total_received_cents', 20000);
 
         $this->assertSame(
             [$techAlphaOrder->assigned_membership_id],
@@ -147,6 +148,64 @@ class OperationalReportsTest extends TestCase
             ->getJson('/api/v1/service-orders/reports/overview')
             ->assertForbidden()
             ->assertJsonPath('message', 'This membership cannot view service orders.');
+    }
+
+    public function test_service_order_report_supports_filters_and_csv_export(): void
+    {
+        [
+            'manager_token' => $managerToken,
+            'search_order' => $searchOrder,
+        ] = $this->seedOperationalReportScenario();
+
+        $response = $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/service-orders?q=SER-BUSCA-001&opened_from=2026-01-01&opened_to=2026-12-31');
+
+        $response->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.id', $searchOrder->getKey())
+            ->assertJsonPath('data.0.customer_name', 'Cliente Busca')
+            ->assertJsonPath('data.0.latest_quote_status', 'pending');
+
+        $csvResponse = $this->withToken($managerToken)
+            ->get('/api/v1/service-orders/reports/service-orders?queue=open&format=csv');
+
+        $csvResponse->assertOk();
+        $this->assertStringContainsString('text/csv', (string) $csvResponse->headers->get('content-type'));
+        $this->assertStringContainsString('Referencia;"Numero OS";Status', $csvResponse->streamedContent());
+    }
+
+    public function test_financial_report_supports_filters_and_csv_export(): void
+    {
+        [
+            'manager_token' => $managerToken,
+            'tech_alpha_token' => $techAlphaToken,
+            'search_order' => $searchOrder,
+            'warranty_return' => $warrantyReturn,
+        ] = $this->seedOperationalReportScenario();
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/financial?balance_state=outstanding')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 2)
+            ->assertJsonPath('meta.totals.outstanding_balance_cents', 7000);
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/financial?q=OS-SEARCH-001&payment_method=pix&received_from=2026-01-01&received_to=2026-12-31')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('data.0.service_order_id', $searchOrder->getKey())
+            ->assertJsonPath('data.0.total_paid_cents', 10000);
+
+        $csvResponse = $this->withToken($managerToken)
+            ->get('/api/v1/service-orders/reports/financial?balance_state=outstanding&format=csv');
+
+        $csvResponse->assertOk();
+        $this->assertStringContainsString('Referencia;"Numero OS";Status', $csvResponse->streamedContent());
+
+        $this->withToken($techAlphaToken)
+            ->getJson('/api/v1/service-orders/reports/financial')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'This membership cannot view financial reports.');
     }
 
     /**
@@ -313,6 +372,42 @@ class OperationalReportsTest extends TestCase
             'decisioned_at' => now(),
         ]);
 
+        ServiceOrderCharge::query()->create([
+            'company_id' => $company->getKey(),
+            'service_order_id' => $searchOrder->getKey(),
+            'charge_type' => 'quote',
+            'description' => 'Reparo principal',
+            'amount_cents' => 12000,
+            'currency' => 'BRL',
+        ]);
+
+        ServiceOrderCharge::query()->create([
+            'company_id' => $company->getKey(),
+            'service_order_id' => $techAlphaOrder->getKey(),
+            'charge_type' => 'diagnostic_fee',
+            'description' => 'Taxa de diagnostico',
+            'amount_cents' => 10000,
+            'currency' => 'BRL',
+        ]);
+
+        ServiceOrderCharge::query()->create([
+            'company_id' => $company->getKey(),
+            'service_order_id' => $betaReady->getKey(),
+            'charge_type' => 'quote',
+            'description' => 'Reparo beta',
+            'amount_cents' => 15000,
+            'currency' => 'BRL',
+        ]);
+
+        ServiceOrderCharge::query()->create([
+            'company_id' => $company->getKey(),
+            'service_order_id' => $warrantyReturn->getKey(),
+            'charge_type' => 'adjustment',
+            'description' => 'Avaliacao de garantia',
+            'amount_cents' => 5000,
+            'currency' => 'BRL',
+        ]);
+
         ServiceOrderPayment::query()->create([
             'company_id' => $company->getKey(),
             'service_order_id' => $techAlphaOrder->getKey(),
@@ -320,8 +415,19 @@ class OperationalReportsTest extends TestCase
             'amount_cents' => 10000,
             'currency' => 'BRL',
             'payment_method' => 'pix',
-            'received_at' => now(),
+            'received_at' => now()->setDate(2026, 6, 1),
             'receipt_snapshot' => ['service_order_reference' => $techAlphaOrder->reference],
+        ]);
+
+        ServiceOrderPayment::query()->create([
+            'company_id' => $company->getKey(),
+            'service_order_id' => $searchOrder->getKey(),
+            'received_by_membership_id' => $managerMembership->getKey(),
+            'amount_cents' => 10000,
+            'currency' => 'BRL',
+            'payment_method' => 'pix',
+            'received_at' => now()->setDate(2026, 6, 2),
+            'receipt_snapshot' => ['service_order_reference' => $searchOrder->reference],
         ]);
 
         ServiceOrderPayment::query()->create([
@@ -331,7 +437,7 @@ class OperationalReportsTest extends TestCase
             'amount_cents' => 15000,
             'currency' => 'BRL',
             'payment_method' => 'cash',
-            'received_at' => now(),
+            'received_at' => now()->setDate(2026, 6, 3),
             'receipt_snapshot' => ['service_order_reference' => $betaReady->reference],
         ]);
 
@@ -381,6 +487,7 @@ class OperationalReportsTest extends TestCase
             'title' => 'Ordem '.$attributes['reference'],
             'status' => $attributes['status'],
             'reported_problem' => 'Problema '.$attributes['reference'],
+            'opened_at' => $attributes['opened_at'] ?? now()->setDate(2026, 6, 1),
             'assigned_membership_id' => array_key_exists('assigned_membership_id', $attributes)
                 ? $attributes['assigned_membership_id']
                 : $assignedMembership->getKey(),

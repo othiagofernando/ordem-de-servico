@@ -14,6 +14,7 @@ async function logout() {
 
 const navLinks = [
   { name: 'dashboard', label: 'Dashboard', icon: '⬜' },
+  { name: 'reports', label: 'Relatórios', icon: '📊' },
   { name: 'service-orders', label: 'Ordens de Serviço', icon: '📋' },
   { name: 'customers', label: 'Clientes', icon: '👤' },
   { name: 'equipments', label: 'Equipamentos', icon: '🔧' },
