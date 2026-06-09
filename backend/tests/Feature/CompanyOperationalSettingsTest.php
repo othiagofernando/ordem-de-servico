@@ -53,6 +53,7 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.quotes.default_validity_days', 7)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
             ->assertJsonPath('data.communications.notification_footer_text', null)
+            ->assertJsonPath('data.notifications.quote_available_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $this->withToken($managerToken)
@@ -67,6 +68,7 @@ class CompanyOperationalSettingsTest extends TestCase
                 'default_quote_validity_days' => 5,
                 'block_delivery_with_outstanding_balance' => false,
                 'notify_quote_available' => false,
+                'notify_quote_available_text' => 'Quando quiser, revise este orçamento com calma.',
                 'notification_footer_text' => 'Obrigado por confiar na Laboratorio Alpha.',
             ])
             ->assertOk()
@@ -80,6 +82,7 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.quotes.default_validity_days', 5)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', false)
             ->assertJsonPath('data.communications.notification_footer_text', 'Obrigado por confiar na Laboratorio Alpha.')
+            ->assertJsonPath('data.notifications.quote_available_text', 'Quando quiser, revise este orçamento com calma.')
             ->assertJsonPath('data.notifications.quote_available', false);
 
         $this->assertDatabaseHas('company_setting_audits', [
@@ -103,6 +106,7 @@ class CompanyOperationalSettingsTest extends TestCase
                 'default_quote_validity_days',
                 'block_delivery_with_outstanding_balance',
                 'notify_quote_available',
+                'notify_quote_available_text',
                 'notification_footer_text',
             ],
             $audit->changed_keys,
@@ -123,6 +127,7 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.quotes.default_validity_days', 7)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
             ->assertJsonPath('data.communications.notification_footer_text', null)
+            ->assertJsonPath('data.notifications.quote_available_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $secondDraftId = $this->withToken($managerToken)

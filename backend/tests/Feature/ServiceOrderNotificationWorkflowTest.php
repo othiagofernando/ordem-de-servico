@@ -172,6 +172,7 @@ class ServiceOrderNotificationWorkflowTest extends TestCase
             ->putJson('/api/v1/company/settings', [
                 'brand_name' => 'Laboratorio Notificacoes',
                 'customer_contact_line' => 'WhatsApp (11) 95555-0000',
+                'notify_payment_receipt_text' => 'Seu pagamento foi identificado com sucesso.',
                 'notification_footer_text' => 'Atendimento em horário comercial.',
             ])
             ->assertOk();
@@ -217,6 +218,7 @@ class ServiceOrderNotificationWorkflowTest extends TestCase
 
         $this->assertSame('Laboratorio Notificacoes', $payload['brand_name'] ?? null);
         $this->assertSame('WhatsApp (11) 95555-0000', $payload['customer_contact_line'] ?? null);
+        $this->assertSame('Seu pagamento foi identificado com sucesso.', $payload['notification_intro_text'] ?? null);
         $this->assertSame('Atendimento em horário comercial.', $payload['notification_footer_text'] ?? null);
 
         (new SendCriticalServiceOrderNotificationJob($delivery->getKey()))->handle();
@@ -226,6 +228,7 @@ class ServiceOrderNotificationWorkflowTest extends TestCase
 
             return ($viewData['companyName'] ?? null) === 'Laboratorio Notificacoes'
                 && (($viewData['payload']['customer_contact_line'] ?? null) === 'WhatsApp (11) 95555-0000')
+                && (($viewData['payload']['notification_intro_text'] ?? null) === 'Seu pagamento foi identificado com sucesso.')
                 && (($viewData['payload']['notification_footer_text'] ?? null) === 'Atendimento em horário comercial.');
         });
     }

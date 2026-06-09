@@ -37,6 +37,7 @@ class QueueCriticalServiceOrderNotification
             'brand_name' => $brandName,
             'customer_contact_line' => $settings->customer_contact_line,
             'notification_footer_text' => $settings->notification_footer_text,
+            'notification_intro_text' => $settings->notificationIntroText($eventType),
             ...$payload,
         ];
 

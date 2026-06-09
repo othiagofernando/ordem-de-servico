@@ -15,9 +15,13 @@ export interface CompanySettings {
   communications: { notification_footer_text: string | null }
   notifications: {
     quote_available: boolean
+    quote_available_text: string | null
     quote_expiring: boolean
+    quote_expiring_text: string | null
     ready_for_pickup: boolean
+    ready_for_pickup_text: string | null
     payment_receipt: boolean
+    payment_receipt_text: string | null
   }
   auth: {
     passwordless_code_enabled: boolean
@@ -36,9 +40,13 @@ export interface SettingsPayload {
   default_quote_validity_days?: number
   block_delivery_with_outstanding_balance?: boolean
   notify_quote_available?: boolean
+  notify_quote_available_text?: string | null
   notify_quote_expiring?: boolean
+  notify_quote_expiring_text?: string | null
   notify_ready_for_pickup?: boolean
+  notify_ready_for_pickup_text?: string | null
   notify_payment_receipt?: boolean
+  notify_payment_receipt_text?: string | null
   notification_footer_text?: string | null
   passwordless_code_enabled?: boolean
   magic_link_enabled?: boolean

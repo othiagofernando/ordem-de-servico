@@ -18,9 +18,13 @@ use Illuminate\Database\Eloquent\Model;
     'default_quote_validity_days',
     'block_delivery_with_outstanding_balance',
     'notify_quote_available',
+    'notify_quote_available_text',
     'notify_quote_expiring',
+    'notify_quote_expiring_text',
     'notify_ready_for_pickup',
+    'notify_ready_for_pickup_text',
     'notify_payment_receipt',
+    'notify_payment_receipt_text',
     'notification_footer_text',
 ])]
 class CompanyOperationalSetting extends Model
@@ -51,9 +55,13 @@ class CompanyOperationalSetting extends Model
             'default_quote_validity_days' => self::DEFAULT_QUOTE_VALIDITY_DAYS,
             'block_delivery_with_outstanding_balance' => true,
             'notify_quote_available' => true,
+            'notify_quote_available_text' => null,
             'notify_quote_expiring' => true,
+            'notify_quote_expiring_text' => null,
             'notify_ready_for_pickup' => true,
+            'notify_ready_for_pickup_text' => null,
             'notify_payment_receipt' => true,
+            'notify_payment_receipt_text' => null,
             'notification_footer_text' => null,
         ];
     }
@@ -98,6 +106,17 @@ class CompanyOperationalSetting extends Model
             'ready_for_pickup' => $this->notify_ready_for_pickup,
             'payment_receipt' => $this->notify_payment_receipt,
             default => true,
+        };
+    }
+
+    public function notificationIntroText(string $eventType): ?string
+    {
+        return match ($eventType) {
+            'quote_available' => $this->notify_quote_available_text,
+            'quote_expiring' => $this->notify_quote_expiring_text,
+            'ready_for_pickup' => $this->notify_ready_for_pickup_text,
+            'payment_receipt' => $this->notify_payment_receipt_text,
+            default => null,
         };
     }
 }

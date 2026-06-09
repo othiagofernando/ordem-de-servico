@@ -20,9 +20,13 @@ const form = ref({
   default_quote_validity_days: 7,
   block_delivery_with_outstanding_balance: true,
   notify_quote_available: true,
+  notify_quote_available_text: '',
   notify_quote_expiring: true,
+  notify_quote_expiring_text: '',
   notify_ready_for_pickup: true,
+  notify_ready_for_pickup_text: '',
   notify_payment_receipt: true,
+  notify_payment_receipt_text: '',
   notification_footer_text: '',
   passwordless_code_enabled: false,
   magic_link_enabled: false,
@@ -43,9 +47,13 @@ onMounted(async () => {
       default_quote_validity_days: res.data.quotes.default_validity_days,
       block_delivery_with_outstanding_balance: res.data.finance.block_delivery_with_outstanding_balance,
       notify_quote_available: res.data.notifications.quote_available,
+      notify_quote_available_text: res.data.notifications.quote_available_text ?? '',
       notify_quote_expiring: res.data.notifications.quote_expiring,
+      notify_quote_expiring_text: res.data.notifications.quote_expiring_text ?? '',
       notify_ready_for_pickup: res.data.notifications.ready_for_pickup,
+      notify_ready_for_pickup_text: res.data.notifications.ready_for_pickup_text ?? '',
       notify_payment_receipt: res.data.notifications.payment_receipt,
+      notify_payment_receipt_text: res.data.notifications.payment_receipt_text ?? '',
       notification_footer_text: res.data.communications.notification_footer_text ?? '',
       passwordless_code_enabled: res.data.auth.passwordless_code_enabled,
       magic_link_enabled: res.data.auth.magic_link_enabled,
@@ -73,9 +81,13 @@ async function save() {
       default_quote_validity_days: form.value.default_quote_validity_days,
       block_delivery_with_outstanding_balance: form.value.block_delivery_with_outstanding_balance,
       notify_quote_available: form.value.notify_quote_available,
+      notify_quote_available_text: form.value.notify_quote_available_text || null,
       notify_quote_expiring: form.value.notify_quote_expiring,
+      notify_quote_expiring_text: form.value.notify_quote_expiring_text || null,
       notify_ready_for_pickup: form.value.notify_ready_for_pickup,
+      notify_ready_for_pickup_text: form.value.notify_ready_for_pickup_text || null,
       notify_payment_receipt: form.value.notify_payment_receipt,
+      notify_payment_receipt_text: form.value.notify_payment_receipt_text || null,
       notification_footer_text: form.value.notification_footer_text || null,
       passwordless_code_enabled: form.value.passwordless_code_enabled,
       magic_link_enabled: form.value.magic_link_enabled,
@@ -190,34 +202,58 @@ async function save() {
           />
         </div>
         <div class="space-y-4">
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.notify_quote_available" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Orçamento disponível</p>
-              <p class="text-xs text-stone-500">Notifica o cliente quando um novo orçamento for gerado.</p>
+          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+            <label class="flex cursor-pointer items-center gap-3">
+              <input v-model="form.notify_quote_available" type="checkbox" class="size-4 rounded accent-amber-500" />
+              <div>
+                <p class="text-sm text-stone-200">Orçamento disponível</p>
+                <p class="text-xs text-stone-500">Notifica o cliente quando um novo orçamento for gerado.</p>
+              </div>
+            </label>
+            <div class="mt-4">
+              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
+              <input v-model="form.notify_quote_available_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
             </div>
-          </label>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.notify_quote_expiring" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Orçamento expirando</p>
-              <p class="text-xs text-stone-500">Lembrete quando o prazo do orçamento estiver próximo do vencimento.</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+            <label class="flex cursor-pointer items-center gap-3">
+              <input v-model="form.notify_quote_expiring" type="checkbox" class="size-4 rounded accent-amber-500" />
+              <div>
+                <p class="text-sm text-stone-200">Orçamento expirando</p>
+                <p class="text-xs text-stone-500">Lembrete quando o prazo do orçamento estiver próximo do vencimento.</p>
+              </div>
+            </label>
+            <div class="mt-4">
+              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
+              <input v-model="form.notify_quote_expiring_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
             </div>
-          </label>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.notify_ready_for_pickup" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Pronto para retirada</p>
-              <p class="text-xs text-stone-500">Notifica o cliente quando o equipamento estiver pronto.</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+            <label class="flex cursor-pointer items-center gap-3">
+              <input v-model="form.notify_ready_for_pickup" type="checkbox" class="size-4 rounded accent-amber-500" />
+              <div>
+                <p class="text-sm text-stone-200">Pronto para retirada</p>
+                <p class="text-xs text-stone-500">Notifica o cliente quando o equipamento estiver pronto.</p>
+              </div>
+            </label>
+            <div class="mt-4">
+              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
+              <input v-model="form.notify_ready_for_pickup_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
             </div>
-          </label>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.notify_payment_receipt" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Comprovante de pagamento</p>
-              <p class="text-xs text-stone-500">Envia recibo ao cliente após registrar um pagamento.</p>
+          </div>
+          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+            <label class="flex cursor-pointer items-center gap-3">
+              <input v-model="form.notify_payment_receipt" type="checkbox" class="size-4 rounded accent-amber-500" />
+              <div>
+                <p class="text-sm text-stone-200">Comprovante de pagamento</p>
+                <p class="text-xs text-stone-500">Envia recibo ao cliente após registrar um pagamento.</p>
+              </div>
+            </label>
+            <div class="mt-4">
+              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
+              <input v-model="form.notify_payment_receipt_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
             </div>
-          </label>
+          </div>
         </div>
       </div>
 

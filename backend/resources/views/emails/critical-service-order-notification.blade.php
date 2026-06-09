@@ -2,6 +2,10 @@
 
 <p>{{ $delivery->subject }}</p>
 
+@if(filled($payload['notification_intro_text'] ?? null))
+<p>{{ $payload['notification_intro_text'] }}</p>
+@endif
+
 @if(isset($payload['portal_intro_text']))
 <p>{{ $payload['portal_intro_text'] }}</p>
 @endif
