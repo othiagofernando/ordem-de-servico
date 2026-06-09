@@ -1,8 +1,10 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Auth\LoginController;
+use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeRequestController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessCodeVerifyController;
+use App\Http\Controllers\Api\V1\Auth\PasswordlessCompanyLookupController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkConsumeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
@@ -22,8 +24,10 @@ use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
 use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
+use App\Http\Controllers\Api\V1\ServiceOrderAssignmentController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
+use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -39,6 +43,8 @@ Route::prefix('auth')->group(function (): void {
         ->name('api.v1.auth.passwordless.magic-link.request');
     Route::post('/passwordless/magic-link/consume', PasswordlessMagicLinkConsumeController::class)
         ->name('api.v1.auth.passwordless.magic-link.consume');
+    Route::post('/passwordless/lookup', PasswordlessCompanyLookupController::class)
+        ->name('api.v1.auth.passwordless.lookup');
 });
 
 Route::prefix('portal')->group(function (): void {
@@ -49,6 +55,7 @@ Route::prefix('portal')->group(function (): void {
 });
 
 Route::middleware('auth.token')->group(function (): void {
+    Route::post('/auth/logout', LogoutController::class)->name('api.v1.auth.logout');
     Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
     Route::get('/tenant/context', TenantContextController::class)->name('api.v1.tenant.context');
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
@@ -57,6 +64,8 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/company/settings', [CompanyOperationalSettingController::class, 'update'])
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.company.settings.update');
+    Route::get('/tenant/memberships', TenantMembershipListController::class)
+        ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)
         ->name('api.v1.tenant.memberships.show');
     Route::patch('/tenant/memberships/{membership}/authorization', MembershipAuthorizationController::class)
@@ -142,6 +151,9 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/service-orders/{serviceOrder}/delivery', [ServiceOrderClosureController::class, 'deliver'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.delivery');
+    Route::patch('/service-orders/{serviceOrder}/assignment', ServiceOrderAssignmentController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.assignment.update');
     Route::post('/service-orders/{serviceOrder}/close/cancel', [ServiceOrderClosureController::class, 'cancel'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.close.cancel');

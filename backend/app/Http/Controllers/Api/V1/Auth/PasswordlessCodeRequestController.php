@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domains\Auth\Actions\CreateAuthChallenge;
+use App\Domains\Auth\Mail\PasswordlessCodeMail;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\AuthRateLimiter;
@@ -10,6 +11,7 @@ use App\Domains\Companies\Models\Company;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
 class PasswordlessCodeRequestController extends Controller
@@ -63,6 +65,10 @@ class PasswordlessCodeRequestController extends Controller
             type: AuthChallenge::TYPE_PASSWORDLESS_CODE,
             ttlMinutes: 10,
             withNumericCode: true,
+        );
+
+        Mail::to($membership->user->email)->send(
+            new PasswordlessCodeMail($challenge['plain_text_code'], $membership->company->name),
         );
 
         $response = [

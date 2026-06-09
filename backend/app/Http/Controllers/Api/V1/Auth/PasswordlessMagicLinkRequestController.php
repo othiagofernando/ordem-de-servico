@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Domains\Auth\Actions\CreateAuthChallenge;
+use App\Domains\Auth\Mail\MagicLinkMail;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\AuthRateLimiter;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Symfony\Component\HttpFoundation\Response;
 
 class PasswordlessMagicLinkRequestController extends Controller
@@ -61,6 +63,14 @@ class PasswordlessMagicLinkRequestController extends Controller
             company: $membership->company,
             type: AuthChallenge::TYPE_MAGIC_LINK,
             ttlMinutes: 10,
+        );
+
+        $magicLinkUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/')
+            . '/auth/magic/'
+            . $challenge['plain_text_token'];
+
+        Mail::to($membership->user->email)->send(
+            new MagicLinkMail($magicLinkUrl, $membership->company->name),
         );
 
         $response = [

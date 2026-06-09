@@ -369,9 +369,20 @@ class ServiceOrderController extends Controller
 
         abort_if($visible === null, Response::HTTP_NOT_FOUND);
 
-        return response()->json([
-            'data' => $this->serializeServiceOrder($visible->load(['customer', 'customerContact', 'equipment', 'assignedMembership'])),
-        ]);
+        $visible->load(['customer', 'customerContact', 'equipment', 'assignedMembership', 'executionEntries']);
+
+        $data = $this->serializeServiceOrder($visible);
+        $data['execution_started_at'] = $visible->execution_started_at?->toIso8601String();
+        $data['final_test_results'] = $visible->final_test_results;
+        $data['execution_entries'] = $visible->executionEntries->map(fn ($e) => [
+            'id' => $e->getKey(),
+            'entry_type' => $e->entry_type,
+            'description' => $e->description,
+            'quantity' => $e->quantity,
+            'notes' => $e->notes,
+        ])->all();
+
+        return response()->json(['data' => $data]);
     }
 
     protected function validateDraftPayload(Request $request): array

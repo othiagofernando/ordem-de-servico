@@ -57,7 +57,17 @@ class CompanyOperationalSettingController extends Controller
             'notify_quote_expiring' => ['sometimes', 'boolean'],
             'notify_ready_for_pickup' => ['sometimes', 'boolean'],
             'notify_payment_receipt' => ['sometimes', 'boolean'],
+            'passwordless_code_enabled' => ['sometimes', 'boolean'],
+            'magic_link_enabled' => ['sometimes', 'boolean'],
         ]);
+
+        $authKeys = ['passwordless_code_enabled', 'magic_link_enabled'];
+        $authPayload = collect($payload)->only($authKeys)->all();
+        $settingsPayload = collect($payload)->except($authKeys)->all();
+
+        if ($authPayload !== []) {
+            $company->update($authPayload);
+        }
 
         $settings = CompanyOperationalSetting::query()
             ->withoutGlobalScopes()
@@ -66,13 +76,13 @@ class CompanyOperationalSettingController extends Controller
         $before = $resolveCompanyOperationalSettings->handle($company);
         $beforeValues = $this->rawSettingValues($before);
 
-        $settings->forceFill($payload);
+        $settings->forceFill($settingsPayload);
         $settings->company_id = $company->getKey();
         $settings->save();
 
         $resolved = $resolveCompanyOperationalSettings->handle($company->fresh());
         $afterValues = $this->rawSettingValues($resolved);
-        $changedKeys = collect(array_keys($payload))
+        $changedKeys = collect(array_keys($settingsPayload))
             ->filter(fn (string $key): bool => ($beforeValues[$key] ?? null) !== ($afterValues[$key] ?? null))
             ->values()
             ->all();
@@ -115,6 +125,10 @@ class CompanyOperationalSettingController extends Controller
                 'quote_expiring' => $settings->notify_quote_expiring,
                 'ready_for_pickup' => $settings->notify_ready_for_pickup,
                 'payment_receipt' => $settings->notify_payment_receipt,
+            ],
+            'auth' => [
+                'passwordless_code_enabled' => (bool) $company->passwordless_code_enabled,
+                'magic_link_enabled' => (bool) $company->magic_link_enabled,
             ],
         ];
     }
