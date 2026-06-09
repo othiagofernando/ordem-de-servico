@@ -1,22 +1,23 @@
-name: Customers
-description: 'Searches by customer name, document, contact e-mail, and contact phone within the active company.'
+name: Tenant
+description: 'Returns the company, membership, and user resolved from the bearer token.'
 endpoints:
   -
     custom: []
     httpMethods:
       - GET
-    uri: api/v1/customers
+    uri: api/v1/tenant/context
     metadata:
       custom: []
-      groupName: Customers
-      groupDescription: 'Searches by customer name, document, contact e-mail, and contact phone within the active company.'
+      groupName: Tenant
+      groupDescription: 'Returns the company, membership, and user resolved from the bearer token.'
       subgroup: ''
       subgroupDescription: ''
-      title: 'List or search tenant-scoped customers.'
+      title: 'Return the authenticated active company context.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -30,33 +31,38 @@ endpoints:
       -
         custom: []
         status: 401
-        content: '{"message":"Missing bearer token."}'
+        content: '{"message":"Invalid or expired API token."}'
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
+          x-correlation-id: bdb08eed-3a8c-466e-9196-3582f423e359
           access-control-allow-origin: '*'
         description: null
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
   -
     custom: []
     httpMethods:
-      - POST
-    uri: api/v1/customers
+      - GET
+    uri: api/v1/tenant/memberships
     metadata:
       custom: []
-      groupName: Customers
-      groupDescription: 'Creates a customer with multiple contacts and addresses, enforcing per-company document uniqueness and duplicate warnings.'
+      groupName: Tenant
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'Create a tenant-scoped customer.'
+      title: 'List all active memberships for the current company.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -66,9 +72,22 @@ endpoints:
     bodyParameters: []
     cleanBodyParameters: []
     fileParameters: []
-    responses: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 25b6648b-ee05-4605-9493-d7e8f0cc4bbf
+          access-control-allow-origin: '*'
+        description: null
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null
@@ -76,34 +95,35 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: 'api/v1/customers/{id}'
+    uri: 'api/v1/tenant/memberships/{id}'
     metadata:
       custom: []
-      groupName: Customers
-      groupDescription: ''
+      groupName: Tenant
+      groupDescription: 'Memberships outside the active company context are hidden by the tenant scope.'
       subgroup: ''
       subgroupDescription: ''
-      title: 'Return one tenant-scoped customer.'
+      title: 'Return a tenant-scoped membership record.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters:
       id:
         custom: []
         name: id
-        description: 'The ID of the customer.'
+        description: 'The ID of the membership.'
         required: true
-        example: 16
+        example: 1
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      id: 16
+      id: 1
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -112,61 +132,19 @@ endpoints:
     responses:
       -
         custom: []
-        status: 404
-        content: |-
-          {
-              "message": "No query results for model [App\\Domains\\Customers\\Models\\Customer] 16"
-          }
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
+          x-correlation-id: 12777738-8910-465e-bfa4-d6b0b38c0c27
           access-control-allow-origin: '*'
         description: null
     responseFields: []
-    auth: []
-    controller: null
-    method: null
-    route: null
-  -
-    custom: []
-    httpMethods:
-      - PUT
-    uri: 'api/v1/customers/{id}'
-    metadata:
-      custom: []
-      groupName: Customers
-      groupDescription: 'Updates customer fields and requires explicit confirmation when likely duplicates are detected.'
-      subgroup: ''
-      subgroupDescription: ''
-      title: 'Update a tenant-scoped customer.'
-      description: ''
-      authenticated: false
-      deprecated: false
-    headers:
-      Content-Type: application/json
-      Accept: application/json
-    urlParameters:
-      id:
-        custom: []
-        name: id
-        description: 'The ID of the customer.'
-        required: true
-        example: 16
-        type: integer
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      id: 16
-    queryParameters: []
-    cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
-    fileParameters: []
-    responses: []
-    responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

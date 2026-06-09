@@ -17,9 +17,10 @@ endpoints:
       subgroupDescription: ''
       title: 'Report the application health for the bootstrapped API surface.'
       description: ''
-      authenticated: false
+      authenticated: true
       deprecated: false
     headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
     urlParameters: []
@@ -37,10 +38,14 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
+          x-correlation-id: 022dce76-c092-4d54-b8f0-dbe5837d2231
           access-control-allow-origin: '*'
         description: null
     responseFields: []
-    auth: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
     controller: null
     method: null
     route: null

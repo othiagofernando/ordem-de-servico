@@ -1,12 +1,20 @@
 # Introduction
 
-Foundation endpoints for the Ordem de Servico API-first platform.
+Executable API documentation for the Ordem de Servico MVP.
 
 <aside>
     <strong>Base URL</strong>: <code>http://ordem-de-servico.test</code>
 </aside>
 
-    This foundation slice documents the first executable API surface for the service-order platform.
+    This documentation describes the current MVP contract for the multi-tenant Ordem de Servico platform.
 
-    The examples in this page are generated from real route execution, so the documented responses stay aligned with the running application instead of drifting into static prose.
+    The repository keeps the release surface aligned through executable feature tests and generated docs:
+
+    - authentication and active-company context
+    - intake draft to formal service order
+    - quote revision and customer portal decision
+    - execution, financial closure, and delivery
+    - warranty return, notifications, audit trail, and structured logging
+
+    Release verification is documented in `docs/release-checklist.md`, and the critical workflow tests under `tests/Feature/*` are the source of truth for end-to-end behavior.
 

@@ -14,13 +14,21 @@ return [
     'title' => config('app.name').' API Documentation',
 
     // A short description of your API. Will be included in the docs webpage, Postman collection and OpenAPI spec.
-    'description' => 'Foundation endpoints for the Ordem de Servico API-first platform.',
+    'description' => 'Executable API documentation for the Ordem de Servico MVP.',
 
     // Text to place in the "Introduction" section, right after the `description`. Markdown and HTML are supported.
     'intro_text' => <<<'INTRO'
-            This foundation slice documents the first executable API surface for the service-order platform.
+            This documentation describes the current MVP contract for the multi-tenant Ordem de Servico platform.
 
-            The examples in this page are generated from real route execution, so the documented responses stay aligned with the running application instead of drifting into static prose.
+            The repository keeps the release surface aligned through executable feature tests and generated docs:
+
+            - authentication and active-company context
+            - intake draft to formal service order
+            - quote revision and customer portal decision
+            - execution, financial closure, and delivery
+            - warranty return, notifications, audit trail, and structured logging
+
+            Release verification is documented in `docs/release-checklist.md`, and the critical workflow tests under `tests/Feature/*` are the source of truth for end-to-end behavior.
         INTRO,
 
     // The base URL displayed in the docs.
@@ -104,17 +112,17 @@ return [
     // How is your API authenticated? This information will be used in the displayed docs, generated examples and response calls.
     'auth' => [
         // Set this to true if ANY endpoints in your API use authentication.
-        'enabled' => false,
+        'enabled' => true,
 
         // Set this to true if your API should be authenticated by default. If so, you must also set `enabled` (above) to true.
         // You can then use @unauthenticated or @authenticated on individual endpoints to change their status from the default.
-        'default' => false,
+        'default' => true,
 
         // Where is the auth value meant to be sent in a request?
         'in' => AuthIn::BEARER->value,
 
         // The name of the auth parameter (e.g. token, key, apiKey) or header (e.g. Authorization, Api-Key).
-        'name' => 'key',
+        'name' => 'Authorization',
 
         // The value of the parameter to be used by Scribe to authenticate response calls.
         // This will NOT be included in the generated documentation. If empty, Scribe will use a random value.
@@ -125,7 +133,7 @@ return [
         'placeholder' => '{YOUR_AUTH_KEY}',
 
         // Any extra authentication-related info for your users. Markdown and HTML are supported.
-        'extra_info' => 'You can retrieve your token by visiting your dashboard and clicking <b>Generate API token</b>.',
+        'extra_info' => 'Authenticate through `/api/v1/auth/login`, then select the active company through `/api/v1/auth/select-company` to obtain a company-bound bearer token.',
     ],
 
     // Example requests for each endpoint will be shown in each of these languages.
