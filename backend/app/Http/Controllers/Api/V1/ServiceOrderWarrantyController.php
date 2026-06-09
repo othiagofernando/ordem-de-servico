@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\CompanyServiceOrderCounter;
@@ -29,6 +30,7 @@ class ServiceOrderWarrantyController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
         $original = $this->resolveManageableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -130,6 +132,7 @@ class ServiceOrderWarrantyController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
         $returnOrder = $this->resolveManageableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -176,6 +179,25 @@ class ServiceOrderWarrantyController extends Controller
                 'notes' => $payload['notes'],
             ],
         );
+
+        if ($isOverride) {
+            $recordBusinessAudit->handle(
+                $returnOrder->company_id,
+                'override',
+                'warranty_coverage_overridden',
+                auditable: $returnOrder,
+                actorMembership: $membership,
+                context: [
+                    'service_order_id' => $returnOrder->getKey(),
+                    'warranty_origin_service_order_id' => $returnOrder->warranty_origin_service_order_id,
+                ],
+                afterValues: [
+                    'warranty_signal_status' => $returnOrder->warranty_signal_status,
+                    'warranty_decision_status' => $decisionStatus,
+                    'warranty_decision_notes' => $payload['notes'],
+                ],
+            );
+        }
 
         return response()->json([
             'data' => $this->serializeServiceOrder($returnOrder->fresh([

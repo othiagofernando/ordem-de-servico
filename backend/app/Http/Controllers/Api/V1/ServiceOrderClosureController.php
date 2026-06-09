@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -75,6 +76,7 @@ class ServiceOrderClosureController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
     ): JsonResponse {
         $visible = $this->resolveClosableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -121,6 +123,22 @@ class ServiceOrderClosureController extends Controller
                 visibility: ServiceOrderTimelineEvent::VISIBILITY_INTERNAL,
                 actorMembership: $membership,
                 payload: [
+                    'outstanding_balance_cents' => $outstandingBalanceCents,
+                    'reason' => $payload['balance_override_reason'],
+                ],
+            );
+
+            $recordBusinessAudit->handle(
+                $visible->company_id,
+                'override',
+                'service_order_delivery_balance_overridden',
+                auditable: $visible,
+                actorMembership: $membership,
+                context: [
+                    'service_order_id' => $visible->getKey(),
+                    'service_order_reference' => $visible->reference,
+                ],
+                afterValues: [
                     'outstanding_balance_cents' => $outstandingBalanceCents,
                     'reason' => $payload['balance_override_reason'],
                 ],

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -154,6 +155,7 @@ class ServiceOrderFinancialController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
         QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $visible = $this->resolveFinanceableServiceOrder($serviceOrder, $visibleServiceOrders);
@@ -179,11 +181,18 @@ class ServiceOrderFinancialController extends Controller
             ]);
         }
 
-        DB::transaction(function () use ($visible, $membership, $payload, $financials, $recordTimelineEvent): void {
+        DB::transaction(function () use (
+            $visible,
+            $membership,
+            $payload,
+            $financials,
+            $recordTimelineEvent,
+            $recordBusinessAudit,
+        ): void {
             $receivedAt = now();
             $balanceAfterPayment = $financials['outstanding_balance_cents'] - $payload['amount_cents'];
 
-            ServiceOrderPayment::query()->create([
+            $payment = ServiceOrderPayment::query()->create([
                 'company_id' => $visible->company_id,
                 'service_order_id' => $visible->getKey(),
                 'received_by_membership_id' => $membership?->getKey(),
@@ -217,6 +226,26 @@ class ServiceOrderFinancialController extends Controller
                 payload: [
                     'amount_cents' => $payload['amount_cents'],
                     'payment_method' => $payload['payment_method'],
+                    'balance_after_payment_cents' => $balanceAfterPayment,
+                ],
+            );
+
+            $recordBusinessAudit->handle(
+                $visible->company_id,
+                'payment',
+                'service_order_payment_recorded',
+                auditable: $payment,
+                actorMembership: $membership,
+                context: [
+                    'service_order_id' => $visible->getKey(),
+                    'service_order_reference' => $visible->reference,
+                ],
+                afterValues: [
+                    'payment_id' => $payment->getKey(),
+                    'amount_cents' => $payment->amount_cents,
+                    'currency' => $payment->currency,
+                    'payment_method' => $payment->payment_method,
+                    'received_at' => $payment->received_at?->toIso8601String(),
                     'balance_after_payment_cents' => $balanceAfterPayment,
                 ],
             );

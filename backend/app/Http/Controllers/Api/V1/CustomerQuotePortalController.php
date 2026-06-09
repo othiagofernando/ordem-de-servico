@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Companies\Models\CompanyOperationalSetting;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
@@ -45,6 +46,7 @@ class CustomerQuotePortalController extends Controller
         string $token,
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        RecordBusinessAudit $recordBusinessAudit,
         ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
     ): JsonResponse {
         $quote = $this->resolveQuoteByPortalToken($token);
@@ -104,6 +106,26 @@ class CustomerQuotePortalController extends Controller
                 'revision_number' => $quote->revision_number,
                 'decisioned_at' => $quote->decisioned_at?->toIso8601String(),
                 'decision_ip' => $quote->decision_ip,
+            ],
+        );
+
+        $recordBusinessAudit->handle(
+            $quote->serviceOrder->company_id,
+            'quote',
+            'quote_customer_decision_recorded',
+            auditable: $quote,
+            actorMembership: null,
+            context: [
+                'service_order_id' => $quote->service_order_id,
+                'quote_revision_id' => $quote->getKey(),
+                'revision_number' => $quote->revision_number,
+            ],
+            afterValues: [
+                'status' => $quote->status,
+                'decisioned_at' => $quote->decisioned_at?->toIso8601String(),
+                'decision_ip' => $quote->decision_ip,
+                'decision_user_agent' => $quote->decision_user_agent,
+                'decision_idempotency_key' => $quote->decision_idempotency_key,
             ],
         );
 
