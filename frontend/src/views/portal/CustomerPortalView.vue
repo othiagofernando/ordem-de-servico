@@ -7,8 +7,13 @@ const route = useRoute()
 const token = route.params.token as string
 
 interface PortalData {
-  company: { brand_name: string | null }
-  portal: { intro_text: string | null }
+  company: { brand_name: string | null; customer_contact_line: string | null }
+  portal: {
+    intro_text: string | null
+    footer_text: string | null
+    approved_text: string
+    rejected_text: string
+  }
   service_order: {
     id: number
     reference: string
@@ -216,13 +221,13 @@ onMounted(load)
         <div v-if="decided === 'approved'" class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-6 text-center">
           <p class="text-2xl">✓</p>
           <p class="mt-2 font-semibold text-emerald-300">Orçamento aprovado!</p>
-          <p class="mt-1 text-sm text-stone-400">Nossa equipe foi notificada e dará início ao serviço em breve.</p>
+          <p class="mt-1 text-sm text-stone-400">{{ data.portal.approved_text }}</p>
         </div>
 
         <div v-else-if="decided === 'rejected'" class="rounded-2xl border border-red-500/20 bg-red-500/10 p-6 text-center">
           <p class="text-2xl">✕</p>
           <p class="mt-2 font-semibold text-red-300">Orçamento recusado.</p>
-          <p class="mt-1 text-sm text-stone-400">Entraremos em contato para mais informações.</p>
+          <p class="mt-1 text-sm text-stone-400">{{ data.portal.rejected_text }}</p>
         </div>
 
         <div v-else-if="data.quote.status === 'expired'" class="rounded-2xl border border-stone-500/20 bg-stone-500/10 p-6 text-center">
@@ -245,6 +250,11 @@ onMounted(load)
           >
             {{ deciding ? '…' : 'Recusar' }}
           </button>
+        </div>
+
+        <div v-if="data.portal.footer_text || data.company.customer_contact_line" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-stone-400">
+          <p v-if="data.portal.footer_text">{{ data.portal.footer_text }}</p>
+          <p v-if="data.company.customer_contact_line" class="mt-2 text-stone-300">Contato: {{ data.company.customer_contact_line }}</p>
         </div>
       </template>
     </div>

@@ -20,4 +20,12 @@
 <p>Método de pagamento: {{ $payload['payment_method'] }}</p>
 @endif
 
+@if(filled($payload['customer_contact_line'] ?? null))
+<p>Contato da empresa: {{ $payload['customer_contact_line'] }}</p>
+@else
 <p>Contato da empresa: {{ $delivery->company?->name }}</p>
+@endif
+
+@if(filled($payload['notification_footer_text'] ?? null))
+<p>{{ $payload['notification_footer_text'] }}</p>
+@endif

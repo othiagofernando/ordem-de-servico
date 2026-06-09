@@ -46,26 +46,40 @@ class CompanyOperationalSettingsTest extends TestCase
             ->getJson('/api/v1/company/settings')
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Acme alpha')
+            ->assertJsonPath('data.branding.customer_contact_line', null)
             ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
+            ->assertJsonPath('data.portal.approved_text', 'Nossa equipe foi notificada e dará início ao serviço em breve.')
+            ->assertJsonPath('data.portal.rejected_text', 'Entraremos em contato para mais informações.')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
+            ->assertJsonPath('data.communications.notification_footer_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $this->withToken($managerToken)
             ->putJson('/api/v1/company/settings', [
                 'brand_name' => 'Laboratorio Alpha',
+                'customer_contact_line' => 'WhatsApp (11) 98888-0000',
                 'service_order_reference_prefix' => 'lab',
                 'portal_intro_text' => 'Revise aqui o status e aprove o orcamento desta ordem.',
+                'portal_footer_text' => 'Nosso horario de atendimento e de segunda a sexta.',
+                'portal_approved_text' => 'Recebemos sua aprovação e seguiremos com o reparo.',
+                'portal_rejected_text' => 'Recebemos sua recusa e vamos orientar os próximos passos.',
                 'default_quote_validity_days' => 5,
                 'block_delivery_with_outstanding_balance' => false,
                 'notify_quote_available' => false,
+                'notification_footer_text' => 'Obrigado por confiar na Laboratorio Alpha.',
             ])
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Laboratorio Alpha')
+            ->assertJsonPath('data.branding.customer_contact_line', 'WhatsApp (11) 98888-0000')
             ->assertJsonPath('data.service_orders.reference_prefix', 'LAB')
             ->assertJsonPath('data.portal.intro_text', 'Revise aqui o status e aprove o orcamento desta ordem.')
+            ->assertJsonPath('data.portal.footer_text', 'Nosso horario de atendimento e de segunda a sexta.')
+            ->assertJsonPath('data.portal.approved_text', 'Recebemos sua aprovação e seguiremos com o reparo.')
+            ->assertJsonPath('data.portal.rejected_text', 'Recebemos sua recusa e vamos orientar os próximos passos.')
             ->assertJsonPath('data.quotes.default_validity_days', 5)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', false)
+            ->assertJsonPath('data.communications.notification_footer_text', 'Obrigado por confiar na Laboratorio Alpha.')
             ->assertJsonPath('data.notifications.quote_available', false);
 
         $this->assertDatabaseHas('company_setting_audits', [
@@ -80,11 +94,16 @@ class CompanyOperationalSettingsTest extends TestCase
         $this->assertSame(
             [
                 'brand_name',
+                'customer_contact_line',
                 'service_order_reference_prefix',
                 'portal_intro_text',
+                'portal_footer_text',
+                'portal_approved_text',
+                'portal_rejected_text',
                 'default_quote_validity_days',
                 'block_delivery_with_outstanding_balance',
                 'notify_quote_available',
+                'notification_footer_text',
             ],
             $audit->changed_keys,
         );
@@ -99,9 +118,11 @@ class CompanyOperationalSettingsTest extends TestCase
             ->getJson('/api/v1/company/settings')
             ->assertOk()
             ->assertJsonPath('data.branding.brand_name', 'Acme beta')
+            ->assertJsonPath('data.branding.customer_contact_line', null)
             ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
+            ->assertJsonPath('data.communications.notification_footer_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $secondDraftId = $this->withToken($managerToken)
@@ -162,7 +183,11 @@ class CompanyOperationalSettingsTest extends TestCase
         $this->getJson('/api/v1/portal/quotes/'.$portalToken)
             ->assertOk()
             ->assertJsonPath('data.company.brand_name', 'Laboratorio Alpha')
-            ->assertJsonPath('data.portal.intro_text', 'Revise aqui o status e aprove o orcamento desta ordem.');
+            ->assertJsonPath('data.company.customer_contact_line', 'WhatsApp (11) 98888-0000')
+            ->assertJsonPath('data.portal.intro_text', 'Revise aqui o status e aprove o orcamento desta ordem.')
+            ->assertJsonPath('data.portal.footer_text', 'Nosso horario de atendimento e de segunda a sexta.')
+            ->assertJsonPath('data.portal.approved_text', 'Recebemos sua aprovação e seguiremos com o reparo.')
+            ->assertJsonPath('data.portal.rejected_text', 'Recebemos sua recusa e vamos orientar os próximos passos.');
     }
 
     /**

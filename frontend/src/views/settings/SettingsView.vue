@@ -11,14 +11,19 @@ const settings = ref<CompanySettings | null>(null)
 
 const form = ref({
   brand_name: '',
+  customer_contact_line: '',
   service_order_reference_prefix: 'OS',
   portal_intro_text: '',
+  portal_footer_text: '',
+  portal_approved_text: '',
+  portal_rejected_text: '',
   default_quote_validity_days: 7,
   block_delivery_with_outstanding_balance: true,
   notify_quote_available: true,
   notify_quote_expiring: true,
   notify_ready_for_pickup: true,
   notify_payment_receipt: true,
+  notification_footer_text: '',
   passwordless_code_enabled: false,
   magic_link_enabled: false,
 })
@@ -29,14 +34,19 @@ onMounted(async () => {
     settings.value = res.data
     form.value = {
       brand_name: res.data.branding.brand_name ?? '',
+      customer_contact_line: res.data.branding.customer_contact_line ?? '',
       service_order_reference_prefix: res.data.service_orders.reference_prefix,
       portal_intro_text: res.data.portal.intro_text ?? '',
+      portal_footer_text: res.data.portal.footer_text ?? '',
+      portal_approved_text: res.data.portal.approved_text ?? '',
+      portal_rejected_text: res.data.portal.rejected_text ?? '',
       default_quote_validity_days: res.data.quotes.default_validity_days,
       block_delivery_with_outstanding_balance: res.data.finance.block_delivery_with_outstanding_balance,
       notify_quote_available: res.data.notifications.quote_available,
       notify_quote_expiring: res.data.notifications.quote_expiring,
       notify_ready_for_pickup: res.data.notifications.ready_for_pickup,
       notify_payment_receipt: res.data.notifications.payment_receipt,
+      notification_footer_text: res.data.communications.notification_footer_text ?? '',
       passwordless_code_enabled: res.data.auth.passwordless_code_enabled,
       magic_link_enabled: res.data.auth.magic_link_enabled,
     }
@@ -54,14 +64,19 @@ async function save() {
   try {
     const res = await updateSettings({
       brand_name: form.value.brand_name || null,
+      customer_contact_line: form.value.customer_contact_line || null,
       service_order_reference_prefix: form.value.service_order_reference_prefix || null,
       portal_intro_text: form.value.portal_intro_text || null,
+      portal_footer_text: form.value.portal_footer_text || null,
+      portal_approved_text: form.value.portal_approved_text || null,
+      portal_rejected_text: form.value.portal_rejected_text || null,
       default_quote_validity_days: form.value.default_quote_validity_days,
       block_delivery_with_outstanding_balance: form.value.block_delivery_with_outstanding_balance,
       notify_quote_available: form.value.notify_quote_available,
       notify_quote_expiring: form.value.notify_quote_expiring,
       notify_ready_for_pickup: form.value.notify_ready_for_pickup,
       notify_payment_receipt: form.value.notify_payment_receipt,
+      notification_footer_text: form.value.notification_footer_text || null,
       passwordless_code_enabled: form.value.passwordless_code_enabled,
       magic_link_enabled: form.value.magic_link_enabled,
     })
@@ -98,6 +113,11 @@ async function save() {
           <input v-model="form.brand_name" class="input" placeholder="Nome exibido no portal do cliente" />
           <p class="mt-1 text-xs text-stone-500">Se vazio, usa o nome cadastrado da empresa.</p>
         </div>
+        <div class="mt-4">
+          <label class="mb-1.5 block text-sm text-stone-300">Linha de Contato ao Cliente</label>
+          <input v-model="form.customer_contact_line" class="input" placeholder="WhatsApp (11) 99999-9999" />
+          <p class="mt-1 text-xs text-stone-500">Exibida no portal do cliente e nas comunicações por e-mail.</p>
+        </div>
       </div>
 
       <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
@@ -120,6 +140,18 @@ async function save() {
         <div>
           <label class="mb-1.5 block text-sm text-stone-300">Texto de Introdução</label>
           <textarea v-model="form.portal_intro_text" rows="4" class="input resize-none" placeholder="Texto exibido no topo do portal de orçamentos…" />
+        </div>
+        <div class="mt-4">
+          <label class="mb-1.5 block text-sm text-stone-300">Texto após Aprovação</label>
+          <input v-model="form.portal_approved_text" class="input" placeholder="Mensagem exibida após aprovar o orçamento" />
+        </div>
+        <div class="mt-4">
+          <label class="mb-1.5 block text-sm text-stone-300">Texto após Recusa</label>
+          <input v-model="form.portal_rejected_text" class="input" placeholder="Mensagem exibida após recusar o orçamento" />
+        </div>
+        <div class="mt-4">
+          <label class="mb-1.5 block text-sm text-stone-300">Rodapé do Portal</label>
+          <textarea v-model="form.portal_footer_text" rows="3" class="input resize-none" placeholder="Texto complementar exibido no rodapé do portal…" />
         </div>
       </div>
 
@@ -148,6 +180,15 @@ async function save() {
       <!-- Notificações -->
       <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
         <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Notificações por E-mail</h2>
+        <div class="mb-5">
+          <label class="mb-1.5 block text-sm text-stone-300">Rodapé das Comunicações</label>
+          <textarea
+            v-model="form.notification_footer_text"
+            rows="3"
+            class="input resize-none"
+            placeholder="Mensagem complementar exibida ao final dos e-mails ao cliente…"
+          />
+        </div>
         <div class="space-y-4">
           <label class="flex items-center gap-3 cursor-pointer">
             <input v-model="form.notify_quote_available" type="checkbox" class="size-4 accent-amber-500 rounded" />

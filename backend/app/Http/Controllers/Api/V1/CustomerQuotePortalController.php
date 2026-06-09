@@ -166,9 +166,13 @@ class CustomerQuotePortalController extends Controller
         return [
             'company' => [
                 'brand_name' => $settings->brandName($quote->serviceOrder->company),
+                'customer_contact_line' => $settings->customer_contact_line,
             ],
             'portal' => [
                 'intro_text' => $settings->portal_intro_text,
+                'footer_text' => $settings->portal_footer_text,
+                'approved_text' => $settings->portalApprovedText(),
+                'rejected_text' => $settings->portalRejectedText(),
             ],
             'service_order' => [
                 'id' => $serviceOrder->getKey(),

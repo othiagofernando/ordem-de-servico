@@ -51,14 +51,19 @@ class CompanyOperationalSettingController extends Controller
 
         $payload = $request->validate([
             'brand_name' => ['sometimes', 'nullable', 'string', 'max:120'],
+            'customer_contact_line' => ['sometimes', 'nullable', 'string', 'max:160'],
             'service_order_reference_prefix' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/'],
             'portal_intro_text' => ['sometimes', 'nullable', 'string', 'max:2000'],
+            'portal_footer_text' => ['sometimes', 'nullable', 'string', 'max:500'],
+            'portal_approved_text' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'portal_rejected_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'default_quote_validity_days' => ['sometimes', 'integer', 'min:1', 'max:30'],
             'block_delivery_with_outstanding_balance' => ['sometimes', 'boolean'],
             'notify_quote_available' => ['sometimes', 'boolean'],
             'notify_quote_expiring' => ['sometimes', 'boolean'],
             'notify_ready_for_pickup' => ['sometimes', 'boolean'],
             'notify_payment_receipt' => ['sometimes', 'boolean'],
+            'notification_footer_text' => ['sometimes', 'nullable', 'string', 'max:500'],
             'passwordless_code_enabled' => ['sometimes', 'boolean'],
             'magic_link_enabled' => ['sometimes', 'boolean'],
         ]);
@@ -121,18 +126,25 @@ class CompanyOperationalSettingController extends Controller
             'company_id' => $company->getKey(),
             'branding' => [
                 'brand_name' => $settings->brandName($company),
+                'customer_contact_line' => $settings->customer_contact_line,
             ],
             'service_orders' => [
                 'reference_prefix' => $settings->serviceOrderReferencePrefix(),
             ],
             'portal' => [
                 'intro_text' => $settings->portal_intro_text,
+                'footer_text' => $settings->portal_footer_text,
+                'approved_text' => $settings->portalApprovedText(),
+                'rejected_text' => $settings->portalRejectedText(),
             ],
             'quotes' => [
                 'default_validity_days' => $settings->default_quote_validity_days,
             ],
             'finance' => [
                 'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
+            ],
+            'communications' => [
+                'notification_footer_text' => $settings->notification_footer_text,
             ],
             'notifications' => [
                 'quote_available' => $settings->notify_quote_available,
@@ -154,14 +166,19 @@ class CompanyOperationalSettingController extends Controller
     {
         return [
             'brand_name' => $settings->brand_name,
+            'customer_contact_line' => $settings->customer_contact_line,
             'service_order_reference_prefix' => $settings->service_order_reference_prefix,
             'portal_intro_text' => $settings->portal_intro_text,
+            'portal_footer_text' => $settings->portal_footer_text,
+            'portal_approved_text' => $settings->portal_approved_text,
+            'portal_rejected_text' => $settings->portal_rejected_text,
             'default_quote_validity_days' => $settings->default_quote_validity_days,
             'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
             'notify_quote_available' => $settings->notify_quote_available,
             'notify_quote_expiring' => $settings->notify_quote_expiring,
             'notify_ready_for_pickup' => $settings->notify_ready_for_pickup,
             'notify_payment_receipt' => $settings->notify_payment_receipt,
+            'notification_footer_text' => $settings->notification_footer_text,
         ];
     }
 }

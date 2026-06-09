@@ -8,6 +8,7 @@ use App\Domains\Companies\Models\Company;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
+use App\Domains\Notifications\Mail\CriticalServiceOrderNotificationMail;
 use App\Domains\Notifications\Jobs\SendCriticalServiceOrderNotificationJob;
 use App\Domains\Notifications\Models\NotificationDelivery;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
@@ -159,6 +160,74 @@ class ServiceOrderNotificationWorkflowTest extends TestCase
         $this->assertSame(NotificationDelivery::STATUS_FAILED, $failedDelivery->status);
         $this->assertNotNull($failedDelivery->failed_at);
         $this->assertStringContainsString('SMTP offline', (string) $failedDelivery->error_message);
+    }
+
+    public function test_notification_payload_and_mail_view_reflect_external_branding_settings(): void
+    {
+        Mail::fake();
+
+        [$managerToken, $financeToken, $serviceOrderId, $portalToken, $technicianToken] = $this->createPendingQuoteScenario();
+
+        $this->withToken($managerToken)
+            ->putJson('/api/v1/company/settings', [
+                'brand_name' => 'Laboratorio Notificacoes',
+                'customer_contact_line' => 'WhatsApp (11) 95555-0000',
+                'notification_footer_text' => 'Atendimento em horário comercial.',
+            ])
+            ->assertOk();
+
+        $this->postJson('/api/v1/portal/quotes/'.$portalToken.'/decision', [
+            'decision' => 'approve',
+        ])->assertOk();
+
+        $this->withToken($technicianToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/execution/start')
+            ->assertOk();
+
+        $this->withToken($technicianToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/execution/complete', [
+                'final_test_results' => [
+                    [
+                        'label' => 'Inicialização',
+                        'passed' => true,
+                    ],
+                ],
+            ])
+            ->assertOk();
+
+        $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/financials/charges/derive-approved-quote')
+            ->assertCreated();
+
+        $this->withToken($financeToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/financials/payments', [
+                'amount_cents' => 50000,
+                'payment_method' => 'pix',
+                'notes' => 'Pagamento com branding atualizado.',
+            ])
+            ->assertCreated();
+
+        $delivery = NotificationDelivery::query()
+            ->where('service_order_id', $serviceOrderId)
+            ->where('event_type', 'payment_receipt')
+            ->latest('id')
+            ->firstOrFail();
+
+        $payload = $delivery->payload?->getArrayCopy() ?? [];
+
+        $this->assertSame('Laboratorio Notificacoes', $payload['brand_name'] ?? null);
+        $this->assertSame('WhatsApp (11) 95555-0000', $payload['customer_contact_line'] ?? null);
+        $this->assertSame('Atendimento em horário comercial.', $payload['notification_footer_text'] ?? null);
+
+        (new SendCriticalServiceOrderNotificationJob($delivery->getKey()))->handle();
+
+        Mail::assertSent(CriticalServiceOrderNotificationMail::class, function (CriticalServiceOrderNotificationMail $mail): bool {
+            $viewData = $mail->content()->with;
+
+            return ($viewData['companyName'] ?? null) === 'Laboratorio Notificacoes'
+                && (($viewData['payload']['customer_contact_line'] ?? null) === 'WhatsApp (11) 95555-0000')
+                && (($viewData['payload']['notification_footer_text'] ?? null) === 'Atendimento em horário comercial.');
+        });
     }
 
     /**
