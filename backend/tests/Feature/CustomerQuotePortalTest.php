@@ -28,9 +28,14 @@ class CustomerQuotePortalTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.service_order.id', $serviceOrder->getKey())
             ->assertJsonPath('data.service_order.reference', $serviceOrder->reference)
+            ->assertJsonPath('data.service_order.status', ServiceOrder::STATUS_OPEN)
+            ->assertJsonPath('data.service_order.customer.name', 'Cliente Portal')
+            ->assertJsonPath('data.service_order.equipment.brand', 'Dell')
+            ->assertJsonPath('data.service_order.diagnosis_customer_summary', 'Equipamento precisa de reparo na alimentacao.')
             ->assertJsonPath('data.quote.status', QuoteRevision::STATUS_PENDING)
             ->assertJsonPath('data.quote.revision_number', 1)
-            ->assertJsonPath('data.quote.total_cents', 50000);
+            ->assertJsonPath('data.quote.total_cents', 50000)
+            ->assertJsonCount(3, 'data.service_order.timeline');
     }
 
     public function test_invalid_or_expired_portal_tokens_are_rejected_and_regeneration_invalidates_old_token(): void
@@ -74,7 +79,8 @@ class CustomerQuotePortalTest extends TestCase
 
         $approve->assertOk()
             ->assertJsonPath('data.quote.status', QuoteRevision::STATUS_APPROVED)
-            ->assertJsonPath('data.quote.id', $quoteId);
+            ->assertJsonPath('data.quote.id', $quoteId)
+            ->assertJsonPath('data.service_order.timeline.3.type', 'quote_approved');
 
         $this->withHeaders([
             'Idempotency-Key' => 'customer-approve-1',
@@ -102,6 +108,31 @@ class CustomerQuotePortalTest extends TestCase
             'type' => 'quote_approved',
             'visibility' => 'customer',
         ]);
+
+        $this->getJson('/api/v1/portal/quotes/'.$portalToken)
+            ->assertOk()
+            ->assertJsonPath('data.quote.status', QuoteRevision::STATUS_APPROVED)
+            ->assertJsonPath('data.service_order.timeline.3.type', 'quote_approved');
+    }
+
+    public function test_portal_timeline_filters_internal_events_and_keeps_token_scoped_to_one_service_order(): void
+    {
+        [$portalToken, $attendantToken, $serviceOrder] = $this->createPortalQuoteScenario();
+
+        $otherServiceOrderId = $this->createSecondPortalServiceOrder($attendantToken, $serviceOrder->company_id);
+
+        $response = $this->getJson('/api/v1/portal/quotes/'.$portalToken)
+            ->assertOk()
+            ->assertJsonPath('data.service_order.id', $serviceOrder->getKey());
+
+        $timeline = $response->json('data.service_order.timeline');
+
+        $this->assertSame(
+            ['service_order_opened', 'diagnosis_customer_summary_updated', 'quote_submitted'],
+            collect($timeline)->pluck('type')->all(),
+        );
+
+        $this->assertNotSame($otherServiceOrderId, $response->json('data.service_order.id'));
     }
 
     /**
@@ -246,5 +277,59 @@ class CustomerQuotePortalTest extends TestCase
             $serviceOrder,
             $quote->json('data.id'),
         ];
+    }
+
+    protected function createSecondPortalServiceOrder(string $attendantToken, int $companyId): int
+    {
+        $customer = Customer::query()->create([
+            'company_id' => $companyId,
+            'customer_type' => 'pf',
+            'name' => 'Cliente Secundario',
+        ]);
+
+        $contact = CustomerContact::query()->create([
+            'company_id' => $companyId,
+            'customer_id' => $customer->getKey(),
+            'label' => 'principal',
+            'name' => 'Contato Secundario',
+            'email' => 'cliente.secundario@example.com',
+            'phone' => '(11) 97777-6666',
+            'normalized_email' => 'cliente.secundario@example.com',
+            'normalized_phone' => '11977776666',
+        ]);
+
+        $equipment = Equipment::query()->create([
+            'company_id' => $companyId,
+            'customer_id' => $customer->getKey(),
+            'category' => 'Notebook',
+            'brand' => 'Samsung',
+            'model' => 'Tab S9',
+            'serial_number' => 'PORTAL-ALT-'.$companyId,
+        ]);
+
+        $template = IntakeChecklistTemplate::query()->withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->firstOrFail();
+
+        $serviceOrderId = $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/drafts', [
+                'customer_id' => $customer->getKey(),
+                'customer_contact_id' => $contact->getKey(),
+                'equipment_id' => $equipment->getKey(),
+                'intake_checklist_template_id' => $template->getKey(),
+                'equipment_description' => 'Notebook Samsung Tab S9.',
+                'reported_problem' => 'Tela sem imagem.',
+                'intake_checklist' => [
+                    ['label' => 'Carregador entregue', 'checked' => true],
+                ],
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/drafts/'.$serviceOrderId.'/open')
+            ->assertOk();
+
+        return $serviceOrderId;
     }
 }

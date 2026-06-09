@@ -115,7 +115,12 @@ class CustomerQuotePortalController extends Controller
     protected function resolveQuoteByPortalToken(string $token): QuoteRevision
     {
         $quote = QuoteRevision::query()
-            ->with('serviceOrder.company')
+            ->with([
+                'serviceOrder.company',
+                'serviceOrder.customer',
+                'serviceOrder.equipment',
+                'serviceOrder.timelineEvents',
+            ])
             ->where('portal_token_hash', hash('sha256', $token))
             ->first();
 
@@ -131,6 +136,11 @@ class CustomerQuotePortalController extends Controller
      */
     protected function serializePortalQuote(QuoteRevision $quote, CompanyOperationalSetting $settings): array
     {
+        $serviceOrder = $quote->serviceOrder;
+        $customerTimeline = $serviceOrder->timelineEvents
+            ->where('visibility', ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER)
+            ->values();
+
         return [
             'company' => [
                 'brand_name' => $settings->brandName($quote->serviceOrder->company),
@@ -139,9 +149,30 @@ class CustomerQuotePortalController extends Controller
                 'intro_text' => $settings->portal_intro_text,
             ],
             'service_order' => [
-                'id' => $quote->serviceOrder->getKey(),
-                'reference' => $quote->serviceOrder->reference,
-                'status' => $quote->serviceOrder->status,
+                'id' => $serviceOrder->getKey(),
+                'reference' => $serviceOrder->reference,
+                'order_number' => $serviceOrder->order_number,
+                'title' => $serviceOrder->title,
+                'status' => $serviceOrder->status,
+                'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
+                'reported_problem' => $serviceOrder->reported_problem,
+                'diagnosis_customer_summary' => $serviceOrder->diagnosis_customer_summary,
+                'customer' => $serviceOrder->customer === null ? null : [
+                    'id' => $serviceOrder->customer->getKey(),
+                    'name' => $serviceOrder->customer->name,
+                ],
+                'equipment' => [
+                    'description' => $serviceOrder->equipment_description,
+                    'category' => $serviceOrder->equipment?->category,
+                    'brand' => $serviceOrder->equipment?->brand,
+                    'model' => $serviceOrder->equipment?->model,
+                ],
+                'timeline' => $customerTimeline->map(fn (ServiceOrderTimelineEvent $event): array => [
+                    'id' => $event->getKey(),
+                    'type' => $event->type,
+                    'title' => $event->title,
+                    'occurred_at' => $event->occurred_at?->toIso8601String(),
+                ])->all(),
             ],
             'quote' => [
                 'id' => $quote->getKey(),
