@@ -147,6 +147,16 @@ const printableHref = computed(() => (
     ? router.resolve({ name: 'service-orders.print', params: { id: os.value.id } }).href
     : '#'
 ))
+const quotePrintableHref = computed(() => (
+  os.value && quotes.value.length > 0
+    ? router.resolve({ name: 'service-orders.documents.quote', params: { id: os.value.id } }).href
+    : '#'
+))
+const deliveryTermPrintableHref = computed(() => (
+  os.value?.status === 'delivered'
+    ? router.resolve({ name: 'service-orders.documents.delivery', params: { id: os.value.id } }).href
+    : '#'
+))
 
 async function reload() {
   const [osRes, tlRes, qtRes] = await Promise.all([
@@ -511,6 +521,24 @@ async function downloadAttachment(attachmentId: number) {
           class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
         >
           Imprimir OS
+        </a>
+        <a
+          v-if="quotes.length > 0"
+          :href="quotePrintableHref"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
+        >
+          Imprimir Orçamento
+        </a>
+        <a
+          v-if="os.status === 'delivered'"
+          :href="deliveryTermPrintableHref"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
+        >
+          Imprimir Termo de Entrega
         </a>
         <button
           v-if="canOpenDraft"
@@ -1131,7 +1159,17 @@ async function downloadAttachment(attachmentId: number) {
             <div class="space-y-1.5">
               <div v-for="p in financials.payments" :key="p.id" class="flex flex-wrap items-center justify-between gap-2 text-sm">
                 <span class="text-stone-400">{{ paymentMethodLabels[p.payment_method] ?? p.payment_method }} — {{ fmt(p.received_at) }}</span>
-                <span class="text-emerald-400">{{ fmtMoney(p.amount_cents) }}</span>
+                <div class="flex items-center gap-3">
+                  <a
+                    :href="router.resolve({ name: 'service-orders.documents.receipt', params: { id: route.params.id, paymentId: p.id } }).href"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="text-xs text-amber-400 hover:text-amber-300"
+                  >
+                    Imprimir recibo
+                  </a>
+                  <span class="text-emerald-400">{{ fmtMoney(p.amount_cents) }}</span>
+                </div>
               </div>
             </div>
           </div>

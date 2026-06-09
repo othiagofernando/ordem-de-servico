@@ -467,6 +467,102 @@ export function getPrintableServiceOrder(id: number) {
   return apiGet<{ data: PrintableServiceOrderPayload }>(`/service-orders/${id}/printable`)
 }
 
+export interface PrintableQuoteDocumentPayload {
+  document_type: 'quote'
+  generated_at: string
+  company: {
+    name: string | null
+    document: string | null
+    email: string | null
+    phone: string | null
+  }
+  service_order: {
+    id: number
+    reference: string
+    order_number: number | null
+    status: ServiceOrderStatus
+    opened_at: string | null
+    reported_problem: string | null
+    equipment_description: string | null
+    equipment_brand: string | null
+    equipment_model: string | null
+    equipment_serial_number: string | null
+  }
+  customer: {
+    name: string | null
+    document: string | null
+    contact_name: string | null
+    contact_phone: string | null
+  }
+  quote: {
+    id: number
+    revision_number: number
+    status: 'pending' | 'approved' | 'rejected' | 'expired'
+    currency: string
+    total_cents: number
+    notes: string | null
+    valid_until: string | null
+    submitted_at: string | null
+    line_items: Array<{
+      description: string
+      quantity: number
+      unit_price_cents: number
+      line_total_cents: number
+    }>
+  }
+}
+
+export interface PrintableReceiptDocumentPayload {
+  document_type: 'receipt'
+  generated_at: string
+  company: PrintableQuoteDocumentPayload['company']
+  service_order: PrintableQuoteDocumentPayload['service_order']
+  customer: PrintableQuoteDocumentPayload['customer']
+  receipt: {
+    payment_id: number
+    amount_cents: number
+    currency: string
+    payment_method: string
+    received_at: string | null
+    received_by_membership_id: number | null
+    notes: string | null
+    outstanding_balance_before_payment_cents: number
+    balance_after_payment_cents: number
+  }
+}
+
+export interface PrintableDeliveryTermPayload {
+  document_type: 'delivery_term'
+  generated_at: string
+  company: PrintableQuoteDocumentPayload['company']
+  service_order: PrintableQuoteDocumentPayload['service_order'] & {
+    delivery_notes: string | null
+    received_by_name: string | null
+    delivered_at: string | null
+    outstanding_balance_cents: number
+  }
+  customer: PrintableQuoteDocumentPayload['customer']
+}
+
+export type PrintableOperationalDocumentPayload =
+  | PrintableQuoteDocumentPayload
+  | PrintableReceiptDocumentPayload
+  | PrintableDeliveryTermPayload
+
+export function getPrintableCurrentQuote(id: number) {
+  return apiGet<{ data: PrintableQuoteDocumentPayload }>(`/service-orders/${id}/documents/quote`)
+}
+
+export function getPrintablePaymentReceipt(serviceOrderId: number, paymentId: number) {
+  return apiGet<{ data: PrintableReceiptDocumentPayload }>(
+    `/service-orders/${serviceOrderId}/documents/payments/${paymentId}/receipt`,
+  )
+}
+
+export function getPrintableDeliveryTerm(id: number) {
+  return apiGet<{ data: PrintableDeliveryTermPayload }>(`/service-orders/${id}/documents/delivery-term`)
+}
+
 export function deriveQuoteCharge(id: number) {
   return apiPost(`/service-orders/${id}/financials/charges/derive-approved-quote`)
 }

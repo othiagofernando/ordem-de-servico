@@ -26,6 +26,7 @@ use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
 use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
+use App\Http\Controllers\Api\V1\ServiceOrderDocumentPrintController;
 use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
 use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
@@ -189,19 +190,25 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.service-orders.timeline');
     Route::get('/service-orders/{serviceOrder}/printable', [ServiceOrderController::class, 'printable'])
         ->name('api.v1.service-orders.printable');
+    Route::get('/service-orders/{serviceOrder}/documents/quote', [ServiceOrderDocumentPrintController::class, 'quote'])
+        ->name('api.v1.service-orders.documents.quote');
+    Route::get('/service-orders/{serviceOrder}/documents/payments/{payment}/receipt', [ServiceOrderDocumentPrintController::class, 'receipt'])
+        ->name('api.v1.service-orders.documents.receipt');
+    Route::get('/service-orders/{serviceOrder}/documents/delivery-term', [ServiceOrderDocumentPrintController::class, 'delivery'])
+        ->name('api.v1.service-orders.documents.delivery');
     Route::get('/service-orders/reports/overview', [ServiceOrderController::class, 'overview'])
         ->name('api.v1.service-orders.reports.overview');
     Route::get('/service-orders/reports/service-orders', [ServiceOrderController::class, 'serviceOrderReport'])
         ->name('api.v1.service-orders.reports.service-orders');
     Route::get('/service-orders/reports/financial', [ServiceOrderController::class, 'financialReport'])
         ->name('api.v1.service-orders.reports.financial');
-    Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
-    Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
-        ->name('api.v1.service-orders.show');
     Route::get('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'index'])
         ->name('api.v1.service-orders.attachments.index');
     Route::post('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'store'])
         ->name('api.v1.service-orders.attachments.store');
     Route::get('/service-orders/{serviceOrder}/attachments/{attachment}/download', [ServiceOrderAttachmentController::class, 'download'])
         ->name('api.v1.service-orders.attachments.download');
+    Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
+    Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
+        ->name('api.v1.service-orders.show');
 });

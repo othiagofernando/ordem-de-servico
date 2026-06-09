@@ -130,6 +130,24 @@ const router = createRouter({
       component: () => import('../views/serviceOrders/ServiceOrderPrintView.vue'),
       meta: { requiresAuth: true },
     },
+    {
+      path: '/ordens-de-servico/:id/documentos/orcamento',
+      name: 'service-orders.documents.quote',
+      component: () => import('../views/serviceOrders/ServiceOrderDocumentPrintView.vue'),
+      meta: { requiresAuth: true, documentType: 'quote' },
+    },
+    {
+      path: '/ordens-de-servico/:id/documentos/recibos/:paymentId',
+      name: 'service-orders.documents.receipt',
+      component: () => import('../views/serviceOrders/ServiceOrderDocumentPrintView.vue'),
+      meta: { requiresAuth: true, documentType: 'receipt' },
+    },
+    {
+      path: '/ordens-de-servico/:id/documentos/termo-entrega',
+      name: 'service-orders.documents.delivery',
+      component: () => import('../views/serviceOrders/ServiceOrderDocumentPrintView.vue'),
+      meta: { requiresAuth: true, documentType: 'delivery_term' },
+    },
   ],
 })
 
