@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { inviteMembership, listMemberships, removeMembership, type Membership, updateMembershipStatus } from '../../api/memberships'
 import { apiPatch, ApiError } from '../../api/client'
 import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
+import EditMemberModal from '../../components/EditMemberModal.vue'
 
 const loading = ref(true)
 const members = ref<Membership[]>([])
@@ -18,6 +19,7 @@ const inviteLoading = ref(false)
 const inviteError = ref('')
 const statusLoadingId = ref<number | null>(null)
 
+const editModal = ref<Membership | null>(null)
 const removeModal = ref<{ member: Membership } | null>(null)
 const removeLoading = ref(false)
 const removeError = ref('')
@@ -234,6 +236,7 @@ async function copyInviteUrl() {
                 <button class="btn-ghost text-xs" @click="cancelEdit">Cancelar</button>
               </template>
               <template v-else>
+                <button class="btn-ghost text-xs" @click="editModal = member">Editar dados</button>
                 <button class="btn-ghost text-xs" @click="startEdit(member)">Editar perfil</button>
                 <button
                   v-if="member.status !== 'invited'"
@@ -303,6 +306,14 @@ async function copyInviteUrl() {
         </section>
       </div>
     </div>
+
+    <!-- Modal: editar dados do membro -->
+    <EditMemberModal
+      v-if="editModal"
+      :member="editModal"
+      @saved="load"
+      @close="editModal = null"
+    />
 
     <!-- Modal: remover membro -->
     <PasswordConfirmModal

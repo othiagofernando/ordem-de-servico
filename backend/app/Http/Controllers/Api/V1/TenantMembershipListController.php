@@ -38,6 +38,7 @@ class TenantMembershipListController extends Controller
                 'status' => $m->status,
                 'user_name' => $m->user?->name,
                 'user_email' => $m->user?->email,
+                'user_phone' => $m->user?->phone,
             ])->all(),
         ]);
     }

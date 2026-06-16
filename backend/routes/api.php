@@ -41,6 +41,8 @@ use App\Http\Controllers\Api\V1\TenantMembershipController;
 use App\Http\Controllers\Api\V1\TenantMembershipDeleteController;
 use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
+use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
+use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -107,6 +109,12 @@ Route::middleware('auth.token')->group(function (): void {
     Route::delete('/tenant/memberships/{membership}', TenantMembershipDeleteController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.destroy');
+    Route::patch('/tenant/memberships/{membership}/user', TenantMembershipUserUpdateController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.user.update');
+    Route::put('/tenant/memberships/{membership}/user/password', TenantMembershipUserPasswordController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.user.password');
     Route::get('/customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view_any')
         ->name('api.v1.customers.index');
