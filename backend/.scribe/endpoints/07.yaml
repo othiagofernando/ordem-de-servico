@@ -35,7 +35,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: ed5e59fb-e632-49dd-8395-9370f6be56c8
+          x-correlation-id: 561876ca-7b56-4748-a808-154912528a20
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -127,7 +127,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: e643d541-d805-47b0-9741-d18aa6e82b7e
+          x-correlation-id: c8e2588b-7be9-4ae1-ae15-3a2765d40412
           access-control-allow-origin: '*'
         description: null
     responseFields: []

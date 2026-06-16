@@ -38,7 +38,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 022dce76-c092-4d54-b8f0-dbe5837d2231
+          x-correlation-id: 251cc9d7-d56b-45a8-8694-24b32094e47c
           access-control-allow-origin: '*'
         description: null
     responseFields: []

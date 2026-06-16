@@ -165,7 +165,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 6dbf2e25-b6f0-458c-8658-c3472cffefe1
+          x-correlation-id: dd166b6c-6dae-4429-bbac-320467ab7da5
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -522,6 +522,51 @@ endpoints:
     custom: []
     httpMethods:
       - GET
+    uri: api/v1/auth/bootstrap
+    metadata:
+      custom: []
+      groupName: Auth
+      groupDescription: 'Returns the active context, resolved permissions, and all active memberships available to the same identity.'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return the authenticated bootstrap payload for the active company context.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 14274bec-018f-4a69-8573-155932317c18
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
     uri: api/v1/auth/permissions/me
     metadata:
       custom: []
@@ -552,7 +597,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 104abccc-5a12-46fa-9723-747e2723010e
+          x-correlation-id: d0b6a1fc-299d-413d-886c-8c936cf76eec
           access-control-allow-origin: '*'
         description: null
     responseFields: []

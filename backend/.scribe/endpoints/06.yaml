@@ -35,7 +35,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: ec5765c7-3950-47f2-907a-6061da579cbc
+          x-correlation-id: 041348dd-2092-4a10-9b6c-bfc14cb7f6fd
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -81,12 +81,67 @@ endpoints:
         exampleWasSpecified: false
         nullable: true
         deprecated: false
+      customer_contact_line:
+        custom: []
+        name: customer_contact_line
+        description: 'Must not be greater than 160 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      service_order_reference_prefix:
+        custom: []
+        name: service_order_reference_prefix
+        description: 'Must match the regex /^[A-Za-z0-9-]+$/. Must not be greater than 20 characters.'
+        required: false
+        example: gzmiyvdljnikhway
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       portal_intro_text:
         custom: []
         name: portal_intro_text
         description: 'Must not be greater than 2000 characters.'
         required: false
-        example: 'n'
+        example: k
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_footer_text:
+        custom: []
+        name: portal_footer_text
+        description: 'Must not be greater than 500 characters.'
+        required: false
+        example: c
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_approved_text:
+        custom: []
+        name: portal_approved_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: m
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_rejected_text:
+        custom: []
+        name: portal_rejected_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'y'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -97,8 +152,19 @@ endpoints:
         name: default_quote_validity_days
         description: 'Must be at least 1. Must not be greater than 30.'
         required: false
-        example: 7
+        example: 6
         type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      block_delivery_with_outstanding_balance:
+        custom: []
+        name: block_delivery_with_outstanding_balance
+        description: ''
+        required: false
+        example: true
+        type: boolean
         enumValues: []
         exampleWasSpecified: false
         nullable: false
@@ -114,6 +180,17 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      notify_quote_available_text:
+        custom: []
+        name: notify_quote_available_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: w
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       notify_quote_expiring:
         custom: []
         name: notify_quote_expiring
@@ -124,6 +201,17 @@ endpoints:
         enumValues: []
         exampleWasSpecified: false
         nullable: false
+        deprecated: false
+      notify_quote_expiring_text:
+        custom: []
+        name: notify_quote_expiring_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: p
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
         deprecated: false
       notify_ready_for_pickup:
         custom: []
@@ -136,6 +224,17 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      notify_ready_for_pickup_text:
+        custom: []
+        name: notify_ready_for_pickup_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: w
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       notify_payment_receipt:
         custom: []
         name: notify_payment_receipt
@@ -147,12 +246,34 @@ endpoints:
         exampleWasSpecified: false
         nullable: false
         deprecated: false
+      notify_payment_receipt_text:
+        custom: []
+        name: notify_payment_receipt_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      notification_footer_text:
+        custom: []
+        name: notification_footer_text
+        description: 'Must not be greater than 500 characters.'
+        required: false
+        example: v
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       passwordless_code_enabled:
         custom: []
         name: passwordless_code_enabled
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -171,13 +292,24 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       brand_name: b
-      portal_intro_text: 'n'
-      default_quote_validity_days: 7
+      customer_contact_line: 'n'
+      service_order_reference_prefix: gzmiyvdljnikhway
+      portal_intro_text: k
+      portal_footer_text: c
+      portal_approved_text: m
+      portal_rejected_text: 'y'
+      default_quote_validity_days: 6
+      block_delivery_with_outstanding_balance: true
       notify_quote_available: true
+      notify_quote_available_text: w
       notify_quote_expiring: false
+      notify_quote_expiring_text: p
       notify_ready_for_pickup: false
+      notify_ready_for_pickup_text: w
       notify_payment_receipt: false
-      passwordless_code_enabled: true
+      notify_payment_receipt_text: l
+      notification_footer_text: v
+      passwordless_code_enabled: false
       magic_link_enabled: false
     fileParameters: []
     responses: []
