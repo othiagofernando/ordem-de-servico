@@ -61,6 +61,10 @@ export function apiPatch<T>(path: string, body?: unknown) {
   return apiFetch<T>(path, { method: 'PATCH', body: body ? JSON.stringify(body) : undefined })
 }
 
+export function apiDelete<T>(path: string, body?: unknown) {
+  return apiFetch<T>(path, { method: 'DELETE', body: body ? JSON.stringify(body) : undefined })
+}
+
 export async function apiDownload(path: string, filename: string, accept = 'text/csv') {
   const token = getToken()
   const res = await fetch(`${API_BASE}${path}`, {

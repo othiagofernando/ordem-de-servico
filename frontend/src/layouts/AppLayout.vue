@@ -16,6 +16,7 @@ const navLinks = [
   { name: 'dashboard', label: 'Dashboard', icon: '⬜' },
   { name: 'reports', label: 'Relatórios', icon: '📊' },
   { name: 'service-orders', label: 'Ordens de Serviço', icon: '📋' },
+  { name: 'service-orders.trash', label: 'Lixeira de OS', icon: '🗑️' },
   { name: 'customers', label: 'Clientes', icon: '👤' },
   { name: 'equipments', label: 'Equipamentos', icon: '🔧' },
   { name: 'members', label: 'Membros', icon: '👥' },

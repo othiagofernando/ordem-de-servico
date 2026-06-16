@@ -24,6 +24,10 @@ use App\Http\Controllers\Api\V1\MembershipStatusController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
+use App\Http\Controllers\Api\V1\ServiceOrderDeleteController;
+use App\Http\Controllers\Api\V1\ServiceOrderForceDeleteController;
+use App\Http\Controllers\Api\V1\ServiceOrderRestoreController;
+use App\Http\Controllers\Api\V1\ServiceOrderTrashController;
 use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderDocumentPrintController;
@@ -180,6 +184,18 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/service-orders/{serviceOrder}/assignment', ServiceOrderAssignmentController::class)
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.assignment.update');
+    Route::delete('/service-orders/{serviceOrder}', ServiceOrderDeleteController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.destroy');
+    Route::get('/service-orders/trash', ServiceOrderTrashController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.trash.index');
+    Route::post('/service-orders/{serviceOrderId}/restore', ServiceOrderRestoreController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.restore');
+    Route::delete('/service-orders/{serviceOrderId}/force', ServiceOrderForceDeleteController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.force-delete');
     Route::post('/service-orders/{serviceOrder}/close/cancel', [ServiceOrderClosureController::class, 'cancel'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.close.cancel');

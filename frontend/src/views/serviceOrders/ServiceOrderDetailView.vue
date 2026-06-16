@@ -7,7 +7,7 @@ import {
   createQuote, recordPayment, cancelServiceOrder, closeNoRepair,
   generatePortalToken, recordWorkEntries, getFinancials, assignTechnician, getAttachments,
   deriveQuoteCharge, createWarrantyReturn, decideWarrantyCoverage,
-  addDiagnosticFee, addAdjustment,
+  addDiagnosticFee, addAdjustment, trashServiceOrder,
   type ServiceOrder, type TimelineEvent, type QuoteRevision, type QuoteLineItem,
   type FinalTestResult, type WorkEntry, type Financials, type Attachment,
 } from '../../api/serviceOrders'
@@ -90,6 +90,12 @@ const chargeDesc = ref('')
 const chargeAmount = ref('')
 const chargeNotes = ref('')
 
+// Delete (move to trash)
+const showDeleteModal = ref(false)
+const deletePassword = ref('')
+const deleteError = ref('')
+const deleteLoading = ref(false)
+
 // Warranty
 const showWarrantyReturnForm = ref(false)
 const warrantyReturnProblem = ref('')
@@ -129,6 +135,10 @@ const {
   deliveryTermPrintableHref,
   hasSignedServiceOrderCopy,
 } = useServiceOrderDerivedState(os, quotes, attachments, router)
+
+const canTrash = computed(() =>
+  os.value?.status === 'cancelled' || os.value?.status === 'no_repair',
+)
 
 const hasApprovedQuote = computed(() => quotes.value.some((quote) => quote.status === 'approved'))
 const hasDerivedApprovedQuoteCharge = computed(() => (
@@ -356,6 +366,32 @@ async function saveWarrantyReturn() {
     warrantyReturnProblem.value = ''
     return res
   })
+}
+
+function openDeleteModal() {
+  deletePassword.value = ''
+  deleteError.value = ''
+  showDeleteModal.value = true
+}
+
+async function doTrashServiceOrder() {
+  if (!deletePassword.value) return
+  deleteError.value = ''
+  deleteLoading.value = true
+  try {
+    await trashServiceOrder(Number(route.params.id), deletePassword.value)
+    router.push({ name: 'service-orders' })
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const errData = e.data as { message?: string; errors?: Record<string, string[]> }
+      const first = errData.errors ? Object.values(errData.errors)[0]?.[0] : null
+      deleteError.value = first ?? errData.message ?? 'Erro ao mover para lixeira.'
+    } else {
+      deleteError.value = 'Erro inesperado.'
+    }
+  } finally {
+    deleteLoading.value = false
+  }
 }
 
 async function saveWarrantyDecision() {
@@ -657,8 +693,9 @@ async function downloadAttachment(attachmentId: number) {
         </div>
 
         <!-- Lado direito: ações de encerramento (destrutivas) -->
-        <div v-if="canCancel" class="flex items-center gap-2">
+        <div v-if="canCancel || canTrash" class="flex items-center gap-2">
           <button
+            v-if="canCancel"
             :disabled="actionLoading"
             class="rounded-xl border border-red-500/20 px-4 py-2 text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
             @click="openCancelModal"
@@ -666,11 +703,20 @@ async function downloadAttachment(attachmentId: number) {
             Cancelar OS
           </button>
           <button
+            v-if="canCancel"
             :disabled="actionLoading"
             class="rounded-xl border border-orange-500/20 px-4 py-2 text-sm text-orange-400 transition hover:bg-orange-500/10 disabled:opacity-50"
             @click="openNoRepairModal"
           >
             Sem Reparo
+          </button>
+          <button
+            v-if="canTrash"
+            :disabled="actionLoading"
+            class="rounded-xl border border-red-800/40 px-4 py-2 text-sm text-red-500/80 transition hover:border-red-600/50 hover:bg-red-900/20 hover:text-red-400 disabled:opacity-50"
+            @click="openDeleteModal"
+          >
+            Mover para Lixeira
           </button>
         </div>
       </div>
@@ -845,6 +891,40 @@ async function downloadAttachment(attachmentId: number) {
         <div class="mt-4 flex gap-2">
           <button :disabled="!terminalNotes.trim()" class="rounded-xl bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-500 disabled:opacity-50" @click="doNoRepair">Confirmar</button>
           <button class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400" @click="showNoRepairModal = false">Voltar</button>
+        </div>
+      </div>
+
+      <!-- Modal: mover para lixeira -->
+      <div v-if="showDeleteModal" class="rounded-2xl border border-red-800/40 bg-red-950/20 p-6">
+        <h2 class="mb-1 text-sm font-semibold text-red-400">Mover para a Lixeira</h2>
+        <p class="mb-4 text-sm text-stone-400">
+          A OS será movida para a lixeira e poderá ser restaurada ou excluída definitivamente de lá.
+          Confirme sua senha para continuar.
+        </p>
+        <div v-if="deleteError" class="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+          {{ deleteError }}
+        </div>
+        <input
+          v-model="deletePassword"
+          type="password"
+          class="input"
+          placeholder="Sua senha"
+          @keyup.enter="doTrashServiceOrder"
+        />
+        <div class="mt-4 flex gap-2">
+          <button
+            :disabled="!deletePassword || deleteLoading"
+            class="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
+            @click="doTrashServiceOrder"
+          >
+            {{ deleteLoading ? 'Aguarde…' : 'Confirmar' }}
+          </button>
+          <button
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
+            @click="showDeleteModal = false"
+          >
+            Cancelar
+          </button>
         </div>
       </div>
 

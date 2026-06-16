@@ -55,6 +55,7 @@ class SerializeServiceOrder
             'opened_at' => $serviceOrder->opened_at?->toIso8601String(),
             'assigned_membership_id' => $serviceOrder->assigned_membership_id,
             'assigned_membership_name' => $serviceOrder->assignedMembership?->user?->name,
+            'deleted_at' => $serviceOrder->deleted_at?->toIso8601String(),
             'customer_name' => $serviceOrder->customer?->name,
             'customer_document' => $serviceOrder->customer?->document,
             'customer_contact_name' => $serviceOrder->customerContact?->name,

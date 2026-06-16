@@ -1,4 +1,4 @@
-import { apiDownload, apiGet, apiPost, apiPut, apiPatch } from './client'
+import { apiDownload, apiGet, apiPost, apiPut, apiPatch, apiDelete } from './client'
 
 export type ServiceOrderStatus =
   | 'draft'
@@ -60,6 +60,19 @@ export interface ServiceOrder {
   warranty_origin_service_order_id: number | null
   final_test_results: Array<{ label: string; passed: boolean; notes?: string | null }> | null
   execution_entries: Array<{ id: number; entry_type: string; description: string; quantity: number; notes: string | null }> | null
+  deleted_at: string | null
+}
+
+export interface TrashedServiceOrder {
+  id: number
+  reference: string
+  title: string
+  status: ServiceOrderStatus
+  customer_name: string | null
+  equipment_brand: string | null
+  equipment_model: string | null
+  equipment_serial_number: string | null
+  deleted_at: string
 }
 
 export interface ServiceOrderDraftPayload {
@@ -590,4 +603,20 @@ export function createWarrantyReturn(id: number, reported_problem: string) {
 
 export function decideWarrantyCoverage(id: number, decision: 'covered' | 'not_covered', notes: string) {
   return apiPatch(`/service-orders/${id}/warranty-coverage`, { decision, notes })
+}
+
+export function trashServiceOrder(id: number, password: string) {
+  return apiDelete(`/service-orders/${id}`, { password })
+}
+
+export function listTrashedServiceOrders() {
+  return apiGet<{ data: TrashedServiceOrder[]; meta: { total: number; current_page: number; last_page: number } }>('/service-orders/trash')
+}
+
+export function restoreServiceOrder(id: number) {
+  return apiPost(`/service-orders/${id}/restore`)
+}
+
+export function forceDeleteServiceOrder(id: number, password: string) {
+  return apiDelete(`/service-orders/${id}/force`, { password })
 }

@@ -86,6 +86,11 @@ const router = createRouter({
           component: () => import('../views/serviceOrders/CreateServiceOrderView.vue'),
         },
         {
+          path: 'ordens-de-servico/lixeira',
+          name: 'service-orders.trash',
+          component: () => import('../views/serviceOrders/ServiceOrderTrashView.vue'),
+        },
+        {
           path: 'ordens-de-servico/:id',
           name: 'service-orders.detail',
           component: () => import('../views/serviceOrders/ServiceOrderDetailView.vue'),
