@@ -38,6 +38,7 @@ use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
 use App\Http\Controllers\Api\V1\ServiceOrderAssignmentController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
+use App\Http\Controllers\Api\V1\TenantMembershipDeleteController;
 use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,9 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/tenant/memberships/{membership}/status', MembershipStatusController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.status.update');
+    Route::delete('/tenant/memberships/{membership}', TenantMembershipDeleteController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.destroy');
     Route::get('/customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view_any')
         ->name('api.v1.customers.index');

@@ -63,29 +63,29 @@ const roleLabels: Record<string, string> = {
 <template>
   <div class="mx-auto max-w-2xl space-y-8">
     <div>
-      <h1 class="text-2xl font-semibold text-white">Minha Conta</h1>
-      <p class="mt-1 text-sm text-stone-500">Informações do seu perfil e configurações de segurança.</p>
+      <h1 class="text-2xl font-semibold" style="color: var(--c-text)">Minha Conta</h1>
+      <p class="mt-1 text-sm" style="color: var(--c-text-muted)">Informações do seu perfil e configurações de segurança.</p>
     </div>
 
     <!-- Informações do perfil -->
     <section class="card space-y-4">
-      <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-500">Perfil</h2>
+      <h2 class="text-sm font-semibold uppercase tracking-widest" style="color: var(--c-text-muted)">Perfil</h2>
       <div class="grid grid-cols-2 gap-x-8 gap-y-3 text-sm">
         <div>
-          <p class="text-stone-500">Nome</p>
-          <p class="mt-0.5 font-medium text-stone-200">{{ auth.user?.name ?? '—' }}</p>
+          <p style="color: var(--c-text-muted)">Nome</p>
+          <p class="mt-0.5 font-medium" style="color: var(--c-text)">{{ auth.user?.name ?? '—' }}</p>
         </div>
         <div>
-          <p class="text-stone-500">E-mail</p>
-          <p class="mt-0.5 font-medium text-stone-200">{{ auth.user?.email ?? '—' }}</p>
+          <p style="color: var(--c-text-muted)">E-mail</p>
+          <p class="mt-0.5 font-medium" style="color: var(--c-text)">{{ auth.user?.email ?? '—' }}</p>
         </div>
         <div>
-          <p class="text-stone-500">Empresa</p>
-          <p class="mt-0.5 font-medium text-stone-200">{{ auth.company?.name ?? '—' }}</p>
+          <p style="color: var(--c-text-muted)">Empresa</p>
+          <p class="mt-0.5 font-medium" style="color: var(--c-text)">{{ auth.company?.name ?? '—' }}</p>
         </div>
         <div>
-          <p class="text-stone-500">Perfil de acesso</p>
-          <p class="mt-0.5 font-medium text-stone-200">{{ roleLabels[auth.role ?? ''] ?? auth.role ?? '—' }}</p>
+          <p style="color: var(--c-text-muted)">Perfil de acesso</p>
+          <p class="mt-0.5 font-medium" style="color: var(--c-text)">{{ roleLabels[auth.role ?? ''] ?? auth.role ?? '—' }}</p>
         </div>
       </div>
     </section>
@@ -93,8 +93,8 @@ const roleLabels: Record<string, string> = {
     <!-- Alterar senha -->
     <section class="card space-y-5">
       <div>
-        <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-500">Alterar senha</h2>
-        <p class="mt-1 text-xs text-stone-600">Mínimo de 8 caracteres. Você precisará da sua senha atual para confirmar.</p>
+        <h2 class="text-sm font-semibold uppercase tracking-widest" style="color: var(--c-text-muted)">Alterar senha</h2>
+        <p class="mt-1 text-xs" style="color: var(--c-text-dim)">Mínimo de 8 caracteres. Você precisará da sua senha atual para confirmar.</p>
       </div>
 
       <div v-if="successMsg" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
@@ -132,9 +132,9 @@ const roleLabels: Record<string, string> = {
     </section>
 
     <!-- Dica sobre novos usuários -->
-    <section class="rounded-2xl border border-white/[0.06] bg-white/[0.02] px-5 py-4 text-sm text-stone-500">
-      <p class="font-medium text-stone-400">Como adicionar usuários ao sistema?</p>
-      <p class="mt-1">Acesse <strong class="text-stone-300">Membros</strong> no menu lateral e use o botão <strong class="text-stone-300">Convidar</strong> para enviar um convite por e-mail. O usuário convidado criará sua própria senha ao aceitar o convite.</p>
+    <section class="rounded-2xl border px-5 py-4 text-sm" style="border-color: var(--c-border); background: var(--c-surface); color: var(--c-text-muted)">
+      <p class="font-medium" style="color: var(--c-text)">Como adicionar usuários ao sistema?</p>
+      <p class="mt-1">Acesse <strong style="color: var(--c-text)">Usuários</strong> no menu lateral e use o botão <strong style="color: var(--c-text)">Convidar membro</strong> para enviar um convite por e-mail. O usuário convidado criará sua própria senha ao aceitar o convite.</p>
     </section>
   </div>
 </template>
@@ -144,18 +144,20 @@ const roleLabels: Record<string, string> = {
 
 .card {
   @apply rounded-2xl border p-6;
-  background: rgba(255, 255, 255, 0.025);
-  border-color: rgba(255, 255, 255, 0.07);
+  background: var(--c-surface);
+  border-color: var(--c-border);
 }
 
 .field-label {
-  @apply mb-1.5 block text-sm text-stone-400;
+  @apply mb-1.5 block text-sm;
+  color: var(--c-text-muted);
 }
 
 .field-input {
-  @apply w-full rounded-xl border px-4 py-2.5 text-sm text-stone-100 outline-none transition;
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.1);
+  @apply w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition;
+  color: var(--c-text);
+  background: var(--c-input-bg);
+  border-color: var(--c-input-border);
 }
 
 .field-input:focus {
@@ -164,6 +166,6 @@ const roleLabels: Record<string, string> = {
 }
 
 .field-input::placeholder {
-  color: #57534e;
+  color: var(--c-text-dim);
 }
 </style>

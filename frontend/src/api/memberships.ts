@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from './client'
+import { apiDelete, apiGet, apiPatch, apiPost } from './client'
 
 export interface Membership {
   id: number
@@ -26,4 +26,8 @@ export function inviteMembership(payload: { name: string; email: string; role: s
 
 export function updateMembershipStatus(membershipId: number, status: 'active' | 'suspended') {
   return apiPatch<{ data: Membership }>(`/tenant/memberships/${membershipId}/status`, { status })
+}
+
+export function removeMembership(membershipId: number, password: string) {
+  return apiDelete<{ message: string }>(`/tenant/memberships/${membershipId}`, { password })
 }
