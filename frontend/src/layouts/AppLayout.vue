@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
+import NavIcon from '../components/NavIcon.vue'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -13,14 +14,14 @@ async function logout() {
 }
 
 const navLinks = [
-  { name: 'dashboard', label: 'Dashboard', icon: '⬜' },
-  { name: 'reports', label: 'Relatórios', icon: '📊' },
-  { name: 'service-orders', label: 'Ordens de Serviço', icon: '📋' },
-  { name: 'customers', label: 'Clientes', icon: '👤' },
-  { name: 'equipments', label: 'Equipamentos', icon: '🔧' },
-  { name: 'members', label: 'Membros', icon: '👥' },
-  { name: 'checklists', label: 'Checklists', icon: '📝' },
-  { name: 'settings', label: 'Configurações', icon: '⚙️' },
+  { name: 'dashboard', label: 'Dashboard' },
+  { name: 'reports', label: 'Relatórios' },
+  { name: 'service-orders', label: 'Ordens de Serviço' },
+  { name: 'customers', label: 'Clientes' },
+  { name: 'equipments', label: 'Equipamentos' },
+  { name: 'members', label: 'Membros' },
+  { name: 'checklists', label: 'Checklists' },
+  { name: 'settings', label: 'Configurações' },
 ]
 </script>
 
@@ -29,39 +30,41 @@ const navLinks = [
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed inset-y-0 left-0 z-40 w-64 flex-col bg-black/60 border-r border-white/10 backdrop-blur transition-transform duration-200',
+        'fixed inset-y-0 left-0 z-40 flex w-60 flex-col bg-stone-950 border-r border-white/[0.06] transition-transform duration-200',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         'lg:relative lg:flex lg:translate-x-0',
       ]"
     >
-      <div class="flex h-16 items-center gap-2 border-b border-white/10 px-5">
-        <span class="text-lg font-bold text-amber-400">TechFix</span>
-        <span class="text-xs text-stone-500">OS</span>
+      <!-- Logo -->
+      <div class="flex h-14 items-center border-b border-white/[0.06] px-4">
+        <span class="text-base font-bold tracking-tight text-white">TechFix</span>
+        <span class="ml-1 rounded bg-amber-500/20 px-1 py-0.5 text-[10px] font-semibold text-amber-400 uppercase tracking-wider">OS</span>
       </div>
 
-      <nav class="flex-1 space-y-1 px-3 py-4">
+      <!-- Nav -->
+      <nav class="flex-1 space-y-0.5 px-3 py-3">
         <RouterLink
           v-for="link in navLinks"
           :key="link.name"
           :to="{ name: link.name }"
-          class="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-stone-400 transition hover:bg-white/5 hover:text-stone-100"
-          active-class="bg-amber-500/10 text-amber-300"
+          class="group flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-stone-400 transition-colors hover:bg-white/5 hover:text-stone-200"
+          active-class="bg-amber-500/10 text-amber-300 hover:text-amber-300"
           @click="sidebarOpen = false"
         >
-          <span class="text-base">{{ link.icon }}</span>
+          <NavIcon :name="link.name" />
           {{ link.label }}
         </RouterLink>
       </nav>
 
-      <div class="border-t border-white/10 p-4">
-        <div class="mb-3 rounded-xl bg-white/5 px-3 py-2.5">
-          <p class="text-xs text-stone-500">Empresa</p>
-          <p class="mt-0.5 truncate text-sm font-medium text-stone-200">{{ auth.company?.name ?? '—' }}</p>
-          <p class="text-xs text-stone-500 capitalize">{{ auth.role }}</p>
+      <!-- Rodapé: empresa + logout -->
+      <div class="border-t border-white/[0.06] p-4 space-y-3">
+        <div class="px-1">
+          <p class="truncate text-sm font-medium text-white">{{ auth.company?.name ?? '—' }}</p>
+          <p class="mt-0.5 text-xs text-stone-500 capitalize">{{ auth.role }}</p>
           <p v-if="auth.membershipCount > 1" class="text-xs text-stone-500">{{ auth.membershipCount }} empresas vinculadas</p>
         </div>
         <button
-          class="w-full rounded-xl border border-white/10 px-3 py-2 text-sm text-stone-400 transition hover:border-red-500/30 hover:text-red-400"
+          class="w-full rounded-lg px-3 py-2 text-left text-sm text-stone-400 transition-colors hover:bg-white/5 hover:text-red-400"
           @click="logout"
         >
           Sair
@@ -78,15 +81,26 @@ const navLinks = [
 
     <!-- Content -->
     <div class="flex flex-1 flex-col lg:min-w-0">
-      <header class="flex h-16 items-center gap-4 border-b border-white/10 bg-black/30 px-6">
+      <!-- Header -->
+      <header class="flex h-14 items-center gap-4 border-b border-white/[0.06] bg-stone-950 px-6">
+        <!-- Hamburger mobile -->
         <button
-          class="rounded-lg p-2 text-stone-400 hover:bg-white/5 lg:hidden"
+          class="rounded-lg p-1.5 text-stone-400 hover:bg-white/5 hover:text-stone-200 lg:hidden"
+          aria-label="Abrir menu"
           @click="sidebarOpen = !sidebarOpen"
         >
-          ☰
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" class="h-5 w-5" aria-hidden="true">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          </svg>
         </button>
+
         <div class="flex-1" />
-        <span class="text-sm text-stone-400">{{ auth.user?.name }}</span>
+
+        <!-- Usuário -->
+        <div class="flex items-center gap-2">
+          <span class="text-sm text-stone-300">{{ auth.user?.name }}</span>
+          <span class="rounded bg-stone-800 px-2 py-0.5 text-xs text-stone-400 capitalize">{{ auth.role }}</span>
+        </div>
       </header>
 
       <main class="flex-1 p-6">
