@@ -6,19 +6,17 @@ import {
   type TrashedServiceOrder,
 } from '../../api/serviceOrders'
 import { ApiError } from '../../api/client'
+import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
 
 const orders = ref<TrashedServiceOrder[]>([])
 const total = ref(0)
 const loading = ref(true)
 const loadError = ref('')
 
-const restoring = ref<number | null>(null)
-const restoreError = ref<Record<number, string>>({})
-
-const showForceModal = ref<number | null>(null)
-const forcePassword = ref('')
-const forceError = ref('')
-const forceLoading = ref(false)
+type ModalAction = { type: 'restore' | 'force'; id: number }
+const activeModal = ref<ModalAction | null>(null)
+const modalLoading = ref(false)
+const modalError = ref('')
 
 const statusLabels: Record<string, { label: string; cls: string }> = {
   cancelled: { label: 'Cancelada', cls: 'bg-red-500/15 text-red-400' },
@@ -45,47 +43,38 @@ async function load() {
 
 onMounted(load)
 
-async function doRestore(id: number) {
-  restoring.value = id
-  restoreError.value = { ...restoreError.value, [id]: '' }
-  try {
-    await restoreServiceOrder(id)
-    await load()
-  } catch (e) {
-    const msg = e instanceof ApiError
-      ? ((e.data as { message?: string })?.message ?? 'Erro ao restaurar.')
-      : 'Erro ao restaurar.'
-    restoreError.value = { ...restoreError.value, [id]: msg }
-  } finally {
-    restoring.value = null
-  }
+function openModal(type: 'restore' | 'force', id: number) {
+  activeModal.value = { type, id }
+  modalError.value = ''
 }
 
-function openForceModal(id: number) {
-  showForceModal.value = id
-  forcePassword.value = ''
-  forceError.value = ''
+function closeModal() {
+  activeModal.value = null
+  modalError.value = ''
 }
 
-async function doForceDelete() {
-  if (!showForceModal.value || !forcePassword.value) return
-  forceError.value = ''
-  forceLoading.value = true
+async function handleConfirm(password: string) {
+  if (!activeModal.value) return
+  modalError.value = ''
+  modalLoading.value = true
   try {
-    await forceDeleteServiceOrder(showForceModal.value, forcePassword.value)
-    showForceModal.value = null
-    forcePassword.value = ''
+    if (activeModal.value.type === 'restore') {
+      await restoreServiceOrder(activeModal.value.id, password)
+    } else {
+      await forceDeleteServiceOrder(activeModal.value.id, password)
+    }
+    activeModal.value = null
     await load()
   } catch (e) {
     if (e instanceof ApiError) {
       const errData = e.data as { message?: string; errors?: Record<string, string[]> }
       const first = errData.errors ? Object.values(errData.errors)[0]?.[0] : null
-      forceError.value = first ?? errData.message ?? 'Erro ao excluir.'
+      modalError.value = first ?? errData.message ?? 'Erro ao executar ação.'
     } else {
-      forceError.value = 'Erro inesperado.'
+      modalError.value = 'Erro inesperado.'
     }
   } finally {
-    forceLoading.value = false
+    modalLoading.value = false
   }
 }
 </script>
@@ -136,62 +125,46 @@ async function doForceDelete() {
               </span>
               <span>Excluída em {{ fmt(order.deleted_at) }}</span>
             </div>
-            <div v-if="restoreError[order.id]" class="mt-2 text-sm text-red-400">
-              {{ restoreError[order.id] }}
-            </div>
           </div>
 
           <div class="flex shrink-0 items-center gap-2">
             <button
-              :disabled="restoring === order.id"
-              class="rounded-xl border border-emerald-500/30 px-4 py-2 text-sm text-emerald-400 transition hover:bg-emerald-500/10 disabled:opacity-50"
-              @click="doRestore(order.id)"
+              class="rounded-xl border border-emerald-500/30 px-4 py-2 text-sm text-emerald-400 transition hover:bg-emerald-500/10"
+              @click="openModal('restore', order.id)"
             >
-              {{ restoring === order.id ? 'Restaurando…' : 'Restaurar' }}
+              Restaurar
             </button>
             <button
               class="rounded-xl border border-red-800/40 px-4 py-2 text-sm text-red-500/70 transition hover:border-red-600/50 hover:bg-red-900/20 hover:text-red-400"
-              @click="openForceModal(order.id)"
+              @click="openModal('force', order.id)"
             >
               Excluir Definitivamente
-            </button>
-          </div>
-        </div>
-
-        <!-- Modal de exclusão definitiva inline -->
-        <div
-          v-if="showForceModal === order.id"
-          class="mt-4 rounded-xl border border-red-700/40 bg-red-950/30 p-4"
-        >
-          <p class="mb-3 text-sm font-semibold text-red-400">Excluir definitivamente — esta ação é irreversível.</p>
-          <p class="mb-3 text-sm text-stone-400">Todos os dados desta OS serão permanentemente removidos. Confirme sua senha.</p>
-          <div v-if="forceError" class="mb-2 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-            {{ forceError }}
-          </div>
-          <input
-            v-model="forcePassword"
-            type="password"
-            class="input"
-            placeholder="Sua senha"
-            @keyup.enter="doForceDelete"
-          />
-          <div class="mt-3 flex gap-2">
-            <button
-              :disabled="!forcePassword || forceLoading"
-              class="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
-              @click="doForceDelete"
-            >
-              {{ forceLoading ? 'Excluindo…' : 'Confirmar Exclusão Definitiva' }}
-            </button>
-            <button
-              class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
-              @click="showForceModal = null"
-            >
-              Cancelar
             </button>
           </div>
         </div>
       </div>
     </div>
   </div>
+
+  <PasswordConfirmModal
+    v-if="activeModal?.type === 'restore'"
+    title="Restaurar Ordem de Serviço"
+    description="A OS voltará para a lista e poderá ser consultada normalmente."
+    confirm-label="Restaurar"
+    :loading="modalLoading"
+    :error="modalError"
+    @confirm="handleConfirm"
+    @cancel="closeModal"
+  />
+
+  <PasswordConfirmModal
+    v-if="activeModal?.type === 'force'"
+    title="Excluir Definitivamente"
+    description="Todos os dados desta OS (histórico, orçamentos, pagamentos, anexos) serão removidos permanentemente. Esta ação é irreversível."
+    confirm-label="Excluir Definitivamente"
+    :loading="modalLoading"
+    :error="modalError"
+    @confirm="handleConfirm"
+    @cancel="closeModal"
+  />
 </template>

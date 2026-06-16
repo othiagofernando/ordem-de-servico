@@ -44,12 +44,14 @@ class ServiceOrderTrashTest extends TestCase
         $this->getJson('/api/v1/service-orders/trash')->assertUnauthorized();
     }
 
-    public function test_trashed_order_can_be_restored(): void
+    public function test_trashed_order_can_be_restored_with_correct_password(): void
     {
         [$token, $serviceOrderId] = $this->createAndTrashOrder();
 
         $this->withToken($token)
-            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/restore')
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/restore', [
+                'password' => 'Password@1',
+            ])
             ->assertNoContent();
 
         $this->assertDatabaseHas('service_orders', [
@@ -58,12 +60,28 @@ class ServiceOrderTrashTest extends TestCase
         ]);
     }
 
+    public function test_restore_rejected_with_wrong_password(): void
+    {
+        [$token, $serviceOrderId] = $this->createAndTrashOrder();
+
+        $this->withToken($token)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/restore', [
+                'password' => 'errada',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['password']);
+
+        $this->assertSoftDeleted('service_orders', ['id' => $serviceOrderId]);
+    }
+
     public function test_restore_of_non_trashed_order_is_rejected(): void
     {
         [$token, $serviceOrderId] = $this->createScenario(ServiceOrder::STATUS_CANCELLED, trash: false);
 
         $this->withToken($token)
-            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/restore')
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/restore', [
+                'password' => 'Password@1',
+            ])
             ->assertUnprocessable();
     }
 

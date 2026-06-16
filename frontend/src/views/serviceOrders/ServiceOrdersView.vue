@@ -187,7 +187,13 @@ function rowSignals(order: ServiceOrder) {
         <h1 class="text-2xl font-semibold text-white">Ordens de Serviço</h1>
         <p class="mt-1 text-sm text-stone-400">{{ queueSummaries[activeQueue] ?? queueSummaries[''] }}</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex flex-wrap items-center gap-2">
+        <RouterLink
+          :to="{ name: 'service-orders.trash' }"
+          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-white/20 hover:text-stone-200"
+        >
+          Lixeira
+        </RouterLink>
         <RouterLink
           :to="{ name: 'service-orders.create' }"
           class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"

@@ -613,8 +613,8 @@ export function listTrashedServiceOrders() {
   return apiGet<{ data: TrashedServiceOrder[]; meta: { total: number; current_page: number; last_page: number } }>('/service-orders/trash')
 }
 
-export function restoreServiceOrder(id: number) {
-  return apiPost(`/service-orders/${id}/restore`)
+export function restoreServiceOrder(id: number, password: string) {
+  return apiPost(`/service-orders/${id}/restore`, { password })
 }
 
 export function forceDeleteServiceOrder(id: number, password: string) {

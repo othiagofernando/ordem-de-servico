@@ -25,6 +25,7 @@ import ServiceOrderWorkEntriesForm from './components/ServiceOrderWorkEntriesFor
 import ServiceOrderQuoteForm from './components/ServiceOrderQuoteForm.vue'
 import { useServiceOrderDerivedState } from './composables/useServiceOrderDerivedState'
 import { useServiceOrderFormatting } from './composables/useServiceOrderFormatting'
+import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -92,7 +93,6 @@ const chargeNotes = ref('')
 
 // Delete (move to trash)
 const showDeleteModal = ref(false)
-const deletePassword = ref('')
 const deleteError = ref('')
 const deleteLoading = ref(false)
 
@@ -369,17 +369,15 @@ async function saveWarrantyReturn() {
 }
 
 function openDeleteModal() {
-  deletePassword.value = ''
   deleteError.value = ''
   showDeleteModal.value = true
 }
 
-async function doTrashServiceOrder() {
-  if (!deletePassword.value) return
+async function doTrashServiceOrder(password: string) {
   deleteError.value = ''
   deleteLoading.value = true
   try {
-    await trashServiceOrder(Number(route.params.id), deletePassword.value)
+    await trashServiceOrder(Number(route.params.id), password)
     router.push({ name: 'service-orders' })
   } catch (e) {
     if (e instanceof ApiError) {
@@ -894,40 +892,6 @@ async function downloadAttachment(attachmentId: number) {
         </div>
       </div>
 
-      <!-- Modal: mover para lixeira -->
-      <div v-if="showDeleteModal" class="rounded-2xl border border-red-800/40 bg-red-950/20 p-6">
-        <h2 class="mb-1 text-sm font-semibold text-red-400">Mover para a Lixeira</h2>
-        <p class="mb-4 text-sm text-stone-400">
-          A OS será movida para a lixeira e poderá ser restaurada ou excluída definitivamente de lá.
-          Confirme sua senha para continuar.
-        </p>
-        <div v-if="deleteError" class="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-300">
-          {{ deleteError }}
-        </div>
-        <input
-          v-model="deletePassword"
-          type="password"
-          class="input"
-          placeholder="Sua senha"
-          @keyup.enter="doTrashServiceOrder"
-        />
-        <div class="mt-4 flex gap-2">
-          <button
-            :disabled="!deletePassword || deleteLoading"
-            class="rounded-xl bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:opacity-50"
-            @click="doTrashServiceOrder"
-          >
-            {{ deleteLoading ? 'Aguarde…' : 'Confirmar' }}
-          </button>
-          <button
-            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
-            @click="showDeleteModal = false"
-          >
-            Cancelar
-          </button>
-        </div>
-      </div>
-
       <div v-if="showWarrantyReturnForm" class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-6">
         <h2 class="mb-2 text-sm font-semibold text-violet-400">Abrir Retorno de Garantia</h2>
         <p class="mb-4 text-sm text-stone-400">Uma nova OS será criada vinculada a esta, com sinal automático de elegibilidade.</p>
@@ -1234,6 +1198,17 @@ async function downloadAttachment(attachmentId: number) {
       <ServiceOrderTimelinePanel :timeline="timeline" :format-date-time="fmt" />
     </template>
   </div>
+
+  <PasswordConfirmModal
+    v-if="showDeleteModal"
+    title="Mover para a Lixeira"
+    description="A OS será movida para a lixeira e poderá ser restaurada ou excluída definitivamente de lá."
+    confirm-label="Mover para Lixeira"
+    :loading="deleteLoading"
+    :error="deleteError"
+    @confirm="doTrashServiceOrder"
+    @cancel="showDeleteModal = false"
+  />
 </template>
 
 <style scoped>
