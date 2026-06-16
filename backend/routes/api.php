@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Auth\ChangePasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MembershipInvitationAcceptController;
@@ -76,6 +77,7 @@ Route::prefix('portal')->group(function (): void {
 
 Route::middleware('auth.token')->group(function (): void {
     Route::post('/auth/logout', LogoutController::class)->name('api.v1.auth.logout');
+    Route::put('/auth/me/password', ChangePasswordController::class)->name('api.v1.auth.me.password');
     Route::get('/auth/bootstrap', BootstrapController::class)->name('api.v1.auth.bootstrap');
     Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
     Route::get('/audit-logs', BusinessAuditController::class)

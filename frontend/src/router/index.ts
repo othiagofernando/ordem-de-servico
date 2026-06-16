@@ -110,6 +110,11 @@ const router = createRouter({
           name: 'checklists',
           component: () => import('../views/checklists/ChecklistTemplatesView.vue'),
         },
+        {
+          path: 'minha-conta',
+          name: 'account',
+          component: () => import('../views/account/AccountView.vue'),
+        },
       ],
     },
     {

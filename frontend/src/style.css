@@ -1,10 +1,10 @@
 @import "tailwindcss";
 
 :root {
-  color: #f6efe5;
+  color: #e8e3de;
   background:
-    radial-gradient(circle at top, rgba(215, 102, 55, 0.28), transparent 28%),
-    linear-gradient(160deg, #24120e 0%, #140f16 45%, #0d1117 100%);
+    radial-gradient(ellipse at top, rgba(251, 146, 60, 0.07), transparent 55%),
+    #17171b;
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
