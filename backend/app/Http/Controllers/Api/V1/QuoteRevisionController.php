@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
+use App\Domains\ServiceOrders\Actions\CreateQuoteRevision;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\IssueQuotePortalToken;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
+use App\Domains\ServiceOrders\Actions\ResolveVisibleServiceOrder;
+use App\Domains\ServiceOrders\Actions\SerializeQuoteRevision;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
@@ -14,7 +17,6 @@ use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -29,12 +31,14 @@ class QuoteRevisionController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
+        SerializeQuoteRevision $serializeQuoteRevision,
     ): JsonResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders);
         $quotes = $normalizeQuoteRevisionStates->handle($visible);
 
         return response()->json([
-            'data' => $quotes->map(fn (QuoteRevision $quote): array => $this->serializeQuote($quote))->all(),
+            'data' => $quotes->map(fn (QuoteRevision $quote): array => $serializeQuoteRevision->handle($quote))->all(),
         ]);
     }
 
@@ -52,9 +56,12 @@ class QuoteRevisionController extends Controller
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
         ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
+        CreateQuoteRevision $createQuoteRevision,
+        SerializeQuoteRevision $serializeQuoteRevision,
     ): JsonResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
-        $membership = currentMembership();
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders);
+        $membership = $resolveVisibleServiceOrder->membership();
 
         if ($membership === null) {
             return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
@@ -96,62 +103,14 @@ class QuoteRevisionController extends Controller
             ? $payload['valid_until']
             : now()->addDays($settings->default_quote_validity_days)->toIso8601String();
 
-        $quote = DB::transaction(function () use (
+        $quote = $createQuoteRevision->handle(
             $visible,
             $payload,
             $membership,
+            $validUntil,
             $issueQuotePortalToken,
             $recordTimelineEvent,
-            $validUntil,
-        ): QuoteRevision {
-            $nextRevisionNumber = ((int) $visible->quoteRevisions()->max('revision_number')) + 1;
-            $lineItems = collect($payload['line_items'])->map(function (array $item): array {
-                return [
-                    'description' => $item['description'],
-                    'quantity' => $item['quantity'],
-                    'unit_price_cents' => $item['unit_price_cents'],
-                    'line_total_cents' => $item['quantity'] * $item['unit_price_cents'],
-                ];
-            })->all();
-
-            $totalCents = collect($lineItems)->sum('line_total_cents');
-
-            $quote = QuoteRevision::query()->create([
-                'company_id' => $visible->company_id,
-                'service_order_id' => $visible->getKey(),
-                'revision_number' => $nextRevisionNumber,
-                'status' => QuoteRevision::STATUS_PENDING,
-                'line_items' => $lineItems,
-                'currency' => strtoupper((string) ($payload['currency'] ?? 'BRL')),
-                'total_cents' => $totalCents,
-                'notes' => $payload['notes'] ?? null,
-                'valid_until' => $validUntil,
-                'submitted_at' => now(),
-            ]);
-
-            $portalToken = $issueQuotePortalToken->handle($quote);
-
-            $recordTimelineEvent->handle(
-                $visible,
-                type: 'quote_submitted',
-                title: 'Quote submitted',
-                visibility: ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER,
-                actorMembership: $membership,
-                payload: [
-                    'quote_revision_id' => $quote->getKey(),
-                    'revision_number' => $quote->revision_number,
-                    'status' => $quote->status,
-                    'valid_until' => $quote->valid_until?->toIso8601String(),
-                    'total_cents' => $quote->total_cents,
-                    'currency' => $quote->currency,
-                    'portal_token_expires_at' => $portalToken['expires_at']->toIso8601String(),
-                ],
-            );
-
-            return $quote->forceFill([
-                'plain_text_portal_token' => $portalToken['plain_text_token'],
-            ]);
-        });
+        );
 
         $this->queueQuoteAvailableNotification(
             $queueCriticalServiceOrderNotification,
@@ -160,7 +119,7 @@ class QuoteRevisionController extends Controller
         );
 
         return response()->json([
-            'data' => $this->serializeQuote($quote, includePlainTextPortalToken: true),
+            'data' => $serializeQuoteRevision->handle($quote, includePlainTextPortalToken: true),
         ], Response::HTTP_CREATED);
     }
 
@@ -184,53 +143,4 @@ class QuoteRevisionController extends Controller
         );
     }
 
-    protected function resolveVisibleServiceOrder(
-        ServiceOrder $serviceOrder,
-        VisibleServiceOrders $visibleServiceOrders,
-    ): ServiceOrder {
-        $membership = currentMembership();
-
-        if ($membership === null) {
-            abort(Response::HTTP_FORBIDDEN, 'Missing active membership context.');
-        }
-
-        $visible = $visibleServiceOrders->queryFor($membership)
-            ->whereKey($serviceOrder->getKey())
-            ->first();
-
-        abort_if($visible === null, Response::HTTP_NOT_FOUND);
-
-        return $visible;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    protected function serializeQuote(QuoteRevision $quote, bool $includePlainTextPortalToken = false): array
-    {
-        $data = [
-            'id' => $quote->getKey(),
-            'service_order_id' => $quote->service_order_id,
-            'revision_number' => $quote->revision_number,
-            'status' => $quote->status,
-            'line_items' => $quote->line_items,
-            'currency' => $quote->currency,
-            'total_cents' => $quote->total_cents,
-            'notes' => $quote->notes,
-            'valid_until' => $quote->valid_until?->toIso8601String(),
-            'submitted_at' => $quote->submitted_at?->toIso8601String(),
-            'portal_token_expires_at' => $quote->portal_token_expires_at?->toIso8601String(),
-            'decisioned_at' => $quote->decisioned_at?->toIso8601String(),
-            'decision_token_hash' => $quote->decision_token_hash,
-            'decision_ip' => $quote->decision_ip,
-            'decision_user_agent' => $quote->decision_user_agent,
-            'decision_idempotency_key' => $quote->decision_idempotency_key,
-        ];
-
-        if ($includePlainTextPortalToken) {
-            $data['portal_token'] = $quote->plain_text_portal_token ?? null;
-        }
-
-        return $data;
-    }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import {
   downloadFinancialReportCsv,
   downloadServiceOrderReportCsv,
@@ -50,8 +51,8 @@ const queueOptions: Array<{ value: '' | ServiceOrderQueue; label: string }> = [
   { value: 'pending_quote', label: 'Aguardando orçamento' },
   { value: 'in_progress', label: 'Em execução' },
   { value: 'ready_for_pickup', label: 'Prontas para retirada' },
-  { value: 'terminal', label: 'Finalizadas' },
   { value: 'warranty_returns', label: 'Retornos em garantia' },
+  { value: 'terminal', label: 'Finalizadas' },
 ]
 
 const paymentMethodOptions = [
@@ -60,9 +61,53 @@ const paymentMethodOptions = [
   { value: 'cash', label: 'Dinheiro' },
   { value: 'credit_card', label: 'Cartão crédito' },
   { value: 'debit_card', label: 'Cartão débito' },
-  { value: 'transfer', label: 'Transferência' },
-  { value: 'check', label: 'Cheque' },
+  { value: 'bank_transfer', label: 'Transferência' },
+  { value: 'other', label: 'Outro' },
 ]
+
+const statusLabels: Record<string, string> = {
+  draft: 'Rascunho',
+  open: 'Aberta',
+  in_progress: 'Em execução',
+  completed: 'Concluída',
+  ready_for_pickup: 'Pronta para retirada',
+  delivered: 'Entregue',
+  cancelled: 'Cancelada',
+  no_repair: 'Sem reparo',
+}
+
+const quoteDecisionLabels: Record<string, string> = {
+  pending: 'Orçamento pendente',
+  approved: 'Orçamento aprovado',
+  rejected: 'Orçamento recusado',
+  expired: 'Orçamento expirado',
+}
+
+const warrantyDecisionLabels: Record<string, string> = {
+  pending_inspection: 'Garantia pendente',
+  covered: 'Garantia coberta',
+  not_covered: 'Garantia não coberta',
+}
+
+const activeServiceOrderFilters = computed(() =>
+  [
+    serviceOrderFilters.value.q && `Busca: ${serviceOrderFilters.value.q}`,
+    serviceOrderFilters.value.queue && `Fila: ${queueOptions.find((option) => option.value === serviceOrderFilters.value.queue)?.label}`,
+    serviceOrderFilters.value.opened_from && `Abertas a partir de ${formatDate(serviceOrderFilters.value.opened_from)}`,
+    serviceOrderFilters.value.opened_to && `Abertas até ${formatDate(serviceOrderFilters.value.opened_to)}`,
+  ].filter(Boolean) as string[],
+)
+
+const activeFinancialFilters = computed(() =>
+  [
+    financialFilters.value.q && `Busca: ${financialFilters.value.q}`,
+    financialFilters.value.payment_method && `Pagamento: ${paymentMethodOptions.find((option) => option.value === financialFilters.value.payment_method)?.label}`,
+    financialFilters.value.balance_state === 'outstanding' && 'Somente com saldo pendente',
+    financialFilters.value.balance_state === 'settled' && 'Somente quitadas',
+    financialFilters.value.received_from && `Recebimentos a partir de ${formatDate(financialFilters.value.received_from)}`,
+    financialFilters.value.received_to && `Recebimentos até ${formatDate(financialFilters.value.received_to)}`,
+  ].filter(Boolean) as string[],
+)
 
 function formatMoney(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -71,6 +116,27 @@ function formatMoney(cents: number) {
 function formatDate(value: string | null) {
   if (!value) return '—'
   return new Date(value).toLocaleDateString('pt-BR')
+}
+
+function resetServiceOrderFilters() {
+  serviceOrderFilters.value = {
+    q: '',
+    queue: '',
+    opened_from: '',
+    opened_to: '',
+  }
+  loadServiceOrderReport()
+}
+
+function resetFinancialFilters() {
+  financialFilters.value = {
+    q: '',
+    payment_method: '',
+    balance_state: '',
+    received_from: '',
+    received_to: '',
+  }
+  loadFinancialReport()
 }
 
 async function loadServiceOrderReport() {
@@ -192,54 +258,76 @@ onMounted(loadActiveTab)
 
     <template v-if="activeTab === 'service_orders'">
       <div class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 lg:grid-cols-4">
-        <input
-          v-model="serviceOrderFilters.q"
-          type="search"
-          placeholder="Buscar cliente, número, serial…"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/40"
-        />
-        <select
-          v-model="serviceOrderFilters.queue"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        >
-          <option v-for="option in queueOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-        <input
-          v-model="serviceOrderFilters.opened_from"
-          type="date"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        />
-        <input
-          v-model="serviceOrderFilters.opened_to"
-          type="date"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        />
-        <button
-          class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 lg:col-span-4 lg:justify-self-start"
-          :disabled="loading"
-          @click="loadServiceOrderReport"
-        >
-          {{ loading ? 'Consultando…' : 'Consultar relatório de O.S.' }}
-        </button>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Busca</span>
+          <input
+            v-model="serviceOrderFilters.q"
+            type="search"
+            placeholder="Cliente, número, serial…"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Fila</span>
+          <select
+            v-model="serviceOrderFilters.queue"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          >
+            <option v-for="option in queueOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Abertas de</span>
+          <input
+            v-model="serviceOrderFilters.opened_from"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Abertas até</span>
+          <input
+            v-model="serviceOrderFilters.opened_to"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <div class="flex flex-wrap gap-2 lg:col-span-4">
+          <button
+            class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
+            :disabled="loading"
+            @click="loadServiceOrderReport"
+          >
+            {{ loading ? 'Consultando…' : 'Consultar relatório de O.S.' }}
+          </button>
+          <button
+            class="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
+            :disabled="loading"
+            @click="resetServiceOrderFilters"
+          >
+            Limpar filtros
+          </button>
+        </div>
       </div>
 
       <div v-if="serviceOrderReport" class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Total de ordens</p>
-            <p class="mt-2 text-3xl font-bold text-white">{{ serviceOrderReport.meta.total }}</p>
-          </div>
-          <div
-            v-for="(count, status) in serviceOrderReport.meta.by_status"
-            :key="status"
-            class="rounded-2xl border border-white/10 bg-white/5 p-5"
+        <div v-if="activeServiceOrderFilters.length > 0" class="flex flex-wrap gap-2">
+          <span
+            v-for="filter in activeServiceOrderFilters"
+            :key="filter"
+            class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-stone-300"
           >
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">{{ status }}</p>
-            <p class="mt-2 text-2xl font-bold text-white">{{ count }}</p>
-          </div>
+            {{ filter }}
+          </span>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-white/10">
+        <p class="text-sm text-stone-500">{{ serviceOrderReport.meta.total }} ordem(ns) encontrada(s).</p>
+
+        <div v-if="serviceOrderReport.data.length === 0" class="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-stone-400">
+          Nenhuma O.S. encontrada para os filtros atuais.
+        </div>
+
+        <div v-else class="overflow-hidden rounded-2xl border border-white/10">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10 bg-white/5">
@@ -247,8 +335,10 @@ onMounted(loadActiveTab)
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Equipamento</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Status</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Comercial</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Técnico</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Abertura</th>
+                <th class="px-4 py-3" />
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
@@ -256,9 +346,17 @@ onMounted(loadActiveTab)
                 <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
                 <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
                 <td class="px-4 py-3 text-stone-400">{{ row.equipment_summary || '—' }}</td>
-                <td class="px-4 py-3 text-stone-300">{{ row.status }}</td>
+                <td class="px-4 py-3 text-stone-300">{{ statusLabels[row.status] ?? row.status }}</td>
+                <td class="px-4 py-3 text-stone-400">
+                  {{ warrantyDecisionLabels[row.warranty_decision_status ?? ''] ?? quoteDecisionLabels[row.latest_quote_status ?? ''] ?? '—' }}
+                </td>
                 <td class="px-4 py-3 text-stone-400">{{ row.assigned_membership_name ?? '—' }}</td>
                 <td class="px-4 py-3 text-stone-400">{{ formatDate(row.opened_at) }}</td>
+                <td class="px-4 py-3 text-right">
+                  <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                    Abrir
+                  </RouterLink>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -268,81 +366,119 @@ onMounted(loadActiveTab)
 
     <template v-else>
       <div class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 lg:grid-cols-5">
-        <input
-          v-model="financialFilters.q"
-          type="search"
-          placeholder="Buscar cliente ou referência…"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/40"
-        />
-        <select
-          v-model="financialFilters.payment_method"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        >
-          <option v-for="option in paymentMethodOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-        </select>
-        <select
-          v-model="financialFilters.balance_state"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        >
-          <option value="">Todos os saldos</option>
-          <option value="outstanding">Com saldo pendente</option>
-          <option value="settled">Quitadas</option>
-        </select>
-        <input
-          v-model="financialFilters.received_from"
-          type="date"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        />
-        <input
-          v-model="financialFilters.received_to"
-          type="date"
-          class="rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
-        />
-        <button
-          class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 lg:col-span-5 lg:justify-self-start"
-          :disabled="loading"
-          @click="loadFinancialReport"
-        >
-          {{ loading ? 'Consultando…' : 'Consultar relatório financeiro' }}
-        </button>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Busca</span>
+          <input
+            v-model="financialFilters.q"
+            type="search"
+            placeholder="Cliente ou referência…"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Pagamento</span>
+          <select
+            v-model="financialFilters.payment_method"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          >
+            <option v-for="option in paymentMethodOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Saldo</span>
+          <select
+            v-model="financialFilters.balance_state"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          >
+            <option value="">Todos os saldos</option>
+            <option value="outstanding">Com saldo pendente</option>
+            <option value="settled">Quitadas</option>
+          </select>
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Recebimentos de</span>
+          <input
+            v-model="financialFilters.received_from"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Recebimentos até</span>
+          <input
+            v-model="financialFilters.received_to"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <div class="flex flex-wrap gap-2 lg:col-span-5">
+          <button
+            class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
+            :disabled="loading"
+            @click="loadFinancialReport"
+          >
+            {{ loading ? 'Consultando…' : 'Consultar relatório financeiro' }}
+          </button>
+          <button
+            class="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
+            :disabled="loading"
+            @click="resetFinancialFilters"
+          >
+            Limpar filtros
+          </button>
+        </div>
       </div>
 
       <div v-if="financialReport" class="space-y-4">
-        <div class="grid gap-4 md:grid-cols-3">
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Cobrado</p>
-            <p class="mt-2 text-2xl font-bold text-white">{{ formatMoney(financialReport.meta.totals.total_charged_cents) }}</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Pago</p>
-            <p class="mt-2 text-2xl font-bold text-emerald-400">{{ formatMoney(financialReport.meta.totals.total_paid_cents) }}</p>
-          </div>
-          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Saldo pendente</p>
-            <p class="mt-2 text-2xl font-bold text-amber-300">{{ formatMoney(financialReport.meta.totals.outstanding_balance_cents) }}</p>
-          </div>
+        <div v-if="activeFinancialFilters.length > 0" class="flex flex-wrap gap-2">
+          <span
+            v-for="filter in activeFinancialFilters"
+            :key="filter"
+            class="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-stone-300"
+          >
+            {{ filter }}
+          </span>
         </div>
 
-        <div class="overflow-hidden rounded-2xl border border-white/10">
+        <div class="flex flex-wrap gap-x-6 gap-y-1 rounded-xl border border-white/10 bg-white/5 px-5 py-3.5 text-sm">
+          <span class="text-stone-500">{{ financialReport.meta.total }} ordens</span>
+          <span class="text-stone-400">Cobrado: <strong class="text-white">{{ formatMoney(financialReport.meta.totals.total_charged_cents) }}</strong></span>
+          <span class="text-stone-400">Pago: <strong class="text-emerald-400">{{ formatMoney(financialReport.meta.totals.total_paid_cents) }}</strong></span>
+          <span class="text-stone-400">Saldo: <strong class="text-amber-300">{{ formatMoney(financialReport.meta.totals.outstanding_balance_cents) }}</strong></span>
+        </div>
+
+        <div v-if="financialReport.data.length === 0" class="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-stone-400">
+          Nenhum lançamento financeiro encontrado para os filtros atuais.
+        </div>
+
+        <div v-else class="overflow-hidden rounded-2xl border border-white/10">
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10 bg-white/5">
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Referência</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</th>
+                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Status</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cobrado</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Pago</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Saldo</th>
                 <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Último pagamento</th>
+                <th class="px-4 py-3" />
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
               <tr v-for="row in financialReport.data" :key="row.service_order_id" class="bg-black/10">
                 <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
                 <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
+                <td class="px-4 py-3 text-stone-400">{{ statusLabels[row.status] ?? row.status }}</td>
                 <td class="px-4 py-3 text-stone-300">{{ formatMoney(row.total_charged_cents) }}</td>
                 <td class="px-4 py-3 text-emerald-400">{{ formatMoney(row.total_paid_cents) }}</td>
                 <td class="px-4 py-3 text-amber-300">{{ formatMoney(row.outstanding_balance_cents) }}</td>
                 <td class="px-4 py-3 text-stone-400">{{ formatDate(row.last_payment_at) }}</td>
+                <td class="px-4 py-3 text-right">
+                  <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.service_order_id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                    Abrir
+                  </RouterLink>
+                </td>
               </tr>
             </tbody>
           </table>

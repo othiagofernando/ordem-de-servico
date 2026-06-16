@@ -101,6 +101,14 @@ class ServiceOrderWarrantyWorkflowTest extends TestCase
             ->assertJsonPath('data.warranty_decision_status', ServiceOrder::WARRANTY_DECISION_COVERED)
             ->assertJsonPath('data.warranty_decision_override', true)
             ->assertJsonPath('data.warranty_decision_notes', 'Cobertura excepcional aprovada após inspeção.');
+
+        $this->withToken($secondManagerToken)
+            ->patchJson('/api/v1/service-orders/'.$expiredReturnOrderId.'/warranty-coverage', [
+                'decision' => 'not_covered',
+                'notes' => 'Tentativa de redecisao apos a inspeção.',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['warranty_decision_status']);
     }
 
     /**

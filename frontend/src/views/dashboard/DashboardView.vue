@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getOverview, type OverviewData, type ServiceOrderQueue } from '../../api/serviceOrders'
 
@@ -23,8 +23,8 @@ const paymentLabels: Record<string, string> = {
   cash: 'Dinheiro',
   credit_card: 'Cartão crédito',
   debit_card: 'Cartão débito',
-  transfer: 'Transferência',
-  check: 'Cheque',
+  bank_transfer: 'Transferência',
+  other: 'Outro',
 }
 
 const queueCards: Array<{
@@ -37,7 +37,7 @@ const queueCards: Array<{
   { key: 'pending_quote', label: 'Aguardando orçamento', helper: 'Ordens com revisão pendente.', accent: 'text-amber-300' },
   { key: 'in_progress', label: 'Em execução', helper: 'Ordens já em bancada ou atendimento.', accent: 'text-orange-300' },
   { key: 'ready_for_pickup', label: 'Prontas para retirada', helper: 'Clientes já podem ser acionados.', accent: 'text-emerald-300' },
-  { key: 'warranty_returns', label: 'Retornos em garantia', helper: 'Casos reincidentes que exigem atenção.', accent: 'text-violet-300' },
+  { key: 'warranty_returns', label: 'Retornos em garantia', helper: 'Casos reincidentes que exigem revisão de cobertura.', accent: 'text-violet-300' },
   { key: 'terminal', label: 'Finalizadas', helper: 'Entregues, canceladas ou sem reparo.', accent: 'text-stone-300' },
 ]
 
@@ -48,6 +48,60 @@ function formatMoney(cents: number) {
 function queueTotal(key: keyof OverviewData['queues']) {
   return data.value?.queues[key] ?? 0
 }
+
+const priorityActions = computed(() => {
+  if (!data.value) return []
+
+  return [
+    {
+      label: 'Atribuir OS abertas',
+      helper: 'Há ordens abertas que ainda não conseguem iniciar por falta de responsável.',
+      to: { name: 'service-orders', query: { queue: 'open' } },
+      count: data.value.attention.unassigned_open,
+      accent: 'text-sky-300',
+    },
+    {
+      label: 'Resolver orçamentos',
+      helper: 'Aprovação comercial ainda bloqueia o avanço operacional dessas ordens.',
+      to: { name: 'service-orders', query: { queue: 'pending_quote' } },
+      count: data.value.attention.pending_quote,
+      accent: 'text-amber-300',
+    },
+    {
+      label: 'Liberar entregas',
+      helper: 'Revise saldo, cobrança derivada e handoff antes de concluir a entrega.',
+      to: { name: 'service-orders', query: { queue: 'ready_for_pickup' } },
+      count: data.value.attention.ready_for_pickup,
+      accent: 'text-emerald-300',
+    },
+    {
+      label: 'Revisar garantias',
+      helper: 'Retornos em garantia ainda sem decisão de cobertura precisam de triagem.',
+      to: { name: 'service-orders', query: { queue: 'warranty_returns' } },
+      count: data.value.attention.warranty_pending_review,
+      accent: 'text-violet-300',
+    },
+  ]
+})
+
+const blockerSummary = computed(() => {
+  if (!data.value) return []
+
+  return [
+    data.value.attention.unassigned_open > 0
+      ? `${data.value.attention.unassigned_open} O.S. aberta(s) ainda dependem de técnico responsável.`
+      : null,
+    data.value.attention.pending_quote > 0
+      ? `${data.value.attention.pending_quote} O.S. ainda aguardam aprovação comercial para seguir no fluxo.`
+      : null,
+    data.value.attention.ready_for_pickup > 0
+      ? `${data.value.attention.ready_for_pickup} O.S. prontas para retirada exigem conferência financeira antes da entrega.`
+      : null,
+    data.value.attention.warranty_pending_review > 0
+      ? `${data.value.attention.warranty_pending_review} retorno(s) de garantia aguardam decisão de cobertura.`
+      : null,
+  ].filter(Boolean) as string[]
+})
 
 onMounted(async () => {
   try {
@@ -126,6 +180,39 @@ onMounted(async () => {
           <p class="mt-2 text-3xl font-bold text-white">{{ data.attention.ready_for_pickup }}</p>
           <p class="mt-2 text-sm text-stone-400">Ordens concluídas aguardando entrega ao cliente.</p>
         </RouterLink>
+      </div>
+
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div class="flex items-center justify-between gap-3">
+          <div>
+            <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Próximas ações</h2>
+            <p class="mt-1 text-sm text-stone-500">Atalhos para o que mais costuma travar a operação.</p>
+          </div>
+        </div>
+
+        <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <RouterLink
+            v-for="action in priorityActions"
+            :key="action.label"
+            :to="action.to"
+            class="rounded-xl border border-white/10 bg-black/20 p-4 transition hover:border-amber-500/30 hover:bg-amber-500/5"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <p class="text-sm font-semibold text-white">{{ action.label }}</p>
+                <p class="mt-1 text-sm text-stone-500">{{ action.helper }}</p>
+              </div>
+              <span :class="action.accent" class="text-3xl font-bold">{{ action.count }}</span>
+            </div>
+          </RouterLink>
+        </div>
+
+        <div v-if="blockerSummary.length" class="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Leitura operacional</p>
+          <div class="mt-3 space-y-2 text-sm text-stone-300">
+            <p v-for="line in blockerSummary" :key="line">{{ line }}</p>
+          </div>
+        </div>
       </div>
 
       <div class="rounded-2xl border border-white/10 bg-white/5 p-6">

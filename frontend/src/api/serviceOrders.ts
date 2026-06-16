@@ -66,6 +66,7 @@ export interface ServiceOrderDraftPayload {
   customer_id?: number | null
   customer_contact_id?: number | null
   equipment_id?: number | null
+  intake_checklist_template_id?: number | null
   equipment_description?: string | null
   reported_problem?: string | null
   intake_checklist?: Array<{ label: string; checked?: boolean | null; notes?: string | null }>
@@ -312,8 +313,16 @@ export function markReadyForPickup(id: number) {
   return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/ready-for-pickup`)
 }
 
-export function deliver(id: number, received_by_name: string, delivery_notes?: string) {
-  return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/delivery`, { received_by_name, delivery_notes })
+export function deliver(
+  id: number,
+  payload: {
+    received_by_name: string
+    notes?: string
+    allow_balance_override?: boolean
+    balance_override_reason?: string
+  },
+) {
+  return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/delivery`, payload)
 }
 
 export function recordPayment(

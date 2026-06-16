@@ -23,12 +23,19 @@ class ServiceOrderDraftIntakeTest extends TestCase
     {
         [$token, $membership, $customer, $contact, $equipment] = $this->createAttendantIntakeAccess();
 
-        $createResponse = $this->withToken($token)->postJson('/api/v1/service-orders/drafts', []);
+        $createResponse = $this->withToken($token)->postJson('/api/v1/service-orders/drafts', [
+            'customer_id' => $customer->getKey(),
+            'equipment_id' => $equipment->getKey(),
+            'equipment_description' => 'Notebook Dell Latitude 5420 com marcas de uso.',
+            'reported_problem' => 'Nao liga apos queda de energia.',
+        ]);
 
         $draftId = $createResponse->assertCreated()
             ->assertJsonPath('data.status', ServiceOrder::STATUS_DRAFT)
             ->assertJsonPath('data.reference', 'DRF-000001')
             ->assertJsonPath('data.draft_reference', 'DRF-000001')
+            ->assertJsonPath('data.customer_id', $customer->getKey())
+            ->assertJsonPath('data.equipment_id', $equipment->getKey())
             ->json('data.id');
 
         $this->withToken($token)
@@ -67,25 +74,40 @@ class ServiceOrderDraftIntakeTest extends TestCase
         ]);
     }
 
-    public function test_opening_is_blocked_until_minimum_intake_data_is_present(): void
+    public function test_creating_a_draft_requires_minimum_intake_context(): void
     {
         [$token] = $this->createAttendantIntakeAccess();
 
+        $this->withToken($token)
+            ->postJson('/api/v1/service-orders/drafts', [])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'customer_id',
+                'equipment_description',
+                'reported_problem',
+            ]);
+    }
+
+    public function test_opening_is_blocked_until_minimum_intake_data_is_present(): void
+    {
+        [$token, , $customer] = $this->createAttendantIntakeAccess();
+
         $draftId = $this->withToken($token)
             ->postJson('/api/v1/service-orders/drafts', [
+                'customer_id' => $customer->getKey(),
                 'equipment_description' => 'Entrada parcial',
+                'reported_problem' => 'Falha inicial ainda sem checklist e sem vínculo completo.',
             ])
+            ->assertCreated()
             ->json('data.id');
 
         $this->withToken($token)
             ->postJson('/api/v1/service-orders/drafts/'.$draftId.'/open')
             ->assertUnprocessable()
             ->assertJsonValidationErrors([
-                'customer_id',
                 'customer_contact_id',
                 'equipment_id',
                 'intake_checklist_template_id',
-                'reported_problem',
                 'intake_checklist',
             ]);
     }

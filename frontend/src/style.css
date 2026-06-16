@@ -30,3 +30,14 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+select,
+select option,
+select optgroup {
+  color: #f6efe5;
+  background-color: #1a1418;
+}
+
+select {
+  color-scheme: dark;
+}

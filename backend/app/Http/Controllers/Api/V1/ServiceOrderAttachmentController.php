@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
+use App\Domains\ServiceOrders\Actions\ResolveVisibleServiceOrder;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Domains\ServiceOrders\Models\ServiceOrderAttachment;
@@ -23,9 +24,13 @@ class ServiceOrderAttachmentController extends Controller
      *
      * @group Service Orders
      */
-    public function index(ServiceOrder $serviceOrder, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    public function index(
+        ServiceOrder $serviceOrder,
+        VisibleServiceOrders $visibleServiceOrders,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
+    ): JsonResponse
     {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders)->loadMissing('attachments');
 
         return response()->json([
             'data' => $visible->attachments->map(fn (ServiceOrderAttachment $a): array => $this->serialize($a))->all(),
@@ -43,8 +48,9 @@ class ServiceOrderAttachmentController extends Controller
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         RecordBusinessAudit $recordBusinessAudit,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
     ): JsonResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders)->loadMissing('attachments');
         $membership = currentMembership();
 
         $payload = $request->validate([
@@ -127,8 +133,9 @@ class ServiceOrderAttachmentController extends Controller
         ServiceOrder $serviceOrder,
         ServiceOrderAttachment $attachment,
         VisibleServiceOrders $visibleServiceOrders,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
     ): StreamedResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders)->loadMissing('attachments');
 
         abort_if(
             $attachment->service_order_id !== $visible->getKey() || $attachment->company_id !== $visible->company_id,
@@ -142,26 +149,6 @@ class ServiceOrderAttachmentController extends Controller
 
         return Storage::disk('local')->download($attachment->storage_key, $attachment->file_name);
     }
-
-    protected function resolveVisibleServiceOrder(
-        ServiceOrder $serviceOrder,
-        VisibleServiceOrders $visibleServiceOrders,
-    ): ServiceOrder {
-        $membership = currentMembership();
-
-        if ($membership === null) {
-            abort(Response::HTTP_FORBIDDEN, 'Missing active membership context.');
-        }
-
-        $visible = $visibleServiceOrders->queryFor($membership)
-            ->whereKey($serviceOrder->getKey())
-            ->first();
-
-        abort_if($visible === null, Response::HTTP_NOT_FOUND);
-
-        return $visible->loadMissing('attachments');
-    }
-
     /**
      * @return array<string, mixed>
      */
