@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
 import {
   downloadFinancialReportCsv,
   downloadServiceOrderReportCsv,
@@ -44,6 +46,14 @@ const financialFilters = ref<{
 
 const serviceOrderReport = ref<ServiceOrderReportResponse | null>(null)
 const financialReport = ref<FinancialReportResponse | null>(null)
+
+const soRows = computed(() => serviceOrderReport.value?.data ?? [])
+const finRows = computed(() => financialReport.value?.data ?? [])
+
+const { sorted: sortedSoRows, toggleSort: soToggle, sortState: soState } = useSortable(soRows, {
+  reference: (r) => (r as { order_number?: string; reference: string }).order_number ?? (r as { reference: string }).reference,
+})
+const { sorted: sortedFinRows, toggleSort: finToggle, sortState: finState } = useSortable(finRows)
 
 const queueOptions: Array<{ value: '' | ServiceOrderQueue; label: string }> = [
   { value: '', label: 'Todas as filas' },
@@ -331,18 +341,18 @@ onMounted(loadActiveTab)
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10 bg-white/5">
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Referência</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Equipamento</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Comercial</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Técnico</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Abertura</th>
+                <ThSort :state="soState('reference')" @click="soToggle('reference')">Referência</ThSort>
+                <ThSort :state="soState('customer_name')" @click="soToggle('customer_name')">Cliente</ThSort>
+                <ThSort :state="soState('equipment_summary')" @click="soToggle('equipment_summary')">Equipamento</ThSort>
+                <ThSort :state="soState('status')" @click="soToggle('status')">Status</ThSort>
+                <ThSort :state="soState('latest_quote_status')" @click="soToggle('latest_quote_status')">Comercial</ThSort>
+                <ThSort :state="soState('assigned_membership_name')" @click="soToggle('assigned_membership_name')">Técnico</ThSort>
+                <ThSort :state="soState('opened_at')" @click="soToggle('opened_at')">Abertura</ThSort>
                 <th class="px-4 py-3" />
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
-              <tr v-for="row in serviceOrderReport.data" :key="row.id" class="bg-black/10">
+              <tr v-for="row in sortedSoRows" :key="row.id" class="bg-black/10">
                 <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
                 <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
                 <td class="px-4 py-3 text-stone-400">{{ row.equipment_summary || '—' }}</td>
@@ -455,18 +465,18 @@ onMounted(loadActiveTab)
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b border-white/10 bg-white/5">
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Referência</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Status</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cobrado</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Pago</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Saldo</th>
-                <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Último pagamento</th>
+                <ThSort :state="finState('reference')" @click="finToggle('reference')">Referência</ThSort>
+                <ThSort :state="finState('customer_name')" @click="finToggle('customer_name')">Cliente</ThSort>
+                <ThSort :state="finState('status')" @click="finToggle('status')">Status</ThSort>
+                <ThSort :state="finState('total_charged_cents')" @click="finToggle('total_charged_cents')">Cobrado</ThSort>
+                <ThSort :state="finState('total_paid_cents')" @click="finToggle('total_paid_cents')">Pago</ThSort>
+                <ThSort :state="finState('outstanding_balance_cents')" @click="finToggle('outstanding_balance_cents')">Saldo</ThSort>
+                <ThSort :state="finState('last_payment_at')" @click="finToggle('last_payment_at')">Último pagamento</ThSort>
                 <th class="px-4 py-3" />
               </tr>
             </thead>
             <tbody class="divide-y divide-white/5">
-              <tr v-for="row in financialReport.data" :key="row.service_order_id" class="bg-black/10">
+              <tr v-for="row in sortedFinRows" :key="row.service_order_id" class="bg-black/10">
                 <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
                 <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
                 <td class="px-4 py-3 text-stone-400">{{ statusLabels[row.status] ?? row.status }}</td>

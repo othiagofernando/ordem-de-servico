@@ -2,6 +2,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { listServiceOrders, type ServiceOrder, type ServiceOrderQueue } from '../../api/serviceOrders'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
 
 const route = useRoute()
 const orders = ref<ServiceOrder[]>([])
@@ -64,6 +66,10 @@ function formatDate(dt: string | null) {
   if (!dt) return '—'
   return new Date(dt).toLocaleDateString('pt-BR')
 }
+
+const { sorted: sortedOrders, toggleSort, sortState } = useSortable(orders, {
+  reference: (os) => os.order_number ?? os.draft_reference ?? os.reference,
+})
 </script>
 
 <template>
@@ -111,16 +117,16 @@ function formatDate(dt: string | null) {
         <table class="w-full text-sm">
           <thead>
             <tr class="border-b border-white/10 bg-white/5">
-              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">OS / Ref.</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente / Equipamento</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Status</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Técnico</th>
-              <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Abertura</th>
+              <ThSort :state="sortState('reference')" @click="toggleSort('reference')">OS / Ref.</ThSort>
+              <ThSort :state="sortState('customer_name')" @click="toggleSort('customer_name')">Cliente / Equipamento</ThSort>
+              <ThSort :state="sortState('status')" @click="toggleSort('status')">Status</ThSort>
+              <ThSort :state="sortState('assigned_membership_name')" @click="toggleSort('assigned_membership_name')">Técnico</ThSort>
+              <ThSort :state="sortState('opened_at')" @click="toggleSort('opened_at')">Abertura</ThSort>
               <th class="px-5 py-3" />
             </tr>
           </thead>
           <tbody class="divide-y divide-white/5">
-            <tr v-for="os in orders" :key="os.id" class="transition hover:bg-white/5">
+            <tr v-for="os in sortedOrders" :key="os.id" class="transition hover:bg-white/5">
               <td class="px-5 py-3.5">
                 <p class="font-mono text-xs font-semibold text-amber-300">{{ os.order_number ?? os.draft_reference ?? os.reference }}</p>
                 <p class="mt-0.5 text-xs text-stone-500 line-clamp-1">{{ os.title }}</p>

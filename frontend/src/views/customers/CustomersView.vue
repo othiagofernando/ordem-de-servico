@@ -2,6 +2,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listCustomers, type Customer } from '../../api/customers'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
 
 const customers = ref<Customer[]>([])
 const loading = ref(true)
@@ -24,6 +26,10 @@ watch(q, () => {
 })
 
 onMounted(load)
+
+const { sorted: sortedCustomers, toggleSort, sortState } = useSortable(customers, {
+  contato: (c: Customer) => c.contacts[0]?.phone ?? c.contacts[0]?.email ?? '',
+})
 </script>
 
 <template>
@@ -55,16 +61,16 @@ onMounted(load)
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-white/10 bg-white/5">
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Nome</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Tipo</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Documento</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Contato</th>
+            <ThSort :state="sortState('name')" @click="toggleSort('name')">Nome</ThSort>
+            <ThSort :state="sortState('customer_type')" @click="toggleSort('customer_type')">Tipo</ThSort>
+            <ThSort :state="sortState('document')" @click="toggleSort('document')">Documento</ThSort>
+            <ThSort :state="sortState('contato')" @click="toggleSort('contato')">Contato</ThSort>
             <th class="px-5 py-3" />
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
           <tr
-            v-for="c in customers"
+            v-for="c in sortedCustomers"
             :key="c.id"
             class="transition hover:bg-white/5"
           >

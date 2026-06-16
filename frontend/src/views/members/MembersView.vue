@@ -4,6 +4,7 @@ import { inviteMembership, listMemberships, removeMembership, type Membership, u
 import { apiPatch, ApiError } from '../../api/client'
 import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
 import EditMemberModal from '../../components/EditMemberModal.vue'
+import { useSortable } from '../../composables/useSortable'
 
 const loading = ref(true)
 const members = ref<Membership[]>([])
@@ -18,6 +19,8 @@ const inviteForm = ref({ name: '', email: '', role: 'technician' })
 const inviteLoading = ref(false)
 const inviteError = ref('')
 const statusLoadingId = ref<number | null>(null)
+
+const { sorted: sortedMembers, toggleSort: memberToggle, sortState: memberState } = useSortable(members)
 
 const editModal = ref<Membership | null>(null)
 const removeModal = ref<{ member: Membership } | null>(null)
@@ -182,6 +185,22 @@ async function copyInviteUrl() {
       <section class="card space-y-4">
         <h2 class="section-title">Equipe atual</h2>
 
+        <!-- Cabeçalho de ordenação -->
+        <div class="sort-strip">
+          <span style="color: var(--c-text-dim); font-size: 11px">Ordenar por:</span>
+          <button
+            v-for="col in ([['user_name', 'Nome'], ['role', 'Perfil'], ['status', 'Status']] as const)"
+            :key="col[0]"
+            class="sort-chip"
+            :class="{ 'sort-chip-active': memberState(col[0]) }"
+            @click="memberToggle(col[0])"
+          >
+            {{ col[1] }}
+            <span v-if="memberState(col[0]) === 'asc'">↑</span>
+            <span v-else-if="memberState(col[0]) === 'desc'">↓</span>
+          </button>
+        </div>
+
         <div v-if="loading" class="py-12 text-center text-sm" style="color: var(--c-text-dim)">Carregando…</div>
 
         <div v-else-if="members.length === 0" class="rounded-xl border px-6 py-10 text-center text-sm" style="border-color: var(--c-border); color: var(--c-text-muted)">
@@ -190,7 +209,7 @@ async function copyInviteUrl() {
 
         <div v-else class="space-y-2">
           <div
-            v-for="member in members"
+            v-for="member in sortedMembers"
             :key="member.id"
             class="member-row"
           >
@@ -394,5 +413,26 @@ async function copyInviteUrl() {
 .btn-ghost:hover {
   border-color: var(--c-border-strong);
   color: var(--c-text);
+}
+
+.sort-strip {
+  @apply flex flex-wrap items-center gap-2 pb-1;
+}
+
+.sort-chip {
+  @apply rounded-full border px-3 py-0.5 text-xs font-medium transition select-none cursor-pointer;
+  border-color: var(--c-border);
+  color: var(--c-text-muted);
+}
+
+.sort-chip:hover {
+  color: var(--c-text);
+  border-color: var(--c-border-strong);
+}
+
+.sort-chip-active {
+  border-color: rgba(251, 146, 60, 0.4) !important;
+  color: #fbbf24 !important;
+  background: rgba(251, 146, 60, 0.08);
 }
 </style>

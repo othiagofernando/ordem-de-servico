@@ -2,6 +2,8 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listEquipments, type Equipment } from '../../api/equipments'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
 
 const equipments = ref<Equipment[]>([])
 const loading = ref(true)
@@ -24,6 +26,10 @@ watch(q, () => {
 })
 
 onMounted(load)
+
+const { sorted: sortedEquipments, toggleSort, sortState } = useSortable(equipments, {
+  equipamento: (e: Equipment) => `${e.brand ?? ''} ${e.model ?? ''}`.trim(),
+})
 </script>
 
 <template>
@@ -52,14 +58,14 @@ onMounted(load)
       <table class="w-full text-sm">
         <thead>
           <tr class="border-b border-white/10 bg-white/5">
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Equipamento</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</th>
-            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-widest text-stone-500">Nº de Série</th>
+            <ThSort :state="sortState('equipamento')" @click="toggleSort('equipamento')">Equipamento</ThSort>
+            <ThSort :state="sortState('customer_name')" @click="toggleSort('customer_name')">Cliente</ThSort>
+            <ThSort :state="sortState('serial_number')" @click="toggleSort('serial_number')">Nº de Série</ThSort>
             <th class="px-5 py-3" />
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
-          <tr v-for="e in equipments" :key="e.id" class="transition hover:bg-white/5">
+          <tr v-for="e in sortedEquipments" :key="e.id" class="transition hover:bg-white/5">
             <td class="px-5 py-3.5">
               <p class="font-medium text-white">{{ e.brand }} {{ e.model }}</p>
               <p class="text-xs text-stone-500 capitalize">{{ e.category }}</p>
