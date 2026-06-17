@@ -21,17 +21,40 @@ onMounted(async () => {
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
     <template v-else-if="equipment">
-      <div class="flex items-start justify-between">
+      <div class="flex items-start justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-white">{{ equipment.brand }} {{ equipment.model }}</h1>
           <p class="capitalize text-stone-400">{{ equipment.category }}</p>
         </div>
-        <RouterLink
-          :to="{ name: 'equipments.edit', params: { id: equipment.id } }"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
-        >
-          Editar
-        </RouterLink>
+        <div class="flex flex-wrap gap-2">
+          <RouterLink
+            :to="{ name: 'service-orders.create', query: { equipment_id: equipment.id } }"
+            class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
+          >
+            + Nova OS
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'equipments.edit', params: { id: equipment.id } }"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
+          >
+            Editar
+          </RouterLink>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Categoria</p>
+          <p class="mt-2 text-lg font-semibold text-white capitalize">{{ equipment.category }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente</p>
+          <p class="mt-2 text-lg font-semibold text-white">{{ equipment.customer_name ?? '—' }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Histórico de série</p>
+          <p class="mt-2 text-lg font-semibold text-white">{{ equipment.serial_overrides.length }}</p>
+        </div>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">

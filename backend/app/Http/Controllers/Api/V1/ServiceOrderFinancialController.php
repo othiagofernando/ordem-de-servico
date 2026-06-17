@@ -47,6 +47,8 @@ class ServiceOrderFinancialController extends Controller
         $visible = $this->resolveFinanceableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
 
+        $this->ensureFinancialMutationsAllowed($visible);
+
         $approvedQuote = $visible->quoteRevisions()
             ->where('status', QuoteRevision::STATUS_APPROVED)
             ->orderByDesc('decisioned_at')
@@ -160,6 +162,7 @@ class ServiceOrderFinancialController extends Controller
     ): JsonResponse {
         $visible = $this->resolveFinanceableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
+        $this->ensureFinancialMutationsAllowed($visible);
         $payload = $request->validate([
             'amount_cents' => ['required', 'integer', 'min:1'],
             'payment_method' => ['required', 'string', 'in:cash,pix,credit_card,debit_card,bank_transfer,other'],
@@ -304,6 +307,7 @@ class ServiceOrderFinancialController extends Controller
     ): JsonResponse {
         $visible = $this->resolveFinanceableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
+        $this->ensureFinancialMutationsAllowed($visible);
         $payload = $request->validate([
             'description' => ['required', 'string', 'max:255'],
             'amount_cents' => $allowNegative
@@ -402,5 +406,18 @@ class ServiceOrderFinancialController extends Controller
             'total_paid_cents' => $totalPaidCents,
             'outstanding_balance_cents' => $totalChargedCents - $totalPaidCents,
         ];
+    }
+
+    protected function ensureFinancialMutationsAllowed(ServiceOrder $serviceOrder): void
+    {
+        if (in_array($serviceOrder->status, [
+            ServiceOrder::STATUS_DRAFT,
+            ServiceOrder::STATUS_CANCELLED,
+            ServiceOrder::STATUS_NO_REPAIR,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Financial changes are only allowed after the service order enters the operational flow.',
+            ]);
+        }
     }
 }

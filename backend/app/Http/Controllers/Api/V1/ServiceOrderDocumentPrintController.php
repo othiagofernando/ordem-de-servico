@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\ServiceOrders\Actions\BuildOperationalDocumentPayload;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
+use App\Domains\ServiceOrders\Actions\ResolveFinanceVisibleServiceOrder;
+use App\Domains\ServiceOrders\Actions\ResolveVisibleServiceOrder;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Domains\ServiceOrders\Models\ServiceOrderPayment;
@@ -23,8 +25,9 @@ class ServiceOrderDocumentPrintController extends Controller
         VisibleServiceOrders $visibleServiceOrders,
         NormalizeQuoteRevisionStates $normalizeQuoteRevisionStates,
         BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
     ): JsonResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders);
         $visible->loadMissing(['company', 'customer', 'customerContact', 'equipment']);
 
         $currentQuote = $normalizeQuoteRevisionStates->handle($visible)
@@ -52,8 +55,10 @@ class ServiceOrderDocumentPrintController extends Controller
         ServiceOrderPayment $payment,
         VisibleServiceOrders $visibleServiceOrders,
         BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
+        ResolveFinanceVisibleServiceOrder $resolveFinanceVisibleServiceOrder,
     ): JsonResponse {
-        $visible = $this->resolveFinanceVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveFinanceVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders, $resolveVisibleServiceOrder);
         $visible->loadMissing(['company', 'customer', 'customerContact']);
 
         abort_if(
@@ -75,8 +80,9 @@ class ServiceOrderDocumentPrintController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         BuildOperationalDocumentPayload $buildOperationalDocumentPayload,
+        ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
     ): JsonResponse {
-        $visible = $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
+        $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders);
         $visible->loadMissing(['company', 'customer', 'customerContact', 'equipment', 'charges', 'payments']);
 
         if ($visible->status !== ServiceOrder::STATUS_DELIVERED || $visible->delivered_at === null) {
@@ -88,41 +94,5 @@ class ServiceOrderDocumentPrintController extends Controller
         return response()->json([
             'data' => $buildOperationalDocumentPayload->delivery($visible),
         ]);
-    }
-
-    protected function resolveVisibleServiceOrder(
-        ServiceOrder $serviceOrder,
-        VisibleServiceOrders $visibleServiceOrders,
-    ): ServiceOrder {
-        $membership = currentMembership();
-
-        if ($membership === null) {
-            abort(Response::HTTP_FORBIDDEN, 'Missing active membership context.');
-        }
-
-        $visible = $visibleServiceOrders->queryFor($membership)
-            ->whereKey($serviceOrder->getKey())
-            ->first();
-
-        abort_if($visible === null, Response::HTTP_NOT_FOUND);
-
-        return $visible;
-    }
-
-    protected function resolveFinanceVisibleServiceOrder(
-        ServiceOrder $serviceOrder,
-        VisibleServiceOrders $visibleServiceOrders,
-    ): ServiceOrder {
-        $membership = currentMembership();
-
-        if ($membership === null) {
-            abort(Response::HTTP_FORBIDDEN, 'Missing active membership context.');
-        }
-
-        if (! $membership->hasPermission('service_orders.finance')) {
-            abort(Response::HTTP_FORBIDDEN, 'This membership cannot print payment receipts.');
-        }
-
-        return $this->resolveVisibleServiceOrder($serviceOrder, $visibleServiceOrders);
     }
 }

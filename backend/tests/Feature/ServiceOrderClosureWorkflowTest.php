@@ -112,6 +112,36 @@ class ServiceOrderClosureWorkflowTest extends TestCase
             ->assertJsonPath('data.delivery_notes', 'Entrega permitida pela politica operacional da empresa.');
     }
 
+    public function test_delivery_requires_approved_quote_charge_to_be_derived_when_quote_was_approved(): void
+    {
+        [$managerToken, $attendantToken, , $serviceOrderId] = $this->createTechnicallyCompletedScenario();
+
+        $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/ready-for-pickup')
+            ->assertOk()
+            ->assertJsonPath('data.status', ServiceOrder::STATUS_READY_FOR_PICKUP);
+
+        $this->withToken($attendantToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/delivery', [
+                'received_by_name' => 'Cliente Sem Cobrança Derivada',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['charge_type']);
+
+        $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/financials/charges/derive-approved-quote')
+            ->assertCreated();
+
+        $this->withToken($managerToken)
+            ->postJson('/api/v1/service-orders/'.$serviceOrderId.'/delivery', [
+                'received_by_name' => 'Cliente Com Cobrança Derivada',
+                'allow_balance_override' => true,
+                'balance_override_reason' => 'Entrega autorizada após acerto operacional.',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.status', ServiceOrder::STATUS_DELIVERED);
+    }
+
     public function test_terminal_outcomes_support_cancelled_and_no_repair_and_refuse_further_transitions(): void
     {
         [$managerToken, , , $serviceOrderId] = $this->createTechnicallyCompletedScenario();
@@ -141,6 +171,36 @@ class ServiceOrderClosureWorkflowTest extends TestCase
         $this->withToken($secondManagerToken)
             ->postJson('/api/v1/service-orders/'.$secondServiceOrderId.'/delivery', [
                 'received_by_name' => 'Nao deve entregar',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
+    }
+
+    public function test_assignment_cannot_change_after_execution_has_already_finished(): void
+    {
+        [$managerToken, , , $completedServiceOrderId] = $this->createTechnicallyCompletedScenario();
+
+        $this->withToken($managerToken)
+            ->patchJson('/api/v1/service-orders/'.$completedServiceOrderId.'/assignment', [
+                'assigned_membership_id' => null,
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['status']);
+
+        [$secondManagerToken, , , $deliveredServiceOrderId] = $this->createReadyForPickupScenario(
+            totalPaidCents: 50000,
+        );
+
+        $this->withToken($secondManagerToken)
+            ->postJson('/api/v1/service-orders/'.$deliveredServiceOrderId.'/delivery', [
+                'received_by_name' => 'Cliente Entregue',
+                'notes' => 'Entrega concluida para bloqueio de atribuicao.',
+            ])
+            ->assertOk();
+
+        $this->withToken($secondManagerToken)
+            ->patchJson('/api/v1/service-orders/'.$deliveredServiceOrderId.'/assignment', [
+                'assigned_membership_id' => null,
             ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['status']);

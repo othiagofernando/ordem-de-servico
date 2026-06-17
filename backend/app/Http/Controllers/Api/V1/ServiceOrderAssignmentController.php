@@ -10,6 +10,7 @@ use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class ServiceOrderAssignmentController extends Controller
@@ -40,6 +41,15 @@ class ServiceOrderAssignmentController extends Controller
             ->first();
 
         abort_if($visible === null, Response::HTTP_NOT_FOUND);
+
+        if (! in_array($visible->status, [
+            ServiceOrder::STATUS_OPEN,
+            ServiceOrder::STATUS_IN_PROGRESS,
+        ], true)) {
+            throw ValidationException::withMessages([
+                'status' => 'Technician assignment can only be changed while the service order is open or in progress.',
+            ]);
+        }
 
         $payload = $request->validate([
             'assigned_membership_id' => ['nullable', 'integer'],

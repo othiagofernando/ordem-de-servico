@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { getSettings, updateSettings, type CompanySettings } from '../../api/settings'
 import { ApiError } from '../../api/client'
 
@@ -69,6 +69,7 @@ async function save() {
   error.value = ''
   success.value = false
   saving.value = true
+
   try {
     const res = await updateSettings({
       brand_name: form.value.brand_name || null,
@@ -109,172 +110,176 @@ async function save() {
 
 <template>
   <div class="space-y-6">
-    <h1 class="text-2xl font-semibold text-white">Configurações da Empresa</h1>
+    <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold text-white">Configurações da empresa</h1>
+        <p class="mt-1 text-sm text-stone-400">
+          Ajuste o comportamento operacional, a comunicação com o cliente e os modos de acesso da equipe.
+        </p>
+      </div>
+    </div>
 
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
     <form v-else class="space-y-6" @submit.prevent="save">
       <div v-if="error" class="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">{{ error }}</div>
-      <div v-if="success" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">Configurações salvas com sucesso.</div>
-
-      <!-- Marca -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Marca</h2>
-        <div>
-          <label class="mb-1.5 block text-sm text-stone-300">Nome da Marca</label>
-          <input v-model="form.brand_name" class="input" placeholder="Nome exibido no portal do cliente" />
-          <p class="mt-1 text-xs text-stone-500">Se vazio, usa o nome cadastrado da empresa.</p>
-        </div>
-        <div class="mt-4">
-          <label class="mb-1.5 block text-sm text-stone-300">Linha de Contato ao Cliente</label>
-          <input v-model="form.customer_contact_line" class="input" placeholder="WhatsApp (11) 99999-9999" />
-          <p class="mt-1 text-xs text-stone-500">Exibida no portal do cliente e nas comunicações por e-mail.</p>
-        </div>
+      <div v-if="success" class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+        Configurações salvas com sucesso.
       </div>
 
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Ordem de Serviço</h2>
-        <div>
-          <label class="mb-1.5 block text-sm text-stone-300">Prefixo da Numeração</label>
-          <input
-            v-model="form.service_order_reference_prefix"
-            class="input w-48 uppercase"
-            maxlength="20"
-            placeholder="OS"
-          />
-          <p class="mt-1 text-xs text-stone-500">Aplicado às próximas O.S. abertas e aos retornos em garantia. Ex.: OS-000123.</p>
-        </div>
-      </div>
-
-      <!-- Portal do Cliente -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Portal do Cliente</h2>
-        <div>
-          <label class="mb-1.5 block text-sm text-stone-300">Texto de Introdução</label>
-          <textarea v-model="form.portal_intro_text" rows="4" class="input resize-none" placeholder="Texto exibido no topo do portal de orçamentos…" />
-        </div>
-        <div class="mt-4">
-          <label class="mb-1.5 block text-sm text-stone-300">Texto após Aprovação</label>
-          <input v-model="form.portal_approved_text" class="input" placeholder="Mensagem exibida após aprovar o orçamento" />
-        </div>
-        <div class="mt-4">
-          <label class="mb-1.5 block text-sm text-stone-300">Texto após Recusa</label>
-          <input v-model="form.portal_rejected_text" class="input" placeholder="Mensagem exibida após recusar o orçamento" />
-        </div>
-        <div class="mt-4">
-          <label class="mb-1.5 block text-sm text-stone-300">Rodapé do Portal</label>
-          <textarea v-model="form.portal_footer_text" rows="3" class="input resize-none" placeholder="Texto complementar exibido no rodapé do portal…" />
-        </div>
-      </div>
-
-      <!-- Orçamentos -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Orçamentos</h2>
-        <div>
-          <label class="mb-1.5 block text-sm text-stone-300">Validade Padrão (dias)</label>
-          <input v-model.number="form.default_quote_validity_days" type="number" min="1" max="30" class="input w-40" />
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Financeiro Operacional</h2>
-        <div class="space-y-4">
-          <label class="flex cursor-pointer items-center gap-3">
-            <input v-model="form.block_delivery_with_outstanding_balance" type="checkbox" class="size-4 rounded accent-amber-500" />
-            <div>
-              <p class="text-sm text-stone-200">Bloquear entrega com saldo pendente</p>
-              <p class="text-xs text-stone-500">Quando ativo, a entrega exige quitação total ou override privilegiado.</p>
-            </div>
-          </label>
-        </div>
-      </div>
-
-      <!-- Notificações -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Notificações por E-mail</h2>
-        <div class="mb-5">
-          <label class="mb-1.5 block text-sm text-stone-300">Rodapé das Comunicações</label>
-          <textarea
-            v-model="form.notification_footer_text"
-            rows="3"
-            class="input resize-none"
-            placeholder="Mensagem complementar exibida ao final dos e-mails ao cliente…"
-          />
-        </div>
-        <div class="space-y-4">
-          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <label class="flex cursor-pointer items-center gap-3">
-              <input v-model="form.notify_quote_available" type="checkbox" class="size-4 rounded accent-amber-500" />
-              <div>
-                <p class="text-sm text-stone-200">Orçamento disponível</p>
-                <p class="text-xs text-stone-500">Notifica o cliente quando um novo orçamento for gerado.</p>
-              </div>
-            </label>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
-              <input v-model="form.notify_quote_available_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
+      <div class="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+        <div class="space-y-6">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Identidade da empresa</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Nome da marca</span>
+                <input v-model="form.brand_name" class="input" placeholder="Nome exibido no portal do cliente" />
+                <p class="text-xs text-stone-500">Se vazio, usa o nome cadastrado da empresa.</p>
+              </label>
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Linha de contato</span>
+                <input v-model="form.customer_contact_line" class="input" placeholder="WhatsApp (11) 99999-9999" />
+                <p class="text-xs text-stone-500">Exibida no portal e nas comunicações com o cliente.</p>
+              </label>
             </div>
           </div>
-          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <label class="flex cursor-pointer items-center gap-3">
-              <input v-model="form.notify_quote_expiring" type="checkbox" class="size-4 rounded accent-amber-500" />
-              <div>
-                <p class="text-sm text-stone-200">Orçamento expirando</p>
-                <p class="text-xs text-stone-500">Lembrete quando o prazo do orçamento estiver próximo do vencimento.</p>
-              </div>
-            </label>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
-              <input v-model="form.notify_quote_expiring_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Operação da O.S.</h2>
+            <div class="grid gap-4 md:grid-cols-2">
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Prefixo da numeração</span>
+                <input
+                  v-model="form.service_order_reference_prefix"
+                  class="input uppercase"
+                  maxlength="20"
+                  placeholder="OS"
+                />
+                <p class="text-xs text-stone-500">Aplicado às próximas O.S. e também aos retornos em garantia.</p>
+              </label>
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Validade padrão de orçamento</span>
+                <input v-model.number="form.default_quote_validity_days" type="number" min="1" max="30" class="input" />
+                <p class="text-xs text-stone-500">Usada como base ao abrir novas revisões de orçamento.</p>
+              </label>
+            </div>
+
+            <div class="mt-4 rounded-xl border border-white/10 bg-black/20 p-4">
+              <label class="flex cursor-pointer items-start gap-3">
+                <input v-model="form.block_delivery_with_outstanding_balance" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                <div>
+                  <p class="text-sm text-stone-200">Bloquear entrega com saldo pendente</p>
+                  <p class="text-xs text-stone-500">Quando ativo, a retirada exige quitação total ou override de um perfil autorizado.</p>
+                </div>
+              </label>
             </div>
           </div>
-          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <label class="flex cursor-pointer items-center gap-3">
-              <input v-model="form.notify_ready_for_pickup" type="checkbox" class="size-4 rounded accent-amber-500" />
-              <div>
-                <p class="text-sm text-stone-200">Pronto para retirada</p>
-                <p class="text-xs text-stone-500">Notifica o cliente quando o equipamento estiver pronto.</p>
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Portal do cliente</h2>
+            <div class="space-y-4">
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Texto de introdução</span>
+                <textarea v-model="form.portal_intro_text" rows="4" class="input resize-none" placeholder="Texto exibido no topo do portal…" />
+              </label>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="space-y-1">
+                  <span class="text-sm text-stone-300">Mensagem após aprovação</span>
+                  <input v-model="form.portal_approved_text" class="input" placeholder="Mensagem exibida após aprovar o orçamento" />
+                </label>
+                <label class="space-y-1">
+                  <span class="text-sm text-stone-300">Mensagem após recusa</span>
+                  <input v-model="form.portal_rejected_text" class="input" placeholder="Mensagem exibida após recusar o orçamento" />
+                </label>
               </div>
-            </label>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
-              <input v-model="form.notify_ready_for_pickup_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
-            </div>
-          </div>
-          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <label class="flex cursor-pointer items-center gap-3">
-              <input v-model="form.notify_payment_receipt" type="checkbox" class="size-4 rounded accent-amber-500" />
-              <div>
-                <p class="text-sm text-stone-200">Comprovante de pagamento</p>
-                <p class="text-xs text-stone-500">Envia recibo ao cliente após registrar um pagamento.</p>
-              </div>
-            </label>
-            <div class="mt-4">
-              <label class="mb-1.5 block text-sm text-stone-300">Mensagem do evento</label>
-              <input v-model="form.notify_payment_receipt_text" class="input" placeholder="Mensagem adicional para este e-mail…" />
+              <label class="space-y-1">
+                <span class="text-sm text-stone-300">Rodapé do portal</span>
+                <textarea v-model="form.portal_footer_text" rows="3" class="input resize-none" placeholder="Texto complementar exibido no rodapé do portal…" />
+              </label>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Autenticação -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Autenticação</h2>
-        <div class="space-y-4">
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.passwordless_code_enabled" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Login por código</p>
-              <p class="text-xs text-stone-500">Permite que colaboradores acessem via código de 6 dígitos enviado por e-mail.</p>
+        <div class="space-y-6">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Comunicações por e-mail</h2>
+            <div class="mb-5">
+              <label class="mb-1.5 block text-sm text-stone-300">Rodapé das comunicações</label>
+              <textarea
+                v-model="form.notification_footer_text"
+                rows="3"
+                class="input resize-none"
+                placeholder="Mensagem complementar exibida ao final dos e-mails ao cliente…"
+              />
             </div>
-          </label>
-          <label class="flex items-center gap-3 cursor-pointer">
-            <input v-model="form.magic_link_enabled" type="checkbox" class="size-4 accent-amber-500 rounded" />
-            <div>
-              <p class="text-sm text-stone-200">Login por magic link</p>
-              <p class="text-xs text-stone-500">Permite que colaboradores acessem via link enviado por e-mail, sem senha.</p>
+
+            <div class="space-y-4">
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_quote_available" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Orçamento disponível</p>
+                    <p class="text-xs text-stone-500">Notifica o cliente quando um novo orçamento for gerado.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_quote_available_text" class="input mt-4" placeholder="Mensagem adicional para este e-mail…" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_quote_expiring" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Orçamento expirando</p>
+                    <p class="text-xs text-stone-500">Lembrete quando o prazo do orçamento estiver próximo do vencimento.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_quote_expiring_text" class="input mt-4" placeholder="Mensagem adicional para este e-mail…" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_ready_for_pickup" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Pronto para retirada</p>
+                    <p class="text-xs text-stone-500">Notifica o cliente quando o equipamento estiver pronto.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_ready_for_pickup_text" class="input mt-4" placeholder="Mensagem adicional para este e-mail…" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_payment_receipt" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Comprovante de pagamento</p>
+                    <p class="text-xs text-stone-500">Envia recibo ao cliente após registrar um pagamento.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_payment_receipt_text" class="input mt-4" placeholder="Mensagem adicional para este e-mail…" />
+              </div>
             </div>
-          </label>
+          </div>
+
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-5 text-sm font-semibold uppercase tracking-widest text-stone-400">Acesso da equipe</h2>
+            <div class="space-y-4">
+              <label class="flex items-start gap-3 cursor-pointer rounded-xl border border-white/10 bg-black/20 p-4">
+                <input v-model="form.passwordless_code_enabled" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                <div>
+                  <p class="text-sm text-stone-200">Login por código</p>
+                  <p class="text-xs text-stone-500">Permite acesso via código de 6 dígitos enviado por e-mail.</p>
+                </div>
+              </label>
+              <label class="flex items-start gap-3 cursor-pointer rounded-xl border border-white/10 bg-black/20 p-4">
+                <input v-model="form.magic_link_enabled" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                <div>
+                  <p class="text-sm text-stone-200">Login por magic link</p>
+                  <p class="text-xs text-stone-500">Permite acesso por link enviado por e-mail, sem uso de senha.</p>
+                </div>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -284,7 +289,7 @@ async function save() {
           :disabled="saving"
           class="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
         >
-          {{ saving ? 'Salvando…' : 'Salvar Configurações' }}
+          {{ saving ? 'Salvando…' : 'Salvar configurações' }}
         </button>
       </div>
     </form>
@@ -294,7 +299,4 @@ async function save() {
 <style scoped>
 @reference "../../style.css";
 
-.input {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20;
-}
 </style>

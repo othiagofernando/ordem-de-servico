@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable([
     'company_id',
@@ -59,7 +60,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 ])]
 class ServiceOrder extends Model
 {
-    use BelongsToCompany;
+    use BelongsToCompany, SoftDeletes;
 
     public const STATUS_DRAFT = 'draft';
 
@@ -108,6 +109,7 @@ class ServiceOrder extends Model
             'warranty_decision_override' => 'boolean',
             'warranty_decided_at' => 'datetime',
             'opened_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 

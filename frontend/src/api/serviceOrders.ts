@@ -1,4 +1,4 @@
-import { apiDownload, apiGet, apiPost, apiPut, apiPatch } from './client'
+import { apiDownload, apiGet, apiPost, apiPut, apiPatch, apiDelete } from './client'
 
 export type ServiceOrderStatus =
   | 'draft'
@@ -60,12 +60,26 @@ export interface ServiceOrder {
   warranty_origin_service_order_id: number | null
   final_test_results: Array<{ label: string; passed: boolean; notes?: string | null }> | null
   execution_entries: Array<{ id: number; entry_type: string; description: string; quantity: number; notes: string | null }> | null
+  deleted_at: string | null
+}
+
+export interface TrashedServiceOrder {
+  id: number
+  reference: string
+  title: string
+  status: ServiceOrderStatus
+  customer_name: string | null
+  equipment_brand: string | null
+  equipment_model: string | null
+  equipment_serial_number: string | null
+  deleted_at: string
 }
 
 export interface ServiceOrderDraftPayload {
   customer_id?: number | null
   customer_contact_id?: number | null
   equipment_id?: number | null
+  intake_checklist_template_id?: number | null
   equipment_description?: string | null
   reported_problem?: string | null
   intake_checklist?: Array<{ label: string; checked?: boolean | null; notes?: string | null }>
@@ -119,12 +133,18 @@ export interface ServiceOrderReportRow {
   warranty_decision_status: string | null
 }
 
+export interface PaginationMeta {
+  total: number
+  per_page: number
+  current_page: number
+  last_page: number
+  from: number
+  to: number
+}
+
 export interface ServiceOrderReportResponse {
   data: ServiceOrderReportRow[]
-  meta: {
-    total: number
-    by_status: Record<string, number>
-  }
+  meta: PaginationMeta & { by_status?: Record<string, number> }
   filters: Record<string, unknown>
 }
 
@@ -144,8 +164,7 @@ export interface FinancialReportRow {
 
 export interface FinancialReportResponse {
   data: FinancialReportRow[]
-  meta: {
-    total: number
+  meta: PaginationMeta & {
     totals: {
       total_charged_cents: number
       total_paid_cents: number
@@ -160,6 +179,8 @@ export interface ServiceOrderReportFilters {
   queue?: ServiceOrderQueue
   opened_from?: string
   opened_to?: string
+  page?: number
+  per_page?: number
 }
 
 export interface FinancialReportFilters {
@@ -168,6 +189,8 @@ export interface FinancialReportFilters {
   balance_state?: 'settled' | 'outstanding'
   received_from?: string
   received_to?: string
+  page?: number
+  per_page?: number
 }
 
 function buildReportQuery(filters: Record<string, string | undefined>) {
@@ -181,13 +204,21 @@ function buildReportQuery(filters: Record<string, string | undefined>) {
   return query ? `?${query}` : ''
 }
 
-export function listServiceOrders(params?: { q?: string; queue?: ServiceOrderQueue; status?: string[] }) {
+export function listServiceOrders(params?: {
+  q?: string
+  queue?: ServiceOrderQueue
+  status?: string[]
+  page?: number
+  per_page?: number
+}) {
   const qs = new URLSearchParams()
   if (params?.q) qs.set('q', params.q)
   if (params?.queue) qs.set('queue', params.queue)
   params?.status?.forEach((s) => qs.append('status[]', s))
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.per_page) qs.set('per_page', String(params.per_page))
   const query = qs.toString() ? `?${qs.toString()}` : ''
-  return apiGet<{ data: ServiceOrder[]; meta: { total: number } }>(`/service-orders${query}`)
+  return apiGet<{ data: ServiceOrder[]; meta: PaginationMeta }>(`/service-orders${query}`)
 }
 
 export function getServiceOrder(id: number) {
@@ -208,6 +239,8 @@ export function getServiceOrderReport(filters?: ServiceOrderReportFilters) {
     queue: filters?.queue,
     opened_from: filters?.opened_from,
     opened_to: filters?.opened_to,
+    page: filters?.page !== undefined ? String(filters.page) : undefined,
+    per_page: filters?.per_page !== undefined ? String(filters.per_page) : undefined,
   })
 
   return apiGet<ServiceOrderReportResponse>(`/service-orders/reports/service-orders${query}`)
@@ -232,6 +265,8 @@ export function getFinancialReport(filters?: FinancialReportFilters) {
     balance_state: filters?.balance_state,
     received_from: filters?.received_from,
     received_to: filters?.received_to,
+    page: filters?.page !== undefined ? String(filters.page) : undefined,
+    per_page: filters?.per_page !== undefined ? String(filters.per_page) : undefined,
   })
 
   return apiGet<FinancialReportResponse>(`/service-orders/reports/financial${query}`)
@@ -312,8 +347,16 @@ export function markReadyForPickup(id: number) {
   return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/ready-for-pickup`)
 }
 
-export function deliver(id: number, received_by_name: string, delivery_notes?: string) {
-  return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/delivery`, { received_by_name, delivery_notes })
+export function deliver(
+  id: number,
+  payload: {
+    received_by_name: string
+    notes?: string
+    allow_balance_override?: boolean
+    balance_override_reason?: string
+  },
+) {
+  return apiPost<{ data: ServiceOrder }>(`/service-orders/${id}/delivery`, payload)
 }
 
 export function recordPayment(
@@ -581,4 +624,20 @@ export function createWarrantyReturn(id: number, reported_problem: string) {
 
 export function decideWarrantyCoverage(id: number, decision: 'covered' | 'not_covered', notes: string) {
   return apiPatch(`/service-orders/${id}/warranty-coverage`, { decision, notes })
+}
+
+export function trashServiceOrder(id: number, password: string) {
+  return apiDelete(`/service-orders/${id}`, { password })
+}
+
+export function listTrashedServiceOrders() {
+  return apiGet<{ data: TrashedServiceOrder[]; meta: { total: number; current_page: number; last_page: number } }>('/service-orders/trash')
+}
+
+export function restoreServiceOrder(id: number, password: string) {
+  return apiPost(`/service-orders/${id}/restore`, { password })
+}
+
+export function forceDeleteServiceOrder(id: number, password: string) {
+  return apiDelete(`/service-orders/${id}/force`, { password })
 }

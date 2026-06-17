@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Api\V1\Auth\ChangePasswordController;
 use App\Http\Controllers\Api\V1\Auth\LoginController;
 use App\Http\Controllers\Api\V1\Auth\LogoutController;
 use App\Http\Controllers\Api\V1\Auth\MembershipInvitationAcceptController;
@@ -24,6 +25,10 @@ use App\Http\Controllers\Api\V1\MembershipStatusController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
 use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
+use App\Http\Controllers\Api\V1\ServiceOrderDeleteController;
+use App\Http\Controllers\Api\V1\ServiceOrderForceDeleteController;
+use App\Http\Controllers\Api\V1\ServiceOrderRestoreController;
+use App\Http\Controllers\Api\V1\ServiceOrderTrashController;
 use App\Http\Controllers\Api\V1\ServiceOrderClosureController;
 use App\Http\Controllers\Api\V1\ServiceOrderController;
 use App\Http\Controllers\Api\V1\ServiceOrderDocumentPrintController;
@@ -33,8 +38,11 @@ use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
 use App\Http\Controllers\Api\V1\ServiceOrderAssignmentController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
+use App\Http\Controllers\Api\V1\TenantMembershipDeleteController;
 use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
+use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
+use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -72,6 +80,7 @@ Route::prefix('portal')->group(function (): void {
 
 Route::middleware('auth.token')->group(function (): void {
     Route::post('/auth/logout', LogoutController::class)->name('api.v1.auth.logout');
+    Route::put('/auth/me/password', ChangePasswordController::class)->name('api.v1.auth.me.password');
     Route::get('/auth/bootstrap', BootstrapController::class)->name('api.v1.auth.bootstrap');
     Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
     Route::get('/audit-logs', BusinessAuditController::class)
@@ -97,6 +106,15 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/tenant/memberships/{membership}/status', MembershipStatusController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.status.update');
+    Route::delete('/tenant/memberships/{membership}', TenantMembershipDeleteController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.destroy');
+    Route::patch('/tenant/memberships/{membership}/user', TenantMembershipUserUpdateController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.user.update');
+    Route::put('/tenant/memberships/{membership}/user/password', TenantMembershipUserPasswordController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.user.password');
     Route::get('/customers', [CustomerController::class, 'index'])
         ->middleware('permission:customers.view_any')
         ->name('api.v1.customers.index');
@@ -180,6 +198,18 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/service-orders/{serviceOrder}/assignment', ServiceOrderAssignmentController::class)
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.assignment.update');
+    Route::delete('/service-orders/{serviceOrder}', ServiceOrderDeleteController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.destroy');
+    Route::get('/service-orders/trash', ServiceOrderTrashController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.trash.index');
+    Route::post('/service-orders/{serviceOrderId}/restore', ServiceOrderRestoreController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.restore');
+    Route::delete('/service-orders/{serviceOrderId}/force', ServiceOrderForceDeleteController::class)
+        ->middleware('permission:service_orders.manage')
+        ->name('api.v1.service-orders.force-delete');
     Route::post('/service-orders/{serviceOrder}/close/cancel', [ServiceOrderClosureController::class, 'cancel'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.service-orders.close.cancel');

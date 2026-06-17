@@ -7,13 +7,25 @@ import {
   createQuote, recordPayment, cancelServiceOrder, closeNoRepair,
   generatePortalToken, recordWorkEntries, getFinancials, assignTechnician, getAttachments,
   deriveQuoteCharge, createWarrantyReturn, decideWarrantyCoverage,
-  addDiagnosticFee, addAdjustment,
+  addDiagnosticFee, addAdjustment, trashServiceOrder,
   type ServiceOrder, type TimelineEvent, type QuoteRevision, type QuoteLineItem,
   type FinalTestResult, type WorkEntry, type Financials, type Attachment,
 } from '../../api/serviceOrders'
 import { listMemberships, type Membership } from '../../api/memberships'
 import { API_BASE } from '../../api/client'
 import { ApiError } from '../../api/client'
+import ServiceOrderCustomerEquipmentCard from './components/ServiceOrderCustomerEquipmentCard.vue'
+import ServiceOrderDiagnosisCard from './components/ServiceOrderDiagnosisCard.vue'
+import ServiceOrderCompleteExecutionForm from './components/ServiceOrderCompleteExecutionForm.vue'
+import ServiceOrderPaymentForm from './components/ServiceOrderPaymentForm.vue'
+import ServiceOrderQuotesSection from './components/ServiceOrderQuotesSection.vue'
+import ServiceOrderTimelinePanel from './components/ServiceOrderTimelinePanel.vue'
+import ServiceOrderWarrantyCard from './components/ServiceOrderWarrantyCard.vue'
+import ServiceOrderWorkEntriesForm from './components/ServiceOrderWorkEntriesForm.vue'
+import ServiceOrderQuoteForm from './components/ServiceOrderQuoteForm.vue'
+import { useServiceOrderDerivedState } from './composables/useServiceOrderDerivedState'
+import { useServiceOrderFormatting } from './composables/useServiceOrderFormatting'
+import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -53,6 +65,8 @@ const terminalNotes = ref('')
 const showDeliverModal = ref(false)
 const deliverReceivedBy = ref('')
 const deliverNotes = ref('')
+const deliverAllowBalanceOverride = ref(false)
+const deliverBalanceOverrideReason = ref('')
 
 // Work entries form
 const showWorkForm = ref(false)
@@ -77,6 +91,11 @@ const chargeDesc = ref('')
 const chargeAmount = ref('')
 const chargeNotes = ref('')
 
+// Delete (move to trash)
+const showDeleteModal = ref(false)
+const deleteError = ref('')
+const deleteLoading = ref(false)
+
 // Warranty
 const showWarrantyReturnForm = ref(false)
 const warrantyReturnProblem = ref('')
@@ -84,79 +103,75 @@ const showWarrantyDecisionForm = ref(false)
 const warrantyDecision = ref<'covered' | 'not_covered'>('covered')
 const warrantyDecisionNotes = ref('')
 
-const statusLabels: Record<string, { label: string; cls: string }> = {
-  draft:            { label: 'Rascunho',         cls: 'bg-stone-500/20 text-stone-400' },
-  open:             { label: 'Aberta',            cls: 'bg-sky-500/20 text-sky-300' },
-  in_progress:      { label: 'Em Execução',       cls: 'bg-amber-500/20 text-amber-300' },
-  completed:        { label: 'Concluída',         cls: 'bg-emerald-500/20 text-emerald-300' },
-  ready_for_pickup: { label: 'Aguard. Retirada',  cls: 'bg-violet-500/20 text-violet-300' },
-  delivered:        { label: 'Entregue',          cls: 'bg-emerald-600/20 text-emerald-400' },
-  cancelled:        { label: 'Cancelada',         cls: 'bg-red-500/20 text-red-400' },
-  no_repair:        { label: 'Sem Reparo',        cls: 'bg-orange-500/20 text-orange-300' },
-}
+const {
+  statusLabels,
+  quoteStatusLabels,
+  paymentMethodLabels,
+  fmt,
+  fmtMoney,
+  fmtBytes,
+  attachmentTypeLabel,
+} = useServiceOrderFormatting()
 
-const quoteStatusLabels: Record<string, { label: string; cls: string }> = {
-  pending:  { label: 'Aguardando',  cls: 'bg-amber-500/20 text-amber-300' },
-  approved: { label: 'Aprovado',    cls: 'bg-emerald-500/20 text-emerald-300' },
-  rejected: { label: 'Recusado',    cls: 'bg-red-500/20 text-red-400' },
-  expired:  { label: 'Expirado',    cls: 'bg-stone-500/20 text-stone-400' },
-}
+const {
+  signedServiceOrderCopyType,
+  isTerminal,
+  canOpenDraft,
+  canDiagnose,
+  canStartExec,
+  canAddQuote,
+  canCompleteExec,
+  canReadyPick,
+  canDeliver,
+  canPay,
+  canCancel,
+  canAssign,
+  canWorkEntries,
+  canWarrantyReturn,
+  isWarrantyReturn,
+  canDecideWarranty,
+  printableHref,
+  quotePrintableHref,
+  deliveryTermPrintableHref,
+  hasSignedServiceOrderCopy,
+} = useServiceOrderDerivedState(os, quotes, attachments, router)
 
-const paymentMethodLabels: Record<string, string> = {
-  pix: 'PIX',
-  cash: 'Dinheiro',
-  credit_card: 'Cartão de Crédito',
-  debit_card: 'Cartão de Débito',
-  bank_transfer: 'Transferência',
-  other: 'Outro',
-}
+const canTrash = computed(() =>
+  os.value?.status === 'cancelled' || os.value?.status === 'no_repair',
+)
 
-function fmt(dt: string | null) {
-  if (!dt) return '—'
-  return new Date(dt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
-}
-
-function fmtMoney(cents: number) {
-  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
-
-function fmtBytes(bytes: number) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
-}
-
-const isTerminal = computed(() => ['cancelled', 'no_repair', 'delivered'].includes(os.value?.status ?? ''))
-
-const canOpenDraft    = computed(() => os.value?.status === 'draft')
-const canDiagnose     = computed(() => os.value?.status === 'open')
-const canStartExec    = computed(() => os.value?.status === 'open' && !!os.value?.diagnosis_completed_at)
-const canAddQuote     = computed(() => ['open', 'in_progress'].includes(os.value?.status ?? ''))
-const canCompleteExec = computed(() => os.value?.status === 'in_progress')
-const canReadyPick    = computed(() => os.value?.status === 'completed')
-const canDeliver      = computed(() => os.value?.status === 'ready_for_pickup')
-const canPay          = computed(() => !['draft', 'cancelled', 'no_repair'].includes(os.value?.status ?? ''))
-const canCancel       = computed(() => !isTerminal.value && os.value?.status !== undefined)
-const canAssign       = computed(() => ['open', 'in_progress'].includes(os.value?.status ?? ''))
-const canWorkEntries  = computed(() => os.value?.status === 'in_progress')
-const canWarrantyReturn = computed(() => os.value?.status === 'delivered' && !os.value?.warranty_origin_service_order_id)
-const isWarrantyReturn  = computed(() => !!os.value?.warranty_origin_service_order_id)
-const canDecideWarranty = computed(() => isWarrantyReturn.value && os.value?.warranty_decision_status === 'pending')
-const printableHref = computed(() => (
-  os.value && os.value.status !== 'draft'
-    ? router.resolve({ name: 'service-orders.print', params: { id: os.value.id } }).href
-    : '#'
+const hasApprovedQuote = computed(() => quotes.value.some((quote) => quote.status === 'approved'))
+const hasDerivedApprovedQuoteCharge = computed(() => (
+  financials.value?.charges.some((charge) => charge.charge_type === 'approved_quote') ?? false
 ))
-const quotePrintableHref = computed(() => (
-  os.value && quotes.value.length > 0
-    ? router.resolve({ name: 'service-orders.documents.quote', params: { id: os.value.id } }).href
-    : '#'
-))
-const deliveryTermPrintableHref = computed(() => (
-  os.value?.status === 'delivered'
-    ? router.resolve({ name: 'service-orders.documents.delivery', params: { id: os.value.id } }).href
-    : '#'
-))
+
+const startExecutionBlockers = computed(() => {
+  if (os.value?.status !== 'open' || canStartExec.value) return []
+
+  const blockers: string[] = []
+
+  if (!os.value.diagnosis_completed_at) blockers.push('Registre o diagnóstico antes de iniciar a execução.')
+  if (os.value.assigned_membership_id === null) blockers.push('Atribua um técnico responsável antes de iniciar a execução.')
+  if (!hasApprovedQuote.value) blockers.push('É necessário ter ao menos um orçamento aprovado antes de iniciar a execução.')
+
+  return blockers
+})
+
+const deliveryBlockers = computed(() => {
+  if (os.value?.status !== 'ready_for_pickup') return []
+
+  const blockers: string[] = []
+
+  if (hasApprovedQuote.value && !hasDerivedApprovedQuoteCharge.value) {
+    blockers.push('Derive a cobrança do orçamento aprovado antes de concluir a entrega.')
+  }
+
+  if ((financials.value?.summary.outstanding_balance_cents ?? 0) > 0) {
+    blockers.push('Existe saldo pendente. Quite o valor ou use override de entrega se o seu perfil permitir.')
+  }
+
+  return blockers
+})
 
 async function reload() {
   const [osRes, tlRes, qtRes] = await Promise.all([
@@ -251,10 +266,19 @@ async function doReadyPickup() {
 
 async function doDeliver() {
   if (!deliverReceivedBy.value.trim()) return
-  await doAction(() => deliver(Number(route.params.id), deliverReceivedBy.value, deliverNotes.value || undefined))
+  await doAction(() => deliver(Number(route.params.id), {
+    received_by_name: deliverReceivedBy.value,
+    notes: deliverNotes.value || undefined,
+    allow_balance_override: deliverAllowBalanceOverride.value || undefined,
+    balance_override_reason: deliverAllowBalanceOverride.value
+      ? (deliverBalanceOverrideReason.value || undefined)
+      : undefined,
+  }))
   showDeliverModal.value = false
   deliverReceivedBy.value = ''
   deliverNotes.value = ''
+  deliverAllowBalanceOverride.value = false
+  deliverBalanceOverrideReason.value = ''
 }
 
 async function saveQuote() {
@@ -344,6 +368,30 @@ async function saveWarrantyReturn() {
   })
 }
 
+function openDeleteModal() {
+  deleteError.value = ''
+  showDeleteModal.value = true
+}
+
+async function doTrashServiceOrder(password: string) {
+  deleteError.value = ''
+  deleteLoading.value = true
+  try {
+    await trashServiceOrder(Number(route.params.id), password)
+    router.push({ name: 'service-orders' })
+  } catch (e) {
+    if (e instanceof ApiError) {
+      const errData = e.data as { message?: string; errors?: Record<string, string[]> }
+      const first = errData.errors ? Object.values(errData.errors)[0]?.[0] : null
+      deleteError.value = first ?? errData.message ?? 'Erro ao mover para lixeira.'
+    } else {
+      deleteError.value = 'Erro inesperado.'
+    }
+  } finally {
+    deleteLoading.value = false
+  }
+}
+
 async function saveWarrantyDecision() {
   if (!warrantyDecisionNotes.value.trim()) return
   await doAction(() => decideWarrantyCoverage(Number(route.params.id), warrantyDecision.value, warrantyDecisionNotes.value))
@@ -411,28 +459,18 @@ function openNoRepairModal() {
   showNoRepairModal.value = true
 }
 
+function openDeliverModal() {
+  deliverReceivedBy.value = ''
+  deliverNotes.value = ''
+  deliverAllowBalanceOverride.value = false
+  deliverBalanceOverrideReason.value = ''
+  showDeliverModal.value = true
+}
+
 const uploadLoading = ref(false)
 const uploadType = ref('intake_photo')
 const showUploadForm = ref(false)
 const uploadError = ref('')
-const signedServiceOrderCopyType = 'signed_service_order_copy'
-
-const attachmentTypeLabels: Record<string, string> = {
-  intake_photo: 'Foto de Entrada',
-  diagnostic_image: 'Imagem Diagnóstico',
-  receipt: 'Recibo',
-  term: 'Termo',
-  signed_service_order_copy: 'Via Assinada da O.S.',
-  other: 'Outro',
-}
-
-function attachmentTypeLabel(type: string) {
-  return attachmentTypeLabels[type] ?? type
-}
-
-const hasSignedServiceOrderCopy = computed(() =>
-  attachments.value.some((attachment) => attachment.attachment_type === signedServiceOrderCopyType),
-)
 
 async function uploadAttachment(e: Event) {
   const input = e.target as HTMLInputElement
@@ -495,7 +533,7 @@ async function downloadAttachment(attachmentId: number) {
     <template v-else-if="os">
       <!-- Cabeçalho -->
       <div class="flex flex-wrap items-start gap-4">
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <div class="flex flex-wrap items-center gap-2">
             <span class="font-mono text-sm font-semibold text-amber-300">{{ os.order_number ?? os.draft_reference ?? os.reference }}</span>
             <span :class="statusLabels[os.status]?.cls" class="rounded-full px-2.5 py-0.5 text-xs font-semibold">
@@ -504,6 +542,46 @@ async function downloadAttachment(attachmentId: number) {
           </div>
           <h1 class="mt-1 text-2xl font-semibold text-white">{{ os.title }}</h1>
         </div>
+        <!-- Links de documentos -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
+          <a
+            v-if="os.status !== 'draft'"
+            :href="printableHref"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link-doc"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1zm2 0h6v3H7V4zm-1 9v-2h8v2H6zm8-6H6V6h8v1z" clip-rule="evenodd" />
+            </svg>
+            Imprimir OS
+          </a>
+          <a
+            v-if="quotes.length > 0"
+            :href="quotePrintableHref"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link-doc"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7z" clip-rule="evenodd" />
+            </svg>
+            Orçamento PDF
+          </a>
+          <a
+            v-if="os.status === 'delivered'"
+            :href="deliveryTermPrintableHref"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="link-doc"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path d="M9 2a1 1 0 0 0 0 2h2a1 1 0 1 0 0-2H9z" />
+              <path fill-rule="evenodd" d="M4 5a2 2 0 0 1 2-2 3 3 0 0 0 3 3h2a3 3 0 0 0 3-3 2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm9.707 5.707a1 1 0 0 0-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+            Termo de Entrega
+          </a>
+        </div>
       </div>
 
       <!-- Erro de ação -->
@@ -511,109 +589,121 @@ async function downloadAttachment(attachmentId: number) {
         {{ actionError }}
       </div>
 
-      <!-- Ações primárias -->
-      <div class="flex flex-wrap gap-2">
-        <a
-          v-if="os.status !== 'draft'"
-          :href="printableHref"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
-        >
-          Imprimir OS
-        </a>
-        <a
-          v-if="quotes.length > 0"
-          :href="quotePrintableHref"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
-        >
-          Imprimir Orçamento
-        </a>
-        <a
-          v-if="os.status === 'delivered'"
-          :href="deliveryTermPrintableHref"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
-        >
-          Imprimir Termo de Entrega
-        </a>
-        <button
-          v-if="canOpenDraft"
-          :disabled="actionLoading"
-          class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
-          @click="doOpenDraft"
-        >
-          Abrir OS
-        </button>
-        <button
-          v-if="canDiagnose"
-          :disabled="actionLoading"
-          class="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 transition hover:bg-sky-500/20 disabled:opacity-50"
-          @click="openDiagnosisForm"
-        >
-          {{ os.diagnosis_completed_at ? 'Editar Diagnóstico' : 'Registrar Diagnóstico' }}
-        </button>
-        <button
-          v-if="canStartExec"
-          :disabled="actionLoading"
-          class="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50"
-          @click="doStartExec"
-        >
-          Iniciar Execução
-        </button>
-        <button
-          v-if="canAddQuote"
-          :disabled="actionLoading"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300 disabled:opacity-50"
-          @click="showQuoteForm = true"
-        >
-          + Orçamento
-        </button>
-        <button
-          v-if="canWorkEntries"
-          :disabled="actionLoading"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300 disabled:opacity-50"
-          @click="showWorkForm = true"
-        >
-          + Serviço/Peça
-        </button>
-        <button
-          v-if="canCompleteExec"
-          :disabled="actionLoading"
-          class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-50"
-          @click="doCompleteExec"
-        >
-          Concluir Execução
-        </button>
-        <button
-          v-if="canReadyPick"
-          :disabled="actionLoading"
-          class="rounded-xl border border-violet-500/30 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-300 transition hover:bg-violet-500/20 disabled:opacity-50"
-          @click="doReadyPickup"
-        >
-          Pronto para Retirada
-        </button>
-        <button
-          v-if="canDeliver"
-          :disabled="actionLoading"
-          class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
-          @click="showDeliverModal = true"
-        >
-          Registrar Entrega
-        </button>
-        <button
-          v-if="canPay"
-          :disabled="actionLoading"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-emerald-500/30 hover:text-emerald-300 disabled:opacity-50"
-          @click="showPaymentForm = true"
-        >
-          + Pagamento
-        </button>
-        <template v-if="canCancel">
+      <!-- Barra de ações: ação primária + ações de suporte + zona destrutiva -->
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <!-- Lado esquerdo: ação principal do momento + ações de suporte -->
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Ação primária: uma por status, visualmente destacada -->
           <button
+            v-if="canOpenDraft"
+            :disabled="actionLoading"
+            class="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+            @click="doOpenDraft"
+          >
+            Abrir OS
+          </button>
+          <button
+            v-else-if="canDiagnose && !os.diagnosis_completed_at"
+            :disabled="actionLoading"
+            class="rounded-xl bg-sky-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-500 disabled:opacity-50"
+            @click="openDiagnosisForm"
+          >
+            Registrar Diagnóstico
+          </button>
+          <button
+            v-else-if="canStartExec"
+            :disabled="actionLoading"
+            class="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+            @click="doStartExec"
+          >
+            Iniciar Execução
+          </button>
+          <button
+            v-else-if="canCompleteExec"
+            :disabled="actionLoading"
+            class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            @click="doCompleteExec"
+          >
+            Concluir Execução
+          </button>
+          <button
+            v-else-if="canReadyPick"
+            :disabled="actionLoading"
+            class="rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+            @click="doReadyPickup"
+          >
+            Pronto para Retirada
+          </button>
+          <button
+            v-else-if="canDeliver"
+            :disabled="actionLoading"
+            class="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+            @click="openDeliverModal"
+          >
+            Registrar Entrega
+          </button>
+          <button
+            v-else-if="canDecideWarranty"
+            :disabled="actionLoading"
+            class="rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+            @click="showWarrantyDecisionForm = true"
+          >
+            Decidir Cobertura de Garantia
+          </button>
+
+          <!-- Separador visual entre ação primária e ações de suporte -->
+          <span
+            v-if="(canDiagnose && os.diagnosis_completed_at) || canAddQuote || canWorkEntries || canPay || canWarrantyReturn"
+            class="mx-1 h-5 w-px bg-white/10"
+          />
+
+          <!-- Ações de suporte: menores, sem preenchimento -->
+          <button
+            v-if="canDiagnose && os.diagnosis_completed_at"
+            :disabled="actionLoading"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-sky-500/30 hover:text-sky-300 disabled:opacity-50"
+            @click="openDiagnosisForm"
+          >
+            Editar Diagnóstico
+          </button>
+          <button
+            v-if="canAddQuote"
+            :disabled="actionLoading"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-amber-500/30 hover:text-amber-300 disabled:opacity-50"
+            @click="showQuoteForm = true"
+          >
+            + Orçamento
+          </button>
+          <button
+            v-if="canWorkEntries"
+            :disabled="actionLoading"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-amber-500/30 hover:text-amber-300 disabled:opacity-50"
+            @click="showWorkForm = true"
+          >
+            + Serviço/Peça
+          </button>
+          <button
+            v-if="canPay"
+            :disabled="actionLoading"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-emerald-500/30 hover:text-emerald-300 disabled:opacity-50"
+            @click="showPaymentForm = true"
+          >
+            + Pagamento
+          </button>
+          <button
+            v-if="canWarrantyReturn"
+            :disabled="actionLoading"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400 transition hover:border-violet-500/30 hover:text-violet-300 disabled:opacity-50"
+            @click="showWarrantyReturnForm = true"
+          >
+            Abrir Retorno de Garantia
+          </button>
+        </div>
+
+        <!-- Lado direito: ações de encerramento (destrutivas) -->
+        <div v-if="canCancel || canTrash" class="flex items-center gap-2">
+          <button
+            v-if="canCancel"
             :disabled="actionLoading"
             class="rounded-xl border border-red-500/20 px-4 py-2 text-sm text-red-400 transition hover:bg-red-500/10 disabled:opacity-50"
             @click="openCancelModal"
@@ -621,29 +711,50 @@ async function downloadAttachment(attachmentId: number) {
             Cancelar OS
           </button>
           <button
+            v-if="canCancel"
             :disabled="actionLoading"
             class="rounded-xl border border-orange-500/20 px-4 py-2 text-sm text-orange-400 transition hover:bg-orange-500/10 disabled:opacity-50"
             @click="openNoRepairModal"
           >
             Sem Reparo
           </button>
-        </template>
-        <button
-          v-if="canWarrantyReturn"
-          :disabled="actionLoading"
-          class="rounded-xl border border-violet-500/20 px-4 py-2 text-sm text-violet-400 transition hover:bg-violet-500/10 disabled:opacity-50"
-          @click="showWarrantyReturnForm = true"
+          <button
+            v-if="canTrash"
+            :disabled="actionLoading"
+            class="rounded-xl border border-red-800/40 px-4 py-2 text-sm text-red-500/80 transition hover:border-red-600/50 hover:bg-red-900/20 hover:text-red-400 disabled:opacity-50"
+            @click="openDeleteModal"
+          >
+            Mover para Lixeira
+          </button>
+        </div>
+      </div>
+
+      <!-- Pendências: alertas compactos, não cards -->
+      <div v-if="startExecutionBlockers.length || deliveryBlockers.length" class="space-y-2">
+        <div
+          v-if="startExecutionBlockers.length"
+          class="flex items-start gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3"
         >
-          Abrir Retorno de Garantia
-        </button>
-        <button
-          v-if="canDecideWarranty"
-          :disabled="actionLoading"
-          class="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition hover:bg-amber-500/20 disabled:opacity-50"
-          @click="showWarrantyDecisionForm = true"
+          <span class="mt-0.5 shrink-0 text-amber-400 text-sm">⚠</span>
+          <div>
+            <p class="text-xs font-semibold text-amber-300">Pendências para iniciar execução</p>
+            <ul class="mt-1 space-y-0.5 text-sm text-stone-400">
+              <li v-for="blocker in startExecutionBlockers" :key="blocker">{{ blocker }}</li>
+            </ul>
+          </div>
+        </div>
+        <div
+          v-if="deliveryBlockers.length"
+          class="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 px-4 py-3"
         >
-          Decidir Cobertura de Garantia
-        </button>
+          <span class="mt-0.5 shrink-0 text-emerald-400 text-sm">⚠</span>
+          <div>
+            <p class="text-xs font-semibold text-emerald-300">Pendências para entrega</p>
+            <ul class="mt-1 space-y-0.5 text-sm text-stone-400">
+              <li v-for="blocker in deliveryBlockers" :key="blocker">{{ blocker }}</li>
+            </ul>
+          </div>
+        </div>
       </div>
 
       <!-- Diagnóstico form -->
@@ -665,140 +776,62 @@ async function downloadAttachment(attachmentId: number) {
         </div>
       </div>
 
-      <!-- Orçamento form -->
-      <div v-if="showQuoteForm" class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
-        <h2 class="mb-4 text-sm font-semibold text-amber-300">Novo Orçamento</h2>
-        <div class="space-y-3">
-          <div
-            v-for="(item, i) in quoteItems"
-            :key="i"
-            class="grid gap-2 sm:grid-cols-[1fr_80px_110px_auto]"
-          >
-            <input v-model="item.description" placeholder="Descrição do item" class="input" />
-            <input v-model.number="item.quantity" type="number" min="1" placeholder="Qtd" class="input" />
-            <input
-              :value="(item.unit_price_cents / 100).toFixed(2)"
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="R$ unit."
-              class="input"
-              @change="(e) => { item.unit_price_cents = Math.round(parseFloat((e.target as HTMLInputElement).value) * 100) }"
-            />
-            <button v-if="quoteItems.length > 1" type="button" class="text-red-400 hover:text-red-300" @click="removeQuoteItem(i)">✕</button>
-          </div>
-          <button type="button" class="text-sm text-amber-400 hover:text-amber-300" @click="addQuoteItem">+ Adicionar item</button>
+      <ServiceOrderQuoteForm
+        v-if="showQuoteForm"
+        :quote-items="quoteItems"
+        :quote-notes="quoteNotes"
+        :quote-valid-days="quoteValidDays"
+        :quote-total="quoteTotal"
+        :format-money="fmtMoney"
+        @update-quote-notes="quoteNotes = $event"
+        @update-quote-valid-days="quoteValidDays = $event"
+        @add-item="addQuoteItem"
+        @remove-item="removeQuoteItem"
+        @update-item-description="(index, value) => { quoteItems[index].description = value }"
+        @update-item-quantity="(index, value) => { quoteItems[index].quantity = value }"
+        @update-item-unit-price-cents="(index, value) => { quoteItems[index].unit_price_cents = Number.isNaN(value) ? 0 : value }"
+        @save="saveQuote"
+        @cancel="showQuoteForm = false"
+      />
 
-          <div class="flex items-center justify-between rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2.5">
-            <span class="text-sm text-stone-300">Total</span>
-            <span class="font-semibold text-amber-300">{{ fmtMoney(quoteTotal) }}</span>
-          </div>
+      <ServiceOrderWorkEntriesForm
+        v-if="showWorkForm"
+        :work-services="workServices"
+        :work-parts="workParts"
+        @add-service="workServices.push({ description: '', quantity: 1, notes: null })"
+        @remove-service="workServices.splice($event, 1)"
+        @update-service-description="(index, value) => { workServices[index].description = value }"
+        @update-service-quantity="(index, value) => { workServices[index].quantity = value }"
+        @add-part="workParts.push({ description: '', quantity: 1, notes: null })"
+        @remove-part="workParts.splice($event, 1)"
+        @update-part-description="(index, value) => { workParts[index].description = value }"
+        @update-part-quantity="(index, value) => { workParts[index].quantity = value }"
+        @save="saveWorkEntries"
+        @cancel="showWorkForm = false"
+      />
 
-          <div class="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label class="mb-1.5 block text-sm text-stone-300">Validade (dias)</label>
-              <input v-model.number="quoteValidDays" type="number" min="1" class="input" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm text-stone-300">Observações</label>
-              <input v-model="quoteNotes" class="input" />
-            </div>
-          </div>
+      <ServiceOrderCompleteExecutionForm
+        v-if="showCompleteForm"
+        :test-results="testResults"
+        @add-test="testResults.push({ label: '', passed: true, notes: null })"
+        @remove-test="testResults.splice($event, 1)"
+        @update-test-label="(index, value) => { testResults[index].label = value }"
+        @update-test-passed="(index, value) => { testResults[index].passed = value }"
+        @save="saveCompleteExec"
+        @cancel="showCompleteForm = false"
+      />
 
-          <div class="flex gap-2">
-            <button class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 hover:bg-amber-400" @click="saveQuote">Salvar Orçamento</button>
-            <button class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400" @click="showQuoteForm = false">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Work entries form -->
-      <div v-if="showWorkForm" class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
-        <h2 class="mb-4 text-sm font-semibold text-amber-300">Registrar Serviços e Peças</h2>
-        <div class="space-y-4">
-          <div>
-            <div class="mb-2 flex items-center justify-between">
-              <p class="text-xs font-semibold uppercase tracking-widest text-stone-400">Serviços</p>
-              <button type="button" class="text-xs text-amber-400 hover:text-amber-300" @click="workServices.push({ description: '', quantity: 1, notes: null })">+ Adicionar</button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="(s, i) in workServices" :key="`svc-${i}`" class="flex items-center gap-2">
-                <input v-model="s.description" placeholder="Descrição do serviço" class="input flex-1" />
-                <input v-model.number="s.quantity" type="number" min="1" class="input w-20" />
-                <button v-if="workServices.length > 1" type="button" class="text-red-400 hover:text-red-300" @click="workServices.splice(i, 1)">✕</button>
-              </div>
-            </div>
-          </div>
-          <div>
-            <div class="mb-2 flex items-center justify-between">
-              <p class="text-xs font-semibold uppercase tracking-widest text-stone-400">Peças</p>
-              <button type="button" class="text-xs text-amber-400 hover:text-amber-300" @click="workParts.push({ description: '', quantity: 1, notes: null })">+ Adicionar</button>
-            </div>
-            <div class="space-y-2">
-              <div v-for="(p, i) in workParts" :key="`part-${i}`" class="flex items-center gap-2">
-                <input v-model="p.description" placeholder="Descrição da peça" class="input flex-1" />
-                <input v-model.number="p.quantity" type="number" min="1" class="input w-20" />
-                <button type="button" class="text-red-400 hover:text-red-300" @click="workParts.splice(i, 1)">✕</button>
-              </div>
-            </div>
-          </div>
-          <div class="flex gap-2">
-            <button class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 hover:bg-amber-400" @click="saveWorkEntries">Salvar</button>
-            <button class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400" @click="showWorkForm = false">Cancelar</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Concluir execução form (testes finais) -->
-      <div v-if="showCompleteForm" class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
-        <h2 class="mb-4 text-sm font-semibold text-emerald-300">Concluir Execução — Testes Finais</h2>
-        <p class="mb-4 text-sm text-stone-400">Registre os resultados dos testes realizados antes de marcar como tecnicamente concluída.</p>
-        <div class="space-y-2">
-          <div v-for="(r, i) in testResults" :key="i" class="flex items-center gap-2">
-            <input v-model="r.label" placeholder="Descrição do teste (ex: Liga normalmente)" class="input flex-1" />
-            <select v-model="r.passed" class="input w-32">
-              <option :value="true">Passou</option>
-              <option :value="false">Falhou</option>
-            </select>
-            <button v-if="testResults.length > 1" type="button" class="text-red-400 hover:text-red-300" @click="testResults.splice(i, 1)">✕</button>
-          </div>
-        </div>
-        <button type="button" class="mt-2 text-sm text-emerald-400 hover:text-emerald-300" @click="testResults.push({ label: '', passed: true, notes: null })">+ Adicionar teste</button>
-        <div class="mt-4 flex gap-2">
-          <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500" @click="saveCompleteExec">Concluir</button>
-          <button class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400" @click="showCompleteForm = false">Cancelar</button>
-        </div>
-      </div>
-
-      <!-- Pagamento form -->
-      <div v-if="showPaymentForm" class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
-        <h2 class="mb-4 text-sm font-semibold text-emerald-300">Registrar Pagamento</h2>
-        <div class="grid gap-4 sm:grid-cols-3">
-          <div>
-            <label class="mb-1.5 block text-sm text-stone-300">Valor (R$)</label>
-            <input v-model="paymentAmount" type="text" placeholder="0,00" class="input" />
-          </div>
-          <div>
-            <label class="mb-1.5 block text-sm text-stone-300">Forma de Pagamento</label>
-            <select v-model="paymentMethod" class="input">
-              <option value="pix">PIX</option>
-              <option value="cash">Dinheiro</option>
-              <option value="credit_card">Cartão de Crédito</option>
-              <option value="debit_card">Cartão de Débito</option>
-              <option value="bank_transfer">Transferência</option>
-              <option value="other">Outro</option>
-            </select>
-          </div>
-          <div>
-            <label class="mb-1.5 block text-sm text-stone-300">Observações</label>
-            <input v-model="paymentNotes" class="input" />
-          </div>
-        </div>
-        <div class="mt-3 flex gap-2">
-          <button class="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500" @click="savePayment">Confirmar</button>
-          <button class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400" @click="showPaymentForm = false">Cancelar</button>
-        </div>
-      </div>
+      <ServiceOrderPaymentForm
+        v-if="showPaymentForm"
+        :payment-amount="paymentAmount"
+        :payment-method="paymentMethod"
+        :payment-notes="paymentNotes"
+        @update-payment-amount="paymentAmount = $event"
+        @update-payment-method="paymentMethod = $event"
+        @update-payment-notes="paymentNotes = $event"
+        @save="savePayment"
+        @cancel="showPaymentForm = false"
+      />
 
       <!-- Modal entrega -->
       <div v-if="showDeliverModal" class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-6">
@@ -811,6 +844,34 @@ async function downloadAttachment(attachmentId: number) {
           <div>
             <label class="mb-1.5 block text-sm text-stone-300">Observações</label>
             <input v-model="deliverNotes" class="input" />
+          </div>
+        </div>
+        <div
+          v-if="(financials?.summary.outstanding_balance_cents ?? 0) > 0"
+          class="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4"
+        >
+          <label class="flex cursor-pointer items-start gap-3">
+            <input
+              v-model="deliverAllowBalanceOverride"
+              type="checkbox"
+              class="mt-1 h-4 w-4 rounded border-white/10 bg-stone-950 text-amber-500 focus:ring-amber-500"
+            />
+            <span class="space-y-1">
+              <span class="block text-sm font-medium text-amber-200">Permitir entrega com saldo pendente</span>
+              <span class="block text-xs text-stone-400">
+                Saldo em aberto: {{ fmtMoney(financials?.summary.outstanding_balance_cents ?? 0) }}. A confirmação depende da permissão de override no backend.
+              </span>
+            </span>
+          </label>
+
+          <div v-if="deliverAllowBalanceOverride" class="mt-4">
+            <label class="mb-1.5 block text-sm text-stone-300">Motivo do override *</label>
+            <textarea
+              v-model="deliverBalanceOverrideReason"
+              rows="3"
+              class="input resize-none"
+              placeholder="Explique por que a entrega está sendo liberada com saldo pendente"
+            />
           </div>
         </div>
         <div class="mt-4 flex gap-2">
@@ -841,7 +902,6 @@ async function downloadAttachment(attachmentId: number) {
         </div>
       </div>
 
-      <!-- Modal retorno de garantia -->
       <div v-if="showWarrantyReturnForm" class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-6">
         <h2 class="mb-2 text-sm font-semibold text-violet-400">Abrir Retorno de Garantia</h2>
         <p class="mb-4 text-sm text-stone-400">Uma nova OS será criada vinculada a esta, com sinal automático de elegibilidade.</p>
@@ -855,7 +915,6 @@ async function downloadAttachment(attachmentId: number) {
         </div>
       </div>
 
-      <!-- Modal decisão de garantia -->
       <div v-if="showWarrantyDecisionForm" class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6">
         <h2 class="mb-4 text-sm font-semibold text-amber-300">Decisão de Cobertura de Garantia</h2>
         <div class="mb-4 flex gap-4">
@@ -878,436 +937,291 @@ async function downloadAttachment(attachmentId: number) {
         </div>
       </div>
 
-      <div class="grid gap-4 lg:grid-cols-2">
-        <!-- Cliente e equipamento -->
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Cliente &amp; Equipamento</h2>
-          <dl class="space-y-2.5">
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">Cliente</dt>
-              <dd>
-                <RouterLink
-                  v-if="os.customer_id"
-                  :to="{ name: 'customers.detail', params: { id: os.customer_id } }"
-                  class="text-sm text-amber-400 hover:text-amber-300"
-                >
-                  {{ os.customer_name }}
-                </RouterLink>
-                <span v-else class="text-sm text-stone-500">—</span>
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">Contato</dt>
-              <dd class="text-sm text-stone-200">{{ os.customer_contact_name ?? '—' }}</dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">Telefone</dt>
-              <dd class="text-sm text-stone-200">{{ os.customer_contact_phone ?? '—' }}</dd>
-            </div>
-            <div class="border-t border-white/5 pt-2.5">
-              <div class="flex justify-between">
-                <dt class="text-sm text-stone-500">Equipamento</dt>
-                <dd>
-                  <RouterLink
-                    v-if="os.equipment_id"
-                    :to="{ name: 'equipments.detail', params: { id: os.equipment_id } }"
-                    class="text-sm text-amber-400 hover:text-amber-300"
-                  >
-                    {{ [os.equipment_brand, os.equipment_model].filter(Boolean).join(' ') }}
-                  </RouterLink>
-                  <span v-else class="text-sm text-stone-500">—</span>
-                </dd>
-              </div>
-              <div class="mt-1.5 flex justify-between">
-                <dt class="text-sm text-stone-500">Nº de Série</dt>
-                <dd class="font-mono text-xs text-stone-400">{{ os.equipment_serial_number ?? '—' }}</dd>
-              </div>
-            </div>
-          </dl>
-        </div>
+      <!-- Layout principal: contexto (esquerda) + workflow (direita) -->
+      <div class="grid gap-6 lg:grid-cols-[1fr_2fr]">
 
-        <!-- Diagnóstico -->
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Diagnóstico</h2>
-          <div v-if="os.diagnosis_completed_at" class="space-y-3">
-            <div>
-              <p class="mb-1 text-xs text-stone-500">Notas Internas</p>
-              <p class="text-sm text-stone-300">{{ os.diagnosis_internal_notes }}</p>
-            </div>
-            <div>
-              <p class="mb-1 text-xs text-stone-500">Resumo para o Cliente</p>
-              <p class="text-sm text-stone-300">{{ os.diagnosis_customer_summary }}</p>
-            </div>
-            <p class="text-xs text-stone-600">Concluído em {{ fmt(os.diagnosis_completed_at) }}</p>
-          </div>
-          <p v-else class="text-sm text-stone-500">Diagnóstico ainda não registrado.</p>
-          <div class="mt-3 border-t border-white/5 pt-3">
-            <p class="text-xs text-stone-500">Problema relatado</p>
-            <p class="mt-1 text-sm text-stone-300">{{ os.reported_problem ?? '—' }}</p>
-          </div>
-        </div>
+        <!-- COLUNA ESQUERDA: contexto fixo — quem, o quê, quem cuida, arquivos -->
+        <div class="space-y-4">
+          <ServiceOrderCustomerEquipmentCard :service-order="os" />
 
-        <!-- Garantia -->
-        <div v-if="isWarrantyReturn" class="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-6">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-violet-400">Garantia</h2>
-          <dl class="space-y-2.5">
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">OS de Origem</dt>
-              <dd>
-                <RouterLink
-                  :to="{ name: 'service-orders.detail', params: { id: os.warranty_origin_service_order_id } }"
-                  class="text-sm text-amber-400 hover:text-amber-300"
-                >
-                  Ver OS original
-                </RouterLink>
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">Sinal de Elegibilidade</dt>
-              <dd>
-                <span
-                  class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  :class="{
-                    'bg-emerald-500/20 text-emerald-300': os.warranty_signal_status === 'eligible',
-                    'bg-red-500/20 text-red-400': os.warranty_signal_status === 'ineligible',
-                    'bg-stone-500/20 text-stone-400': os.warranty_signal_status === 'unknown' || !os.warranty_signal_status,
-                  }"
-                >
-                  {{ os.warranty_signal_status === 'eligible' ? 'Elegível' : os.warranty_signal_status === 'ineligible' ? 'Inelegível' : 'Desconhecido' }}
-                </span>
-              </dd>
-            </div>
-            <div class="flex justify-between">
-              <dt class="text-sm text-stone-500">Decisão de Cobertura</dt>
-              <dd>
-                <span
-                  class="rounded-full px-2.5 py-0.5 text-xs font-semibold"
-                  :class="{
-                    'bg-amber-500/20 text-amber-300': os.warranty_decision_status === 'pending',
-                    'bg-emerald-500/20 text-emerald-300': os.warranty_decision_status === 'covered',
-                    'bg-red-500/20 text-red-400': os.warranty_decision_status === 'not_covered',
-                  }"
-                >
-                  {{ os.warranty_decision_status === 'pending' ? 'Pendente' : os.warranty_decision_status === 'covered' ? 'Coberto' : os.warranty_decision_status === 'not_covered' ? 'Não Coberto' : '—' }}
-                </span>
-              </dd>
-            </div>
-          </dl>
-        </div>
-
-        <!-- Atribuição de técnico -->
-        <div v-if="canAssign || os.assigned_membership_id" class="rounded-2xl border border-white/10 bg-white/5 p-6">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Técnico Responsável</h2>
-          <div v-if="canAssign" class="flex items-center gap-3">
-            <select v-model="selectedMembershipId" class="input flex-1">
-              <option :value="null">— Sem atribuição —</option>
-              <option v-for="m in memberships" :key="m.id" :value="m.id">
-                {{ m.user_name ?? m.user_email }} ({{ m.role }})
-              </option>
-            </select>
-            <button
-              :disabled="assignLoading"
-              class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
-              @click="doAssign"
-            >
-              {{ assignLoading ? 'Salvando…' : 'Salvar' }}
-            </button>
-          </div>
-          <div v-else-if="os.assigned_membership_name" class="text-sm text-stone-300">
-            {{ os.assigned_membership_name }}
-          </div>
-          <div v-else class="text-sm text-stone-500">Nenhum técnico atribuído.</div>
-        </div>
-
-        <!-- Orçamentos -->
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Orçamentos</h2>
-          <div v-if="quotes.length === 0" class="text-sm text-stone-500">Nenhum orçamento cadastrado.</div>
-          <div v-else class="space-y-4">
-            <div
-              v-for="q in quotes"
-              :key="q.id"
-              class="rounded-xl border border-white/5 bg-black/20 p-4"
-            >
-              <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <span class="text-sm font-semibold text-stone-200">Revisão {{ q.revision_number }}</span>
-                <div class="flex items-center gap-2">
-                  <span :class="quoteStatusLabels[q.status]?.cls" class="rounded-full px-2.5 py-0.5 text-xs font-semibold">
-                    {{ quoteStatusLabels[q.status]?.label ?? q.status }}
-                  </span>
-                  <button
-                    v-if="q.status === 'pending'"
-                    class="rounded-lg border border-amber-500/30 px-2.5 py-1 text-xs text-amber-400 hover:bg-amber-500/10"
-                    @click="doGeneratePortalToken(q.id)"
-                  >
-                    Gerar Link do Portal
-                  </button>
-                </div>
-              </div>
-              <!-- Link do portal gerado -->
-              <div v-if="portalLinks[q.id]" class="mb-3 flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
-                <span class="flex-1 truncate font-mono text-xs text-amber-300">{{ portalLinks[q.id] }}</span>
-                <button class="text-xs text-stone-400 hover:text-stone-200" @click="() => copyLink(portalLinks[q.id])">Copiar</button>
-              </div>
-              <div class="space-y-1">
-                <div
-                  v-for="(item, i) in q.line_items"
-                  :key="i"
-                  class="flex items-center justify-between text-sm"
-                >
-                  <span class="text-stone-400">{{ item.quantity }}x {{ item.description }}</span>
-                  <span class="text-stone-300">{{ fmtMoney(item.unit_price_cents * item.quantity) }}</span>
-                </div>
-              </div>
-              <div class="mt-3 flex justify-between border-t border-white/5 pt-2">
-                <span class="text-sm font-semibold text-stone-300">Total</span>
-                <span class="font-semibold text-amber-300">{{ fmtMoney(q.total_cents) }}</span>
-              </div>
-              <div class="mt-2 flex flex-wrap gap-3 text-xs text-stone-500">
-                <span>Válido até {{ fmt(q.valid_until) }}</span>
-                <span v-if="q.decisioned_at">Decisão: {{ fmt(q.decisioned_at) }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Financeiro -->
-        <div v-if="financials" class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-500">Financeiro</h2>
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-if="os.status === 'in_progress' && quotes.some(q => q.status === 'approved') && !financials.charges.some(c => c.charge_type === 'approved_quote')"
-                class="rounded-lg border border-amber-500/30 px-3 py-1 text-xs text-amber-400 hover:bg-amber-500/10"
-                @click="doDeriveCharge"
-              >
-                Derivar Cobrança do Orçamento
-              </button>
-              <button
-                v-if="!isTerminal"
-                class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 hover:border-amber-500/30 hover:text-amber-300"
-                @click="() => { showDiagFeeForm = !showDiagFeeForm; showAdjustForm = false }"
-              >
-                + Taxa de Diagnóstico
-              </button>
-              <button
-                v-if="!isTerminal"
-                class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 hover:border-amber-500/30 hover:text-amber-300"
-                @click="() => { showAdjustForm = !showAdjustForm; showDiagFeeForm = false }"
-              >
-                + Ajuste
-              </button>
-            </div>
-          </div>
-          <!-- Formulário taxa diagnóstico -->
-          <div v-if="showDiagFeeForm" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
-            <p class="text-xs font-semibold text-amber-300">Taxa de Diagnóstico</p>
-            <div class="grid gap-3 sm:grid-cols-3">
-              <input v-model="chargeDesc" placeholder="Descrição" class="input sm:col-span-2" />
-              <input v-model="chargeAmount" placeholder="R$ (ex: 50,00)" class="input" />
-            </div>
-            <input v-model="chargeNotes" placeholder="Observações (opcional)" class="input" />
-            <div class="flex gap-2">
-              <button class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-stone-950 hover:bg-amber-400" @click="saveCharge('diagnostic_fee')">Salvar</button>
-              <button class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-400" @click="showDiagFeeForm = false">Cancelar</button>
-            </div>
-          </div>
-          <!-- Formulário ajuste -->
-          <div v-if="showAdjustForm" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
-            <p class="text-xs font-semibold text-amber-300">Ajuste Financeiro</p>
-            <p class="text-xs text-stone-400">Use valor negativo para desconto (ex: -30,00).</p>
-            <div class="grid gap-3 sm:grid-cols-3">
-              <input v-model="chargeDesc" placeholder="Descrição" class="input sm:col-span-2" />
-              <input v-model="chargeAmount" placeholder="R$ (ex: -30,00)" class="input" />
-            </div>
-            <input v-model="chargeNotes" placeholder="Observações (opcional)" class="input" />
-            <div class="flex gap-2">
-              <button class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-stone-950 hover:bg-amber-400" @click="saveCharge('adjustment')">Salvar</button>
-              <button class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-400" @click="showAdjustForm = false">Cancelar</button>
-            </div>
-          </div>
-          <!-- Resumo -->
-          <div class="mb-4 grid grid-cols-3 gap-3 rounded-xl border border-white/5 bg-black/20 p-4">
-            <div>
-              <p class="text-xs text-stone-500">Total Cobrado</p>
-              <p class="text-lg font-semibold text-stone-200">{{ fmtMoney(financials.summary.total_charged_cents) }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-stone-500">Total Pago</p>
-              <p class="text-lg font-semibold text-emerald-400">{{ fmtMoney(financials.summary.total_paid_cents) }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-stone-500">Saldo Devedor</p>
-              <p class="text-lg font-semibold" :class="financials.summary.outstanding_balance_cents > 0 ? 'text-red-400' : 'text-stone-400'">
-                {{ fmtMoney(financials.summary.outstanding_balance_cents) }}
-              </p>
-            </div>
-          </div>
-          <!-- Cobranças -->
-          <div v-if="financials.charges.length > 0" class="mb-4">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Cobranças</p>
-            <div class="space-y-1.5">
-              <div v-for="c in financials.charges" :key="c.id" class="flex justify-between text-sm">
-                <span class="text-stone-400">{{ c.description }}</span>
-                <span class="text-stone-300">{{ fmtMoney(c.amount_cents) }}</span>
-              </div>
-            </div>
-          </div>
-          <!-- Pagamentos -->
-          <div v-if="financials.payments.length > 0">
-            <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Pagamentos Recebidos</p>
-            <div class="space-y-1.5">
-              <div v-for="p in financials.payments" :key="p.id" class="flex flex-wrap items-center justify-between gap-2 text-sm">
-                <span class="text-stone-400">{{ paymentMethodLabels[p.payment_method] ?? p.payment_method }} — {{ fmt(p.received_at) }}</span>
-                <div class="flex items-center gap-3">
-                  <a
-                    :href="router.resolve({ name: 'service-orders.documents.receipt', params: { id: route.params.id, paymentId: p.id } }).href"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="text-xs text-amber-400 hover:text-amber-300"
-                  >
-                    Imprimir recibo
-                  </a>
-                  <span class="text-emerald-400">{{ fmtMoney(p.amount_cents) }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Checklist de Recebimento -->
-        <div v-if="os.intake_checklist && os.intake_checklist.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Checklist de Recebimento</h2>
-          <div class="space-y-2">
-            <div v-for="(item, i) in os.intake_checklist" :key="i" class="flex items-center gap-3 text-sm">
-              <span
-                class="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                :class="item.checked === true ? 'bg-emerald-500/20 text-emerald-400' : item.checked === false ? 'bg-red-500/20 text-red-400' : 'bg-stone-500/20 text-stone-400'"
-              >
-                {{ item.checked === true ? '✓' : item.checked === false ? '✕' : '—' }}
-              </span>
-              <span class="text-stone-300">{{ item.label }}</span>
-              <span v-if="item.notes" class="text-stone-500">· {{ item.notes }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Entradas de Execução -->
-        <div v-if="os.execution_entries && os.execution_entries.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Serviços e Peças Registrados</h2>
-          <div class="space-y-1.5">
-            <div v-for="entry in os.execution_entries" :key="entry.id" class="flex items-center justify-between text-sm">
-              <div class="flex items-center gap-2">
-                <span
-                  class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                  :class="entry.entry_type === 'service' ? 'bg-sky-500/20 text-sky-300' : 'bg-amber-500/20 text-amber-300'"
-                >
-                  {{ entry.entry_type === 'service' ? 'Serviço' : 'Peça' }}
-                </span>
-                <span class="text-stone-300">{{ entry.description }}</span>
-              </div>
-              <span class="text-stone-500">{{ entry.quantity }}x</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Resultados dos Testes Finais -->
-        <div v-if="os.final_test_results && os.final_test_results.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Testes Finais</h2>
-          <div class="space-y-2">
-            <div v-for="(test, i) in os.final_test_results" :key="i" class="flex items-center gap-3 text-sm">
-              <span
-                class="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                :class="test.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'"
-              >
-                {{ test.passed ? '✓' : '✕' }}
-              </span>
-              <span class="text-stone-300">{{ test.label }}</span>
-              <span v-if="test.notes" class="text-stone-500">· {{ test.notes }}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Anexos -->
-        <div class="rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
-          <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-500">Anexos</h2>
-            <button
-              v-if="!isTerminal"
-              class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 transition hover:border-amber-500/30 hover:text-amber-300"
-              :disabled="uploadLoading"
-              @click="showUploadForm = !showUploadForm"
-            >
-              {{ uploadLoading ? 'Enviando…' : (showUploadForm ? 'Cancelar' : '+ Adicionar arquivo') }}
-            </button>
-          </div>
-          <!-- Formulário de upload -->
-          <div v-if="showUploadForm" class="mb-4 rounded-xl border border-white/10 bg-black/20 p-4 space-y-3">
-            <p class="text-xs font-semibold text-stone-400">Tipo de Anexo</p>
-            <div class="grid gap-3 sm:grid-cols-[1fr_auto]">
-              <select v-model="uploadType" class="input">
-                <option value="intake_photo">Foto de Entrada</option>
-                <option value="diagnostic_image">Imagem Diagnóstico</option>
-                <option value="receipt">Recibo</option>
-                <option value="term">Termo</option>
-                <option :value="signedServiceOrderCopyType">Via Assinada da O.S.</option>
-                <option value="other">Outro</option>
+          <!-- Técnico Responsável -->
+          <div v-if="canAssign || os.assigned_membership_id" class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-widest text-stone-500">Técnico Responsável</h2>
+            <div v-if="canAssign" class="flex items-center gap-2">
+              <select v-model="selectedMembershipId" class="input flex-1">
+                <option :value="null">— Sem atribuição —</option>
+                <option v-for="m in memberships" :key="m.id" :value="m.id">
+                  {{ m.user_name ?? m.user_email }} ({{ m.role }})
+                </option>
               </select>
-              <label class="cursor-pointer whitespace-nowrap rounded-xl border border-amber-500/30 px-4 py-2.5 text-sm text-amber-400 transition hover:bg-amber-500/10">
-                Escolher arquivo…
-                <input type="file" class="sr-only" :disabled="uploadLoading" @change="uploadAttachment" />
-              </label>
-            </div>
-            <p v-if="uploadError" class="text-xs text-red-400">{{ uploadError }}</p>
-          </div>
-          <div
-            v-if="hasSignedServiceOrderCopy"
-            class="mb-4 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300"
-          >
-            Via assinada da O.S. já vinculada a este atendimento.
-          </div>
-          <div v-if="attachments.length === 0" class="text-sm text-stone-500">Nenhum anexo.</div>
-          <div v-else class="space-y-2">
-            <div v-for="a in attachments" :key="a.id" class="flex items-center justify-between rounded-lg border border-white/5 bg-black/20 px-4 py-2.5">
-              <div>
-                <p class="text-sm text-stone-200">{{ a.file_name }}</p>
-                <p class="text-xs text-stone-500">{{ attachmentTypeLabel(a.attachment_type) }} · {{ fmtBytes(a.file_size_bytes) }} · {{ fmt(a.created_at) }}</p>
-              </div>
-              <button class="text-xs text-amber-400 hover:text-amber-300" @click="downloadAttachment(a.id)">
-                Baixar
+              <button
+                :disabled="assignLoading"
+                class="rounded-xl bg-amber-500 px-3 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+                @click="doAssign"
+              >
+                {{ assignLoading ? '…' : 'Salvar' }}
               </button>
+            </div>
+            <div v-else-if="os.assigned_membership_name" class="text-sm text-stone-300">
+              {{ os.assigned_membership_name }}
+            </div>
+            <div v-else class="text-sm text-stone-500">Nenhum técnico atribuído.</div>
+          </div>
+
+          <!-- Checklist de Recebimento -->
+          <div v-if="os.intake_checklist && os.intake_checklist.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-widest text-stone-500">Checklist de Recebimento</h2>
+            <div class="space-y-2">
+              <div v-for="(item, i) in os.intake_checklist" :key="i" class="flex items-center gap-3 text-sm">
+                <span
+                  class="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                  :class="item.checked === true ? 'bg-emerald-500/20 text-emerald-400' : item.checked === false ? 'bg-red-500/20 text-red-400' : 'bg-stone-500/20 text-stone-400'"
+                >
+                  {{ item.checked === true ? '✓' : item.checked === false ? '✕' : '—' }}
+                </span>
+                <span class="text-stone-300">{{ item.label }}</span>
+                <span v-if="item.notes" class="text-stone-500">· {{ item.notes }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Anexos -->
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <div class="mb-3 flex items-center justify-between">
+              <h2 class="text-xs font-semibold uppercase tracking-widest text-stone-500">Anexos</h2>
+              <button
+                v-if="!isTerminal"
+                class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 transition hover:border-amber-500/30 hover:text-amber-300"
+                :disabled="uploadLoading"
+                @click="showUploadForm = !showUploadForm"
+              >
+                {{ uploadLoading ? 'Enviando…' : (showUploadForm ? 'Cancelar' : '+ Adicionar') }}
+              </button>
+            </div>
+            <!-- Formulário de upload -->
+            <div v-if="showUploadForm" class="mb-3 rounded-xl border border-white/10 bg-black/20 p-3 space-y-2">
+              <div class="grid gap-2 grid-cols-[1fr_auto]">
+                <select v-model="uploadType" class="input text-xs py-2">
+                  <option value="intake_photo">Foto de Entrada</option>
+                  <option value="diagnostic_image">Imagem Diagnóstico</option>
+                  <option value="receipt">Recibo</option>
+                  <option value="term">Termo</option>
+                  <option :value="signedServiceOrderCopyType">Via Assinada da O.S.</option>
+                  <option value="other">Outro</option>
+                </select>
+                <label class="cursor-pointer whitespace-nowrap rounded-xl border border-amber-500/30 px-3 py-2 text-xs text-amber-400 transition hover:bg-amber-500/10">
+                  Escolher…
+                  <input type="file" class="sr-only" :disabled="uploadLoading" @change="uploadAttachment" />
+                </label>
+              </div>
+              <p v-if="uploadError" class="text-xs text-red-400">{{ uploadError }}</p>
+            </div>
+            <div
+              v-if="hasSignedServiceOrderCopy"
+              class="mb-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs text-emerald-300"
+            >
+              Via assinada da O.S. vinculada.
+            </div>
+            <div v-if="attachments.length === 0" class="text-sm text-stone-500">Nenhum anexo.</div>
+            <div v-else class="space-y-1.5">
+              <div
+                v-for="a in attachments"
+                :key="a.id"
+                class="flex items-center justify-between rounded-lg border border-white/5 bg-black/20 px-3 py-2"
+              >
+                <div class="min-w-0">
+                  <p class="truncate text-sm text-stone-200">{{ a.file_name }}</p>
+                  <p class="text-xs text-stone-500">{{ attachmentTypeLabel(a.attachment_type) }} · {{ fmtBytes(a.file_size_bytes) }}</p>
+                </div>
+                <button class="ml-2 shrink-0 text-xs text-amber-400 hover:text-amber-300" @click="downloadAttachment(a.id)">
+                  Baixar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- COLUNA DIREITA: fluxo de trabalho — diagnóstico → orçamento → financeiro → execução -->
+        <div class="space-y-4">
+          <ServiceOrderWarrantyCard v-if="isWarrantyReturn" :service-order="os" />
+          <ServiceOrderDiagnosisCard :service-order="os" :format-date-time="fmt" />
+
+          <ServiceOrderQuotesSection
+            :quotes="quotes"
+            :portal-links="portalLinks"
+            :quote-status-labels="quoteStatusLabels"
+            :format-date-time="fmt"
+            :format-money="fmtMoney"
+            @generate-portal-token="doGeneratePortalToken"
+            @copy-link="copyLink"
+          />
+
+          <!-- Financeiro -->
+          <div v-if="financials" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+              <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-500">Financeiro</h2>
+              <div class="flex flex-wrap gap-2">
+                <button
+                  v-if="os.status === 'in_progress' && quotes.some(q => q.status === 'approved') && !financials.charges.some(c => c.charge_type === 'approved_quote')"
+                  class="rounded-lg border border-amber-500/30 px-3 py-1 text-xs text-amber-400 hover:bg-amber-500/10"
+                  @click="doDeriveCharge"
+                >
+                  Derivar Cobrança do Orçamento
+                </button>
+                <button
+                  v-if="!isTerminal"
+                  class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 hover:border-amber-500/30 hover:text-amber-300"
+                  @click="() => { showDiagFeeForm = !showDiagFeeForm; showAdjustForm = false }"
+                >
+                  + Taxa de Diagnóstico
+                </button>
+                <button
+                  v-if="!isTerminal"
+                  class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 hover:border-amber-500/30 hover:text-amber-300"
+                  @click="() => { showAdjustForm = !showAdjustForm; showDiagFeeForm = false }"
+                >
+                  + Ajuste
+                </button>
+              </div>
+            </div>
+            <!-- Formulário taxa diagnóstico -->
+            <div v-if="showDiagFeeForm" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+              <p class="text-xs font-semibold text-amber-300">Taxa de Diagnóstico</p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <input v-model="chargeDesc" placeholder="Descrição" class="input sm:col-span-2" />
+                <input v-model="chargeAmount" placeholder="R$ (ex: 50,00)" class="input" />
+              </div>
+              <input v-model="chargeNotes" placeholder="Observações (opcional)" class="input" />
+              <div class="flex gap-2">
+                <button class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-stone-950 hover:bg-amber-400" @click="saveCharge('diagnostic_fee')">Salvar</button>
+                <button class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-400" @click="showDiagFeeForm = false">Cancelar</button>
+              </div>
+            </div>
+            <!-- Formulário ajuste -->
+            <div v-if="showAdjustForm" class="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+              <p class="text-xs font-semibold text-amber-300">Ajuste Financeiro</p>
+              <p class="text-xs text-stone-400">Use valor negativo para desconto (ex: -30,00).</p>
+              <div class="grid gap-3 sm:grid-cols-3">
+                <input v-model="chargeDesc" placeholder="Descrição" class="input sm:col-span-2" />
+                <input v-model="chargeAmount" placeholder="R$ (ex: -30,00)" class="input" />
+              </div>
+              <input v-model="chargeNotes" placeholder="Observações (opcional)" class="input" />
+              <div class="flex gap-2">
+                <button class="rounded-lg bg-amber-500 px-3 py-1.5 text-xs font-semibold text-stone-950 hover:bg-amber-400" @click="saveCharge('adjustment')">Salvar</button>
+                <button class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-400" @click="showAdjustForm = false">Cancelar</button>
+              </div>
+            </div>
+            <!-- Resumo -->
+            <div class="mb-4 grid grid-cols-3 gap-3 rounded-xl border border-white/5 bg-black/20 p-4">
+              <div>
+                <p class="text-xs text-stone-500">Total Cobrado</p>
+                <p class="text-lg font-semibold text-stone-200">{{ fmtMoney(financials.summary.total_charged_cents) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-stone-500">Total Pago</p>
+                <p class="text-lg font-semibold text-emerald-400">{{ fmtMoney(financials.summary.total_paid_cents) }}</p>
+              </div>
+              <div>
+                <p class="text-xs text-stone-500">Saldo Devedor</p>
+                <p
+                  class="text-lg font-semibold"
+                  :class="financials.summary.outstanding_balance_cents > 0 ? 'text-red-400' : 'text-stone-400'"
+                >
+                  {{ fmtMoney(financials.summary.outstanding_balance_cents) }}
+                </p>
+              </div>
+            </div>
+            <!-- Cobranças -->
+            <div v-if="financials.charges.length > 0" class="mb-4">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Cobranças</p>
+              <div class="space-y-1.5">
+                <div v-for="c in financials.charges" :key="c.id" class="flex justify-between text-sm">
+                  <span class="text-stone-400">{{ c.description }}</span>
+                  <span class="text-stone-300">{{ fmtMoney(c.amount_cents) }}</span>
+                </div>
+              </div>
+            </div>
+            <!-- Pagamentos -->
+            <div v-if="financials.payments.length > 0">
+              <p class="mb-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Pagamentos Recebidos</p>
+              <div class="space-y-1.5">
+                <div
+                  v-for="p in financials.payments"
+                  :key="p.id"
+                  class="flex flex-wrap items-center justify-between gap-2 text-sm"
+                >
+                  <span class="text-stone-400">{{ paymentMethodLabels[p.payment_method] ?? p.payment_method }} — {{ fmt(p.received_at) }}</span>
+                  <div class="flex items-center gap-3">
+                    <a
+                      :href="router.resolve({ name: 'service-orders.documents.receipt', params: { id: route.params.id, paymentId: p.id } }).href"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="text-xs text-amber-400 hover:text-amber-300"
+                    >
+                      Imprimir recibo
+                    </a>
+                    <span class="text-emerald-400">{{ fmtMoney(p.amount_cents) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Serviços e Peças Registrados -->
+          <div v-if="os.execution_entries && os.execution_entries.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-widest text-stone-500">Serviços e Peças Registrados</h2>
+            <div class="space-y-1.5">
+              <div v-for="entry in os.execution_entries" :key="entry.id" class="flex items-center justify-between text-sm">
+                <div class="flex items-center gap-2">
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs font-semibold"
+                    :class="entry.entry_type === 'service' ? 'bg-sky-500/20 text-sky-300' : 'bg-amber-500/20 text-amber-300'"
+                  >
+                    {{ entry.entry_type === 'service' ? 'Serviço' : 'Peça' }}
+                  </span>
+                  <span class="text-stone-300">{{ entry.description }}</span>
+                </div>
+                <span class="text-stone-500">{{ entry.quantity }}x</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Testes Finais -->
+          <div v-if="os.final_test_results && os.final_test_results.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <h2 class="mb-3 text-xs font-semibold uppercase tracking-widest text-stone-500">Testes Finais</h2>
+            <div class="space-y-2">
+              <div v-for="(test, i) in os.final_test_results" :key="i" class="flex items-center gap-3 text-sm">
+                <span
+                  class="flex size-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                  :class="test.passed ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'"
+                >
+                  {{ test.passed ? '✓' : '✕' }}
+                </span>
+                <span class="text-stone-300">{{ test.label }}</span>
+                <span v-if="test.notes" class="text-stone-500">· {{ test.notes }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Timeline -->
-      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Linha do Tempo</h2>
-        <div v-if="timeline.length === 0" class="text-sm text-stone-500">Nenhum evento registrado.</div>
-        <div v-else class="relative space-y-4 pl-4">
-          <div class="absolute left-0 top-0 bottom-0 w-px bg-white/10" />
-          <div
-            v-for="event in timeline"
-            :key="event.id"
-            class="relative"
-          >
-            <div class="absolute -left-4 top-1.5 size-2 rounded-full bg-amber-500/60" />
-            <div class="ml-2">
-              <p class="text-sm font-medium text-stone-200">{{ event.title }}</p>
-              <p class="text-xs text-stone-500">{{ fmt(event.occurred_at) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <ServiceOrderTimelinePanel :timeline="timeline" :format-date-time="fmt" />
     </template>
   </div>
+
+  <PasswordConfirmModal
+    v-if="showDeleteModal"
+    title="Mover para a Lixeira"
+    description="A OS será movida para a lixeira e poderá ser restaurada ou excluída definitivamente de lá."
+    confirm-label="Mover para Lixeira"
+    :loading="deleteLoading"
+    :error="deleteError"
+    @confirm="doTrashServiceOrder"
+    @cancel="showDeleteModal = false"
+  />
 </template>
 
 <style scoped>
 @reference "../../style.css";
 
-.input {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20;
-}
 </style>

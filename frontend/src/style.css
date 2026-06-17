@@ -1,10 +1,38 @@
 @import "tailwindcss";
 
+/* ─── Design tokens ───────────────────────────────────── */
 :root {
-  color: #f6efe5;
+  /* Dark (default) */
+  --c-bg:             #17171b;
+  --c-gradient:       rgba(251, 146, 60, 0.07);
+  --c-sidebar:        #111113;
+  --c-sidebar-border: rgba(255, 255, 255, 0.06);
+  --c-surface:        rgba(255, 255, 255, 0.025);
+  --c-surface-hover:  rgba(255, 255, 255, 0.05);
+  --c-border:         rgba(255, 255, 255, 0.08);
+  --c-border-strong:  rgba(255, 255, 255, 0.14);
+  --c-card:           rgba(0,   0,   0,   0.20);
+  --c-text:           #e8e3de;
+  --c-text-muted:     #78716c;
+  --c-text-dim:       #57534e;
+  --c-header:         rgba(17, 17, 19, 0.75);
+  --c-nav-hover:      rgba(255, 255, 255, 0.05);
+  --c-nav-active:     rgba(251, 146, 60, 0.08);
+  --c-input-bg:       rgba(255, 255, 255, 0.04);
+  --c-input-border:   rgba(255, 255, 255, 0.10);
+  --c-select-bg:      #1a1418;
+  --c-select-color:   #f6efe5;
+  --c-table:          rgba(255, 255, 255, 0.04);
+  --c-table-head:     rgba(255, 255, 255, 0.06);
+  --c-table-stripe:   rgba(255, 255, 255, 0.015);
+  --c-badge-emerald:  #34d399;
+  --c-badge-sky:      #7dd3fc;
+  --c-badge-red:      #f87171;
+
+  color: var(--c-text);
   background:
-    radial-gradient(circle at top, rgba(215, 102, 55, 0.28), transparent 28%),
-    linear-gradient(160deg, #24120e 0%, #140f16 45%, #0d1117 100%);
+    radial-gradient(ellipse at top, var(--c-gradient), transparent 55%),
+    var(--c-bg);
   font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -12,7 +40,36 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
+html.light {
+  --c-bg:             #f3f1ee;
+  --c-gradient:       rgba(251, 146, 60, 0.05);
+  --c-sidebar:        #ffffff;
+  --c-sidebar-border: rgba(0, 0, 0, 0.07);
+  --c-surface:        rgba(255, 255, 255, 0.85);
+  --c-surface-hover:  rgba(255, 255, 255, 1);
+  --c-border:         rgba(0, 0, 0, 0.09);
+  --c-border-strong:  rgba(0, 0, 0, 0.15);
+  --c-card:           rgba(255, 255, 255, 0.70);
+  --c-text:           #1c1917;
+  --c-text-muted:     #78716c;
+  --c-text-dim:       #a8a29e;
+  --c-header:         rgba(243, 241, 238, 0.88);
+  --c-nav-hover:      rgba(0, 0, 0, 0.04);
+  --c-nav-active:     rgba(251, 146, 60, 0.10);
+  --c-input-bg:       rgba(0, 0, 0, 0.04);
+  --c-input-border:   rgba(0, 0, 0, 0.12);
+  --c-select-bg:      #ffffff;
+  --c-select-color:   #1c1917;
+  --c-table:          #ffffff;
+  --c-table-head:     rgba(0, 0, 0, 0.03);
+  --c-table-stripe:   rgba(0, 0, 0, 0.015);
+  --c-badge-emerald:  #047857;
+  --c-badge-sky:      #0369a1;
+  --c-badge-red:      #b91c1c;
+}
+
+/* ─── Base resets ─────────────────────────────────────── */
+*, *::before, *::after {
   box-sizing: border-box;
 }
 
@@ -30,3 +87,103 @@ a {
   color: inherit;
   text-decoration: none;
 }
+
+/* ─── Select theming ──────────────────────────────────── */
+select,
+select option,
+select optgroup {
+  color: var(--c-select-color);
+  background-color: var(--c-select-bg);
+}
+
+select {
+  color-scheme: dark;
+}
+
+html.light select {
+  color-scheme: light;
+}
+
+/* ─── Light-mode overrides for common Tailwind utilities ─ */
+
+/* Text colors (light text → dark in light mode) */
+html.light .text-white,
+html.light .text-stone-100,
+html.light .text-stone-200 {
+  color: #1c1917 !important;
+}
+
+/* Restore white text on colored buttons — override the rule above */
+html.light button.text-white,
+html.light a.text-white {
+  color: #ffffff !important;
+}
+
+/* Soften near-black on amber/colored buttons */
+html.light .text-stone-950 {
+  color: #44403c !important;  /* stone-700: dark but not harsh */
+}
+
+html.light .text-stone-300 {
+  color: #44403c !important;
+}
+
+html.light .text-stone-400 {
+  color: #57534e !important;
+}
+
+/* Dark background surfaces → light in light mode */
+html.light .bg-black\/20,
+html.light .bg-black\/30 {
+  background-color: rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .bg-white\/5 {
+  background-color: rgba(255, 255, 255, 0.80) !important;
+}
+
+html.light .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.90) !important;
+}
+
+/* Borders */
+html.light .border-white\/10 {
+  border-color: rgba(0, 0, 0, 0.09) !important;
+}
+
+html.light .border-white\/\[0\.06\] {
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+html.light .border-white\/\[0\.07\] {
+  border-color: rgba(0, 0, 0, 0.07) !important;
+}
+
+html.light .border-white\/\[0\.08\] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Placeholder */
+html.light .placeholder-stone-500::placeholder {
+  color: #a8a29e;
+}
+
+/* Badge / accent text — pastel variants → saturated in light mode */
+html.light .text-sky-300    { color: #0369a1 !important; }   /* sky-700 */
+html.light .text-amber-300  { color: #b45309 !important; }   /* amber-700 */
+html.light .text-emerald-300{ color: #047857 !important; }   /* emerald-700 */
+html.light .text-emerald-400{ color: #047857 !important; }
+html.light .text-violet-300 { color: #6d28d9 !important; }   /* violet-700 */
+html.light .text-red-300    { color: #b91c1c !important; }   /* red-700 */
+html.light .text-red-400    { color: #b91c1c !important; }
+html.light .text-orange-300 { color: #c2410c !important; }   /* orange-700 */
+html.light .text-orange-400 { color: #c2410c !important; }
+
+/* Badge backgrounds — keep the tint visible but not washed out */
+html.light .bg-sky-500\/20     { background-color: rgba(14, 165, 233, 0.12) !important; }
+html.light .bg-amber-500\/20   { background-color: rgba(245, 158, 11, 0.12) !important; }
+html.light .bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.12) !important; }
+html.light .bg-emerald-600\/20 { background-color: rgba(5,  150, 105, 0.12) !important; }
+html.light .bg-violet-500\/20  { background-color: rgba(139, 92, 246, 0.12) !important; }
+html.light .bg-red-500\/20     { background-color: rgba(239, 68, 68,  0.12) !important; }
+html.light .bg-orange-500\/20  { background-color: rgba(249, 115, 22, 0.12) !important; }

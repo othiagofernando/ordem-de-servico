@@ -35,7 +35,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: eba04b37-1e6f-4110-a6b6-b0cce9567e59
+          x-correlation-id: 34441971-6316-49cd-b9ea-83dc81a80821
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -142,7 +142,7 @@ endpoints:
         name: 'items[].required'
         description: ''
         required: false
-        example: false
+        example: true
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -155,7 +155,7 @@ endpoints:
         - key: b
           label: 'n'
           type: g
-          required: false
+          required: true
     fileParameters: []
     responses: []
     responseFields: []
@@ -412,7 +412,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: d5a1576f-9c5e-4442-a9f4-c4fc8dbadb6a
+          x-correlation-id: bbfb4f31-2682-4e6e-bd66-486c1316a4ae
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -498,7 +498,7 @@ endpoints:
         name: valid_until
         description: 'Must be a valid date.'
         required: false
-        example: '2026-06-09T11:12:52'
+        example: '2026-06-16T21:36:59'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -544,7 +544,7 @@ endpoints:
           unit_price_cents: 8
       notes: architecto
       currency: ngz
-      valid_until: '2026-06-09T11:12:52'
+      valid_until: '2026-06-16T21:36:59'
     fileParameters: []
     responses: []
     responseFields: []
@@ -946,7 +946,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 8cb5e111-2997-47de-8f3d-47e30e0208fe
+          x-correlation-id: 45712e73-a1d3-41ea-9afa-d4b50cf567c5
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -1150,7 +1150,7 @@ endpoints:
         name: payment_method
         description: ''
         required: true
-        example: credit_card
+        example: other
         type: string
         enumValues:
           - cash
@@ -1186,7 +1186,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       amount_cents: 16
-      payment_method: credit_card
+      payment_method: other
       currency: ngz
       notes: architecto
     fileParameters: []
@@ -1309,7 +1309,7 @@ endpoints:
         name: allow_balance_override
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -1329,7 +1329,7 @@ endpoints:
     cleanBodyParameters:
       received_by_name: b
       notes: architecto
-      allow_balance_override: true
+      allow_balance_override: false
       balance_override_reason: architecto
     fileParameters: []
     responses: []
@@ -1594,7 +1594,7 @@ endpoints:
         name: decision
         description: ''
         required: true
-        example: not_covered
+        example: covered
         type: string
         enumValues:
           - covered
@@ -1614,7 +1614,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanBodyParameters:
-      decision: not_covered
+      decision: covered
       notes: architecto
     fileParameters: []
     responses: []
@@ -1672,7 +1672,247 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 0f842118-be38-4af7-a226-046e8acf3304
+          x-correlation-id: 74b052ee-0a79-4c96-8d79-1fd7946f036b
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/service-orders/{serviceOrder_id}/printable'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return a printable payload for one formally opened service order.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 928a9c8b-6d50-4796-8283-fd1d9ff3b155
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/service-orders/{serviceOrder_id}/documents/quote'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return a printable payload for the current quote revision of a visible service order.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: ddc03938-7118-42d2-81b9-6462925dd4ea
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/service-orders/{serviceOrder_id}/documents/payments/{payment_id}/receipt'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return a printable payload for one immutable payment receipt snapshot.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      payment_id:
+        custom: []
+        name: payment_id
+        description: 'The ID of the payment.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 1
+      payment_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 911a604b-08f6-48fe-bdd1-1d238028a995
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/service-orders/{serviceOrder_id}/documents/delivery-term'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return a printable payload for one delivered service order handoff term.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: f4b008ae-db7c-44f9-871d-4117ceee7c5a
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -1717,7 +1957,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 8fcc0a35-9aa0-4342-a681-9df1406caeeb
+          x-correlation-id: e00a3ee6-d1a1-4d40-829b-e81631238b16
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -1732,14 +1972,14 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: api/v1/service-orders
+    uri: api/v1/service-orders/reports/service-orders
     metadata:
       custom: []
       groupName: 'Service Orders'
-      groupDescription: 'Applies the first record-scope rule: technicians only see service orders assigned to them.'
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'List tenant-scoped service orders visible to the active membership.'
+      title: 'Return a filterable service order report for the visible scope.'
       description: ''
       authenticated: true
       deprecated: false
@@ -1762,7 +2002,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: dd3d4632-ffa8-40d7-8761-6abe83920f79
+          x-correlation-id: acf67e24-823e-40ff-a62d-2671d4573312
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -1777,14 +2017,14 @@ endpoints:
     custom: []
     httpMethods:
       - GET
-    uri: 'api/v1/service-orders/{serviceOrder_id}'
+    uri: api/v1/service-orders/reports/financial
     metadata:
       custom: []
       groupName: 'Service Orders'
-      groupDescription: 'Returns 404 when the service order exists in the tenant but is outside the membership record scope.'
+      groupDescription: ''
       subgroup: ''
       subgroupDescription: ''
-      title: 'Return one visible service order.'
+      title: 'Return a filterable financial report for visible service orders.'
       description: ''
       authenticated: true
       deprecated: false
@@ -1792,24 +2032,59 @@ endpoints:
       Authorization: 'Bearer {YOUR_AUTH_KEY}'
       Content-Type: application/json
       Accept: application/json
-    urlParameters:
-      serviceOrder_id:
-        custom: []
-        name: serviceOrder_id
-        description: 'The ID of the serviceOrder.'
-        required: true
-        example: 1
-        type: integer
-        enumValues: []
-        exampleWasSpecified: false
-        nullable: false
-        deprecated: false
-    cleanUrlParameters:
-      serviceOrder_id: 1
+    urlParameters: []
+    cleanUrlParameters: []
     queryParameters: []
     cleanQueryParameters: []
-    bodyParameters: []
-    cleanBodyParameters: []
+    bodyParameters:
+      payment_method:
+        custom: []
+        name: payment_method
+        description: 'Must not be greater than 50 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      balance_state:
+        custom: []
+        name: balance_state
+        description: ''
+        required: false
+        example: null
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      received_from:
+        custom: []
+        name: received_from
+        description: 'Must be a valid date.'
+        required: false
+        example: '2026-06-16T21:36:59'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      received_to:
+        custom: []
+        name: received_to
+        description: 'Must be a valid date.'
+        required: false
+        example: '2026-06-16T21:36:59'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+    cleanBodyParameters:
+      payment_method: b
+      received_from: '2026-06-16T21:36:59'
+      received_to: '2026-06-16T21:36:59'
     fileParameters: []
     responses:
       -
@@ -1819,7 +2094,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 1c22fcf8-de61-4677-bfa1-405a3c150ce3
+          x-correlation-id: 8f9edf20-0cdf-4f6c-abe1-3d81f35018c5
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -1876,7 +2151,7 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 7511b7e8-00f8-4df1-8500-14205ef9a2cf
+          x-correlation-id: 778a4069-2292-434a-aaac-9209bc9ffe33
           access-control-allow-origin: '*'
         description: null
     responseFields: []
@@ -2031,7 +2306,109 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 01d325c7-f3df-4b2e-af33-3110993d65f1
+          x-correlation-id: fb9d3152-f9e9-44c9-a1e4-191425952256
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/service-orders
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: 'Applies the first record-scope rule: technicians only see service orders assigned to them.'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List tenant-scoped service orders visible to the active membership.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 404110d8-9302-4256-8d19-72fabfbcf5c6
+          access-control-allow-origin: '*'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: 'api/v1/service-orders/{serviceOrder_id}'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: 'Returns 404 when the service order exists in the tenant but is outside the membership record scope.'
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Return one visible service order.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 1
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 1
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 1173dedc-4ef9-46ca-ac46-4781ba263245
           access-control-allow-origin: '*'
         description: null
     responseFields: []

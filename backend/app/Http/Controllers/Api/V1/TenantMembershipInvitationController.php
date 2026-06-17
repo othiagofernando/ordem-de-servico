@@ -100,7 +100,7 @@ class TenantMembershipInvitationController extends Controller
                 ],
                 'invitation' => [
                     'token' => $plainTextToken,
-                    'accept_url' => url('/convites/'.$plainTextToken),
+                    'accept_url' => rtrim(env('FRONTEND_URL', config('app.url')), '/').'/convites/'.$plainTextToken,
                     'requires_password_setup' => $requiresPasswordSetup,
                 ],
             ],

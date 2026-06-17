@@ -23,17 +23,40 @@ onMounted(async () => {
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
     <template v-else-if="customer">
-      <div class="flex items-start justify-between">
+      <div class="flex items-start justify-between gap-3">
         <div>
           <h1 class="text-2xl font-semibold text-white">{{ customer.name }}</h1>
           <p v-if="customer.trade_name" class="text-stone-400">{{ customer.trade_name }}</p>
         </div>
-        <RouterLink
-          :to="{ name: 'customers.edit', params: { id: customer.id } }"
-          class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
-        >
-          Editar
-        </RouterLink>
+        <div class="flex flex-wrap gap-2">
+          <RouterLink
+            :to="{ name: 'service-orders.create', query: { customer_id: customer.id } }"
+            class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
+          >
+            + Nova OS
+          </RouterLink>
+          <RouterLink
+            :to="{ name: 'customers.edit', params: { id: customer.id } }"
+            class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
+          >
+            Editar
+          </RouterLink>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Tipo</p>
+          <p class="mt-2 text-lg font-semibold text-white">{{ customer.customer_type }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Contatos</p>
+          <p class="mt-2 text-lg font-semibold text-white">{{ customer.contacts.length }}</p>
+        </div>
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Endereços</p>
+          <p class="mt-2 text-lg font-semibold text-white">{{ customer.addresses.length }}</p>
+        </div>
       </div>
 
       <div class="grid gap-4 lg:grid-cols-2">

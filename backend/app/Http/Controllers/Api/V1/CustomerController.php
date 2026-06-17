@@ -27,6 +27,8 @@ class CustomerController extends Controller
     {
         $search = trim((string) $request->query('q', ''));
 
+        $perPage   = min((int) $request->query('per_page', 15), 100);
+
         $customers = Customer::query()
             ->with(['contacts', 'addresses'])
             ->when($search !== '', function ($query) use ($search): void {
@@ -44,10 +46,18 @@ class CustomerController extends Controller
                 });
             })
             ->orderBy('name')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
-            'data' => $customers->map(fn (Customer $customer): array => $this->serializeCustomer($customer))->all(),
+            'data' => collect($customers->items())->map(fn (Customer $customer): array => $this->serializeCustomer($customer))->all(),
+            'meta' => [
+                'total'        => $customers->total(),
+                'per_page'     => $customers->perPage(),
+                'current_page' => $customers->currentPage(),
+                'last_page'    => $customers->lastPage(),
+                'from'         => $customers->firstItem() ?? 0,
+                'to'           => $customers->lastItem() ?? 0,
+            ],
         ]);
     }
 

@@ -25,9 +25,22 @@ export interface EquipmentPayload {
   override_reason?: string | null
 }
 
-export function listEquipments(q?: string) {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : ''
-  return apiGet<{ data: Equipment[] }>(`/equipments${qs}`)
+export interface PaginationMeta {
+  total: number
+  per_page: number
+  current_page: number
+  last_page: number
+  from: number
+  to: number
+}
+
+export function listEquipments(params?: { q?: string; page?: number; per_page?: number }) {
+  const qs = new URLSearchParams()
+  if (params?.q) qs.set('q', params.q)
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.per_page) qs.set('per_page', String(params.per_page))
+  const query = qs.toString() ? `?${qs.toString()}` : ''
+  return apiGet<{ data: Equipment[]; meta: PaginationMeta }>(`/equipments${query}`)
 }
 
 export function getEquipment(id: number) {

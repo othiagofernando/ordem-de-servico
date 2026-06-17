@@ -42,9 +42,22 @@ export interface CustomerPayload {
   addresses?: Omit<CustomerAddress, 'id'>[]
 }
 
-export function listCustomers(q?: string) {
-  const qs = q ? `?q=${encodeURIComponent(q)}` : ''
-  return apiGet<{ data: Customer[] }>(`/customers${qs}`)
+export interface PaginationMeta {
+  total: number
+  per_page: number
+  current_page: number
+  last_page: number
+  from: number
+  to: number
+}
+
+export function listCustomers(params?: { q?: string; page?: number; per_page?: number }) {
+  const qs = new URLSearchParams()
+  if (params?.q) qs.set('q', params.q)
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.per_page) qs.set('per_page', String(params.per_page))
+  const query = qs.toString() ? `?${qs.toString()}` : ''
+  return apiGet<{ data: Customer[]; meta: PaginationMeta }>(`/customers${query}`)
 }
 
 export function getCustomer(id: number) {

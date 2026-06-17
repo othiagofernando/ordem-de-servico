@@ -7,7 +7,9 @@ use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
+use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
+use App\Domains\ServiceOrders\Models\ServiceOrderCharge;
 use App\Domains\ServiceOrders\Models\ServiceOrderTimelineEvent;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -97,6 +99,20 @@ class ServiceOrderClosureController extends Controller
             'allow_balance_override' => ['sometimes', 'boolean'],
             'balance_override_reason' => ['nullable', 'string'],
         ]);
+
+        $hasApprovedQuote = $visible->quoteRevisions()
+            ->where('status', QuoteRevision::STATUS_APPROVED)
+            ->exists();
+
+        $hasDerivedApprovedQuoteCharge = $visible->charges()
+            ->where('charge_type', ServiceOrderCharge::TYPE_APPROVED_QUOTE)
+            ->exists();
+
+        if ($hasApprovedQuote && ! $hasDerivedApprovedQuoteCharge) {
+            throw ValidationException::withMessages([
+                'charge_type' => 'Approved quote charges must be derived before delivery can be completed.',
+            ]);
+        }
 
         $outstandingBalanceCents = $this->outstandingBalanceCents($visible);
         $allowBalanceOverride = (bool) ($payload['allow_balance_override'] ?? false);

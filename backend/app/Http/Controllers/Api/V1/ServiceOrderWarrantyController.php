@@ -148,6 +148,12 @@ class ServiceOrderWarrantyController extends Controller
             ]);
         }
 
+        if ($returnOrder->warranty_decision_status !== ServiceOrder::WARRANTY_DECISION_PENDING) {
+            throw ValidationException::withMessages([
+                'warranty_decision_status' => 'Warranty coverage has already been decided for this service order.',
+            ]);
+        }
+
         $payload = $request->validate([
             'decision' => ['required', 'string', 'in:covered,not_covered'],
             'notes' => ['required', 'string'],
