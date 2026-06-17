@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { listEquipments, type Equipment } from '../../api/equipments'
+import { listEquipments, type Equipment, type PaginationMeta } from '../../api/equipments'
 import { useSortable } from '../../composables/useSortable'
 import ThSort from '../../components/ThSort.vue'
+import AppPagination from '../../components/AppPagination.vue'
 
 const equipments = ref<Equipment[]>([])
 const loading = ref(true)
 const q = ref('')
+const page = ref(1)
+const perPage = ref(15)
+const meta = ref<PaginationMeta>({ total: 0, per_page: 15, current_page: 1, last_page: 1, from: 0, to: 0 })
 let searchTimer: ReturnType<typeof setTimeout>
 
 async function load() {
   loading.value = true
   try {
-    const res = await listEquipments(q.value || undefined)
+    const res = await listEquipments({ q: q.value || undefined, page: page.value, per_page: perPage.value })
     equipments.value = res.data
+    meta.value = res.meta
   } finally {
     loading.value = false
   }
@@ -22,8 +27,10 @@ async function load() {
 
 watch(q, () => {
   clearTimeout(searchTimer)
+  page.value = 1
   searchTimer = setTimeout(load, 300)
 })
+watch([page, perPage], load)
 
 onMounted(load)
 
@@ -48,34 +55,35 @@ const { sorted: sortedEquipments, toggleSort, sortState } = useSortable(equipmen
       v-model="q"
       type="search"
       placeholder="Buscar por categoria, marca, modelo, número de série, cliente…"
-      class="w-full max-w-md rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20"
+      class="search-input"
     />
 
-    <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
-    <div v-else-if="equipments.length === 0" class="py-16 text-center text-stone-500">Nenhum equipamento encontrado.</div>
+    <div v-if="loading" class="py-16 text-center td-meta">Carregando…</div>
+    <div v-else-if="equipments.length === 0" class="py-16 text-center td-meta">Nenhum equipamento encontrado.</div>
 
-    <div v-else class="overflow-hidden rounded-2xl border border-white/10">
+    <div v-else>
+    <div class="t-wrap">
       <table class="w-full text-sm">
         <thead>
-          <tr class="border-b border-white/10 bg-white/5">
+          <tr class="t-head">
             <ThSort :state="sortState('equipamento')" @click="toggleSort('equipamento')">Equipamento</ThSort>
             <ThSort :state="sortState('customer_name')" @click="toggleSort('customer_name')">Cliente</ThSort>
             <ThSort :state="sortState('serial_number')" @click="toggleSort('serial_number')">Nº de Série</ThSort>
             <th class="px-5 py-3" />
           </tr>
         </thead>
-        <tbody class="divide-y divide-white/5">
-          <tr v-for="e in sortedEquipments" :key="e.id" class="transition hover:bg-white/5">
+        <tbody class="t-body">
+          <tr v-for="e in sortedEquipments" :key="e.id" class="t-row">
             <td class="px-5 py-3.5">
-              <p class="font-medium text-white">{{ e.brand }} {{ e.model }}</p>
-              <p class="text-xs text-stone-500 capitalize">{{ e.category }}</p>
+              <p class="font-medium td-main">{{ e.brand }} {{ e.model }}</p>
+              <p class="text-xs td-meta capitalize">{{ e.category }}</p>
             </td>
-            <td class="px-5 py-3.5 text-stone-400">{{ e.customer_name ?? '—' }}</td>
-            <td class="px-5 py-3.5 font-mono text-xs text-stone-400">{{ e.serial_number ?? '—' }}</td>
+            <td class="px-5 py-3.5 td-data">{{ e.customer_name ?? '—' }}</td>
+            <td class="px-5 py-3.5 font-mono text-xs td-data">{{ e.serial_number ?? '—' }}</td>
             <td class="px-5 py-3.5 text-right">
               <RouterLink
                 :to="{ name: 'equipments.detail', params: { id: e.id } }"
-                class="rounded-lg border border-white/10 px-3 py-1 text-xs text-stone-400 transition hover:border-amber-500/30 hover:text-amber-300"
+                class="link-row-action"
               >
                 Ver
               </RouterLink>
@@ -84,5 +92,36 @@ const { sorted: sortedEquipments, toggleSort, sortState } = useSortable(equipmen
         </tbody>
       </table>
     </div>
+    <AppPagination
+      :meta="meta"
+      @update:page="page = $event"
+      @update:per-page="perPage = $event; page = 1"
+    />
+    </div>
   </div>
 </template>
+
+<style scoped>
+@reference "../../style.css";
+
+.search-input {
+  width: 100%;
+  max-width: 28rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--c-input-border);
+  background: var(--c-input-bg);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--c-text);
+  outline: none;
+}
+
+.search-input::placeholder {
+  color: var(--c-text-dim);
+}
+
+.search-input:focus {
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 0 1px rgba(251, 146, 60, 0.2);
+}
+</style>

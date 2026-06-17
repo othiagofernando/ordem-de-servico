@@ -1,0 +1,140 @@
+/* Shared table primitives — imported globally in main.ts */
+
+.t-wrap {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--c-border-strong);
+  background: var(--c-table);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.t-head {
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-table-head);
+}
+
+.t-body tr + tr {
+  border-top: 1px solid var(--c-border);
+}
+
+.t-row {
+  transition: background 0.1s;
+}
+
+.t-row:hover {
+  background: var(--c-nav-hover);
+}
+
+/* Semantic cell text roles */
+.td-main {
+  color: var(--c-text);
+  font-weight: 500;
+}
+
+.td-data {
+  color: var(--c-text-muted);
+}
+
+.td-sub {
+  color: var(--c-text-muted);
+}
+
+.td-meta {
+  color: var(--c-text-dim);
+}
+
+/* Chevron action button in table rows */
+.btn-row-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid var(--c-border);
+  padding: 0.375rem;
+  color: var(--c-text-muted);
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.btn-row-action:hover {
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fbbf24;
+}
+
+/* Ghost button — theme-aware, no fill, optional hover color */
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--c-border);
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  color: var(--c-text-muted);
+  background: transparent;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+}
+.btn-ghost:hover {
+  border-color: var(--c-border-strong);
+  color: var(--c-text);
+}
+.btn-ghost-danger:hover {
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+/* Document action link — small bordered pill for print/PDF links */
+.link-doc {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--c-border);
+  padding: 0.25rem 0.625rem;
+  font-size: 0.7rem;
+  letter-spacing: 0.01em;
+  color: var(--c-text-muted);
+  transition: border-color 0.15s, color 0.15s;
+}
+.link-doc:hover {
+  border-color: rgba(251, 146, 60, 0.4);
+  color: var(--c-text);
+}
+
+/* Form input / select / textarea — theme-aware */
+.input {
+  width: 100%;
+  border-radius: 0.75rem;
+  border: 1px solid var(--c-input-border);
+  background: var(--c-input-bg);
+  padding: 0.625rem 1rem;
+  font-size: 0.875rem;
+  color: var(--c-text);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.input::placeholder {
+  color: var(--c-text-dim);
+}
+
+.input:focus {
+  border-color: rgba(251, 146, 60, 0.5);
+  box-shadow: 0 0 0 3px rgba(251, 146, 60, 0.1);
+}
+
+/* Text link action in table rows */
+.link-row-action {
+  border-radius: 0.5rem;
+  border: 1px solid var(--c-border);
+  padding: 0.25rem 0.75rem;
+  font-size: 0.75rem;
+  color: var(--c-text-muted);
+  transition: border-color 0.1s, color 0.1s;
+}
+
+.link-row-action:hover {
+  border-color: rgba(251, 146, 60, 0.3);
+  color: #fbbf24;
+}

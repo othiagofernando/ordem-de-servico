@@ -24,6 +24,8 @@ class EquipmentController extends Controller
     {
         $search = trim((string) $request->query('q', ''));
 
+        $perPage = min((int) $request->query('per_page', 15), 100);
+
         $equipments = Equipment::query()
             ->with('customer')
             ->when($search !== '', function ($query) use ($search): void {
@@ -37,10 +39,18 @@ class EquipmentController extends Controller
                 });
             })
             ->orderBy('id')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
-            'data' => $equipments->map(fn (Equipment $equipment): array => $this->serializeEquipment($equipment))->all(),
+            'data' => collect($equipments->items())->map(fn (Equipment $equipment): array => $this->serializeEquipment($equipment))->all(),
+            'meta' => [
+                'total'        => $equipments->total(),
+                'per_page'     => $equipments->perPage(),
+                'current_page' => $equipments->currentPage(),
+                'last_page'    => $equipments->lastPage(),
+                'from'         => $equipments->firstItem() ?? 0,
+                'to'           => $equipments->lastItem() ?? 0,
+            ],
         ]);
     }
 

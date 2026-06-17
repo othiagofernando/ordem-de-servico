@@ -203,7 +203,7 @@ async function submit() {
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
             <label class="mb-1.5 block text-sm text-stone-300">Equipamento cadastrado</label>
-            <select v-model="form.equipment_id" :disabled="!form.customer_id" class="input disabled:opacity-40">
+            <select v-model="form.equipment_id" :disabled="!form.customer_id" class="input disabled:opacity-50">
               <option :value="null">Selecione o equipamento</option>
               <option v-for="e in filteredEquipments" :key="e.id" :value="e.id">
                 {{ e.brand }} {{ e.model }} {{ e.serial_number ? `— ${e.serial_number}` : '' }}
@@ -312,7 +312,4 @@ async function submit() {
 <style scoped>
 @reference "../../style.css";
 
-.input {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20;
-}
 </style>

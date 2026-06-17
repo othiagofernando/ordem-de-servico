@@ -3,12 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { useSortable } from '../../composables/useSortable'
 import ThSort from '../../components/ThSort.vue'
+import AppPagination from '../../components/AppPagination.vue'
 import {
   downloadFinancialReportCsv,
   downloadServiceOrderReportCsv,
   getFinancialReport,
   getServiceOrderReport,
   type FinancialReportResponse,
+  type PaginationMeta,
   type ServiceOrderQueue,
   type ServiceOrderReportResponse,
 } from '../../api/serviceOrders'
@@ -17,6 +19,15 @@ const activeTab = ref<'service_orders' | 'financial'>('service_orders')
 const loading = ref(false)
 const exporting = ref(false)
 const error = ref('')
+
+const soPage = ref(1)
+const soPerPage = ref(15)
+const finPage = ref(1)
+const finPerPage = ref(15)
+
+const emptyMeta: PaginationMeta = { total: 0, per_page: 15, current_page: 1, last_page: 1, from: 0, to: 0 }
+const soMeta = ref<PaginationMeta>({ ...emptyMeta })
+const finMeta = ref<PaginationMeta>({ ...emptyMeta })
 
 const serviceOrderFilters = ref<{
   q: string
@@ -51,7 +62,7 @@ const soRows = computed(() => serviceOrderReport.value?.data ?? [])
 const finRows = computed(() => financialReport.value?.data ?? [])
 
 const { sorted: sortedSoRows, toggleSort: soToggle, sortState: soState } = useSortable(soRows, {
-  reference: (r) => (r as { order_number?: string; reference: string }).order_number ?? (r as { reference: string }).reference,
+  reference: (r) => (r.order_number !== null ? String(r.order_number) : r.reference),
 })
 const { sorted: sortedFinRows, toggleSort: finToggle, sortState: finState } = useSortable(finRows)
 
@@ -129,27 +140,17 @@ function formatDate(value: string | null) {
 }
 
 function resetServiceOrderFilters() {
-  serviceOrderFilters.value = {
-    q: '',
-    queue: '',
-    opened_from: '',
-    opened_to: '',
-  }
-  loadServiceOrderReport()
+  serviceOrderFilters.value = { q: '', queue: '', opened_from: '', opened_to: '' }
+  loadServiceOrderReport(true)
 }
 
 function resetFinancialFilters() {
-  financialFilters.value = {
-    q: '',
-    payment_method: '',
-    balance_state: '',
-    received_from: '',
-    received_to: '',
-  }
-  loadFinancialReport()
+  financialFilters.value = { q: '', payment_method: '', balance_state: '', received_from: '', received_to: '' }
+  loadFinancialReport(true)
 }
 
-async function loadServiceOrderReport() {
+async function loadServiceOrderReport(resetPage = false) {
+  if (resetPage) soPage.value = 1
   loading.value = true
   error.value = ''
 
@@ -159,7 +160,10 @@ async function loadServiceOrderReport() {
       queue: serviceOrderFilters.value.queue || undefined,
       opened_from: serviceOrderFilters.value.opened_from || undefined,
       opened_to: serviceOrderFilters.value.opened_to || undefined,
+      page: soPage.value,
+      per_page: soPerPage.value,
     })
+    soMeta.value = serviceOrderReport.value.meta
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Falha ao carregar relatório de O.S.'
   } finally {
@@ -167,7 +171,8 @@ async function loadServiceOrderReport() {
   }
 }
 
-async function loadFinancialReport() {
+async function loadFinancialReport(resetPage = false) {
+  if (resetPage) finPage.value = 1
   loading.value = true
   error.value = ''
 
@@ -178,7 +183,10 @@ async function loadFinancialReport() {
       balance_state: financialFilters.value.balance_state || undefined,
       received_from: financialFilters.value.received_from || undefined,
       received_to: financialFilters.value.received_to || undefined,
+      page: finPage.value,
+      per_page: finPerPage.value,
     })
+    finMeta.value = financialReport.value.meta
   } catch (err) {
     error.value = err instanceof Error ? err.message : 'Falha ao carregar relatório financeiro.'
   } finally {
@@ -306,7 +314,7 @@ onMounted(loadActiveTab)
           <button
             class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
             :disabled="loading"
-            @click="loadServiceOrderReport"
+            @click="loadServiceOrderReport(true)"
           >
             {{ loading ? 'Consultando…' : 'Consultar relatório de O.S.' }}
           </button>
@@ -331,46 +339,51 @@ onMounted(loadActiveTab)
           </span>
         </div>
 
-        <p class="text-sm text-stone-500">{{ serviceOrderReport.meta.total }} ordem(ns) encontrada(s).</p>
-
         <div v-if="serviceOrderReport.data.length === 0" class="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-stone-400">
           Nenhuma O.S. encontrada para os filtros atuais.
         </div>
 
-        <div v-else class="overflow-hidden rounded-2xl border border-white/10">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-white/10 bg-white/5">
-                <ThSort :state="soState('reference')" @click="soToggle('reference')">Referência</ThSort>
-                <ThSort :state="soState('customer_name')" @click="soToggle('customer_name')">Cliente</ThSort>
-                <ThSort :state="soState('equipment_summary')" @click="soToggle('equipment_summary')">Equipamento</ThSort>
-                <ThSort :state="soState('status')" @click="soToggle('status')">Status</ThSort>
-                <ThSort :state="soState('latest_quote_status')" @click="soToggle('latest_quote_status')">Comercial</ThSort>
-                <ThSort :state="soState('assigned_membership_name')" @click="soToggle('assigned_membership_name')">Técnico</ThSort>
-                <ThSort :state="soState('opened_at')" @click="soToggle('opened_at')">Abertura</ThSort>
-                <th class="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-              <tr v-for="row in sortedSoRows" :key="row.id" class="bg-black/10">
-                <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
-                <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
-                <td class="px-4 py-3 text-stone-400">{{ row.equipment_summary || '—' }}</td>
-                <td class="px-4 py-3 text-stone-300">{{ statusLabels[row.status] ?? row.status }}</td>
-                <td class="px-4 py-3 text-stone-400">
-                  {{ warrantyDecisionLabels[row.warranty_decision_status ?? ''] ?? quoteDecisionLabels[row.latest_quote_status ?? ''] ?? '—' }}
-                </td>
-                <td class="px-4 py-3 text-stone-400">{{ row.assigned_membership_name ?? '—' }}</td>
-                <td class="px-4 py-3 text-stone-400">{{ formatDate(row.opened_at) }}</td>
-                <td class="px-4 py-3 text-right">
-                  <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.id } }" class="text-xs text-amber-300 hover:text-amber-200">
-                    Abrir
-                  </RouterLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-else>
+          <div class="t-wrap">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="t-head">
+                  <ThSort :state="soState('reference')" @click="soToggle('reference')">Referência</ThSort>
+                  <ThSort :state="soState('customer_name')" @click="soToggle('customer_name')">Cliente</ThSort>
+                  <ThSort :state="soState('equipment_summary')" @click="soToggle('equipment_summary')">Equipamento</ThSort>
+                  <ThSort :state="soState('status')" @click="soToggle('status')">Status</ThSort>
+                  <ThSort :state="soState('latest_quote_status')" @click="soToggle('latest_quote_status')">Comercial</ThSort>
+                  <ThSort :state="soState('assigned_membership_name')" @click="soToggle('assigned_membership_name')">Técnico</ThSort>
+                  <ThSort :state="soState('opened_at')" @click="soToggle('opened_at')">Abertura</ThSort>
+                  <th class="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody class="t-body">
+                <tr v-for="row in sortedSoRows" :key="row.id" class="t-row">
+                  <td class="px-4 py-3 font-mono text-xs text-amber-300">{{ row.order_number ?? row.reference }}</td>
+                  <td class="px-4 py-3 td-main">{{ row.customer_name ?? '—' }}</td>
+                  <td class="px-4 py-3 td-data">{{ row.equipment_summary || '—' }}</td>
+                  <td class="px-4 py-3 td-data">{{ statusLabels[row.status] ?? row.status }}</td>
+                  <td class="px-4 py-3 td-meta">
+                    {{ warrantyDecisionLabels[row.warranty_decision_status ?? ''] ?? quoteDecisionLabels[row.latest_quote_status ?? ''] ?? '—' }}
+                  </td>
+                  <td class="px-4 py-3 td-data">{{ row.assigned_membership_name ?? '—' }}</td>
+                  <td class="px-4 py-3 td-meta">{{ formatDate(row.opened_at) }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                      Abrir
+                    </RouterLink>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <AppPagination
+            :meta="soMeta"
+            @update:page="soPage = $event; loadServiceOrderReport()"
+            @update:per-page="soPerPage = $event; loadServiceOrderReport(true)"
+          />
+        </template>
       </div>
     </template>
 
@@ -425,7 +438,7 @@ onMounted(loadActiveTab)
           <button
             class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
             :disabled="loading"
-            @click="loadFinancialReport"
+            @click="loadFinancialReport(true)"
           >
             {{ loading ? 'Consultando…' : 'Consultar relatório financeiro' }}
           </button>
@@ -461,39 +474,50 @@ onMounted(loadActiveTab)
           Nenhum lançamento financeiro encontrado para os filtros atuais.
         </div>
 
-        <div v-else class="overflow-hidden rounded-2xl border border-white/10">
-          <table class="w-full text-sm">
-            <thead>
-              <tr class="border-b border-white/10 bg-white/5">
-                <ThSort :state="finState('reference')" @click="finToggle('reference')">Referência</ThSort>
-                <ThSort :state="finState('customer_name')" @click="finToggle('customer_name')">Cliente</ThSort>
-                <ThSort :state="finState('status')" @click="finToggle('status')">Status</ThSort>
-                <ThSort :state="finState('total_charged_cents')" @click="finToggle('total_charged_cents')">Cobrado</ThSort>
-                <ThSort :state="finState('total_paid_cents')" @click="finToggle('total_paid_cents')">Pago</ThSort>
-                <ThSort :state="finState('outstanding_balance_cents')" @click="finToggle('outstanding_balance_cents')">Saldo</ThSort>
-                <ThSort :state="finState('last_payment_at')" @click="finToggle('last_payment_at')">Último pagamento</ThSort>
-                <th class="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-white/5">
-              <tr v-for="row in sortedFinRows" :key="row.service_order_id" class="bg-black/10">
-                <td class="px-4 py-3 text-stone-200">{{ row.order_number ?? row.reference }}</td>
-                <td class="px-4 py-3 text-stone-300">{{ row.customer_name ?? '—' }}</td>
-                <td class="px-4 py-3 text-stone-400">{{ statusLabels[row.status] ?? row.status }}</td>
-                <td class="px-4 py-3 text-stone-300">{{ formatMoney(row.total_charged_cents) }}</td>
-                <td class="px-4 py-3 text-emerald-400">{{ formatMoney(row.total_paid_cents) }}</td>
-                <td class="px-4 py-3 text-amber-300">{{ formatMoney(row.outstanding_balance_cents) }}</td>
-                <td class="px-4 py-3 text-stone-400">{{ formatDate(row.last_payment_at) }}</td>
-                <td class="px-4 py-3 text-right">
-                  <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.service_order_id } }" class="text-xs text-amber-300 hover:text-amber-200">
-                    Abrir
-                  </RouterLink>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <template v-else>
+          <div class="t-wrap">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="t-head">
+                  <ThSort :state="finState('reference')" @click="finToggle('reference')">Referência</ThSort>
+                  <ThSort :state="finState('customer_name')" @click="finToggle('customer_name')">Cliente</ThSort>
+                  <ThSort :state="finState('status')" @click="finToggle('status')">Status</ThSort>
+                  <ThSort :state="finState('total_charged_cents')" @click="finToggle('total_charged_cents')">Cobrado</ThSort>
+                  <ThSort :state="finState('total_paid_cents')" @click="finToggle('total_paid_cents')">Pago</ThSort>
+                  <ThSort :state="finState('outstanding_balance_cents')" @click="finToggle('outstanding_balance_cents')">Saldo</ThSort>
+                  <ThSort :state="finState('last_payment_at')" @click="finToggle('last_payment_at')">Último pagamento</ThSort>
+                  <th class="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody class="t-body">
+                <tr v-for="row in sortedFinRows" :key="row.service_order_id" class="t-row">
+                  <td class="px-4 py-3 font-mono text-xs text-amber-300">{{ row.order_number ?? row.reference }}</td>
+                  <td class="px-4 py-3 td-main">{{ row.customer_name ?? '—' }}</td>
+                  <td class="px-4 py-3 td-data">{{ statusLabels[row.status] ?? row.status }}</td>
+                  <td class="px-4 py-3 td-data">{{ formatMoney(row.total_charged_cents) }}</td>
+                  <td class="px-4 py-3 text-emerald-400">{{ formatMoney(row.total_paid_cents) }}</td>
+                  <td class="px-4 py-3 text-amber-300">{{ formatMoney(row.outstanding_balance_cents) }}</td>
+                  <td class="px-4 py-3 td-meta">{{ formatDate(row.last_payment_at) }}</td>
+                  <td class="px-4 py-3 text-right">
+                    <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.service_order_id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                      Abrir
+                    </RouterLink>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <AppPagination
+            :meta="finMeta"
+            @update:page="finPage = $event; loadFinancialReport()"
+            @update:per-page="finPerPage = $event; loadFinancialReport(true)"
+          />
+        </template>
       </div>
     </template>
   </div>
 </template>
+
+<style scoped>
+@reference "../../style.css";
+</style>

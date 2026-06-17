@@ -338,14 +338,21 @@ class ServiceOrderController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
+        $perPage = min((int) request()->query('per_page', 15), 100);
+
         $serviceOrders = $this->buildFilteredVisibleQuery(request(), $visibleServiceOrders, $membership)
             ->with(['customer', 'customerContact', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
-            'data' => $serviceOrders->map(fn (ServiceOrder $serviceOrder): array => app(SerializeServiceOrder::class)->handle($serviceOrder))->all(),
+            'data' => collect($serviceOrders->items())->map(fn (ServiceOrder $so): array => app(SerializeServiceOrder::class)->handle($so))->all(),
             'meta' => [
-                'total' => $serviceOrders->count(),
+                'total'        => $serviceOrders->total(),
+                'per_page'     => $serviceOrders->perPage(),
+                'current_page' => $serviceOrders->currentPage(),
+                'last_page'    => $serviceOrders->lastPage(),
+                'from'         => $serviceOrders->firstItem() ?? 0,
+                'to'           => $serviceOrders->lastItem() ?? 0,
             ],
         ]);
     }
@@ -475,11 +482,13 @@ class ServiceOrderController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
-        $serviceOrders = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
-            ->with(['customer', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
-            ->get();
+        $perPage = min((int) $request->query('per_page', 15), 100);
 
-        $rows = $serviceOrders->map(fn (ServiceOrder $serviceOrder): array => [
+        $paginator = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
+            ->with(['customer', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
+            ->paginate($perPage);
+
+        $rows = collect($paginator->items())->map(fn (ServiceOrder $serviceOrder): array => [
             'id' => $serviceOrder->getKey(),
             'reference' => $serviceOrder->reference,
             'order_number' => $serviceOrder->order_number,
@@ -498,32 +507,38 @@ class ServiceOrderController extends Controller
         ]);
 
         if ($request->query('format') === 'csv') {
+            // CSV exports the full result set — bypass pagination
+            $all = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
+                ->with(['customer', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
+                ->get();
+            $csvRows = $all->map(fn (ServiceOrder $so): array => [
+                $so->reference,
+                $so->order_number ?? '',
+                $so->status,
+                $so->opened_at?->toIso8601String() ?? '',
+                $so->customer?->name ?? '',
+                $so->customer?->document ?? '',
+                trim(collect([$so->equipment?->brand, $so->equipment?->model])->filter()->implode(' ')),
+                $so->assignedMembership?->user?->name ?? '',
+                $so->quoteRevisions->sortByDesc('revision_number')->first()?->status ?? '',
+                $so->warranty_decision_status ?? '',
+            ]);
             return $this->downloadCsv(
                 'relatorio-ordens-servico.csv',
                 ['Referencia', 'Numero OS', 'Status', 'Abertura', 'Cliente', 'Documento', 'Equipamento', 'Tecnico', 'Ultimo Orcamento', 'Garantia'],
-                $rows->map(fn (array $row): array => [
-                    $row['reference'],
-                    $row['order_number'] ?? '',
-                    $row['status'],
-                    $row['opened_at'] ?? '',
-                    $row['customer_name'] ?? '',
-                    $row['customer_document'] ?? '',
-                    $row['equipment_summary'] ?? '',
-                    $row['assigned_membership_name'] ?? '',
-                    $row['latest_quote_status'] ?? '',
-                    $row['warranty_decision_status'] ?? '',
-                ]),
+                $csvRows,
             );
         }
 
         return response()->json([
             'data' => $rows->all(),
             'meta' => [
-                'total' => $rows->count(),
-                'by_status' => $serviceOrders
-                    ->groupBy('status')
-                    ->map(fn (Collection $group): int => $group->count())
-                    ->all(),
+                'total'        => $paginator->total(),
+                'per_page'     => $paginator->perPage(),
+                'current_page' => $paginator->currentPage(),
+                'last_page'    => $paginator->lastPage(),
+                'from'         => $paginator->firstItem() ?? 0,
+                'to'           => $paginator->lastItem() ?? 0,
             ],
             'filters' => $request->only(['q', 'queue', 'assigned_membership_id', 'status', 'opened_from', 'opened_to']),
         ]);
@@ -563,6 +578,9 @@ class ServiceOrderController extends Controller
             'received_from' => ['sometimes', 'nullable', 'date'],
             'received_to' => ['sometimes', 'nullable', 'date'],
         ]);
+
+        $perPage      = min((int) $request->query('per_page', 15), 100);
+        $currentPage  = max(1, (int) $request->query('page', 1));
 
         $serviceOrders = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
             ->with(['customer', 'assignedMembership.user', 'charges', 'payments'])
@@ -657,15 +675,29 @@ class ServiceOrderController extends Controller
             );
         }
 
+        // Totals computed from full filtered set (before page slice)
+        $totals = [
+            'total_charged_cents'      => (int) $rows->sum('total_charged_cents'),
+            'total_paid_cents'         => (int) $rows->sum('total_paid_cents'),
+            'outstanding_balance_cents' => (int) $rows->sum('outstanding_balance_cents'),
+        ];
+
+        $total     = $rows->count();
+        $lastPage  = max(1, (int) ceil($total / $perPage));
+        $currentPage = min($currentPage, $lastPage);
+        $offset    = ($currentPage - 1) * $perPage;
+        $pageRows  = $rows->slice($offset, $perPage)->values();
+
         return response()->json([
-            'data' => $rows->all(),
+            'data' => $pageRows->all(),
             'meta' => [
-                'total' => $rows->count(),
-                'totals' => [
-                    'total_charged_cents' => (int) $rows->sum('total_charged_cents'),
-                    'total_paid_cents' => (int) $rows->sum('total_paid_cents'),
-                    'outstanding_balance_cents' => (int) $rows->sum('outstanding_balance_cents'),
-                ],
+                'total'        => $total,
+                'per_page'     => $perPage,
+                'current_page' => $currentPage,
+                'last_page'    => $lastPage,
+                'from'         => $total > 0 ? $offset + 1 : 0,
+                'to'           => min($offset + $perPage, $total),
+                'totals'       => $totals,
             ],
             'filters' => $request->only([
                 'q',

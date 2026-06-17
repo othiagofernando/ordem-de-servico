@@ -133,12 +133,18 @@ export interface ServiceOrderReportRow {
   warranty_decision_status: string | null
 }
 
+export interface PaginationMeta {
+  total: number
+  per_page: number
+  current_page: number
+  last_page: number
+  from: number
+  to: number
+}
+
 export interface ServiceOrderReportResponse {
   data: ServiceOrderReportRow[]
-  meta: {
-    total: number
-    by_status: Record<string, number>
-  }
+  meta: PaginationMeta & { by_status?: Record<string, number> }
   filters: Record<string, unknown>
 }
 
@@ -158,8 +164,7 @@ export interface FinancialReportRow {
 
 export interface FinancialReportResponse {
   data: FinancialReportRow[]
-  meta: {
-    total: number
+  meta: PaginationMeta & {
     totals: {
       total_charged_cents: number
       total_paid_cents: number
@@ -174,6 +179,8 @@ export interface ServiceOrderReportFilters {
   queue?: ServiceOrderQueue
   opened_from?: string
   opened_to?: string
+  page?: number
+  per_page?: number
 }
 
 export interface FinancialReportFilters {
@@ -182,6 +189,8 @@ export interface FinancialReportFilters {
   balance_state?: 'settled' | 'outstanding'
   received_from?: string
   received_to?: string
+  page?: number
+  per_page?: number
 }
 
 function buildReportQuery(filters: Record<string, string | undefined>) {
@@ -195,13 +204,21 @@ function buildReportQuery(filters: Record<string, string | undefined>) {
   return query ? `?${query}` : ''
 }
 
-export function listServiceOrders(params?: { q?: string; queue?: ServiceOrderQueue; status?: string[] }) {
+export function listServiceOrders(params?: {
+  q?: string
+  queue?: ServiceOrderQueue
+  status?: string[]
+  page?: number
+  per_page?: number
+}) {
   const qs = new URLSearchParams()
   if (params?.q) qs.set('q', params.q)
   if (params?.queue) qs.set('queue', params.queue)
   params?.status?.forEach((s) => qs.append('status[]', s))
+  if (params?.page) qs.set('page', String(params.page))
+  if (params?.per_page) qs.set('per_page', String(params.per_page))
   const query = qs.toString() ? `?${qs.toString()}` : ''
-  return apiGet<{ data: ServiceOrder[]; meta: { total: number } }>(`/service-orders${query}`)
+  return apiGet<{ data: ServiceOrder[]; meta: PaginationMeta }>(`/service-orders${query}`)
 }
 
 export function getServiceOrder(id: number) {
@@ -222,6 +239,8 @@ export function getServiceOrderReport(filters?: ServiceOrderReportFilters) {
     queue: filters?.queue,
     opened_from: filters?.opened_from,
     opened_to: filters?.opened_to,
+    page: filters?.page !== undefined ? String(filters.page) : undefined,
+    per_page: filters?.per_page !== undefined ? String(filters.per_page) : undefined,
   })
 
   return apiGet<ServiceOrderReportResponse>(`/service-orders/reports/service-orders${query}`)
@@ -246,6 +265,8 @@ export function getFinancialReport(filters?: FinancialReportFilters) {
     balance_state: filters?.balance_state,
     received_from: filters?.received_from,
     received_to: filters?.received_to,
+    page: filters?.page !== undefined ? String(filters.page) : undefined,
+    per_page: filters?.per_page !== undefined ? String(filters.per_page) : undefined,
   })
 
   return apiGet<FinancialReportResponse>(`/service-orders/reports/financial${query}`)

@@ -377,10 +377,10 @@ async function copyInviteUrl() {
   @apply rounded-full px-2 py-0.5 text-xs font-medium;
 }
 
-.badge-active { @apply bg-emerald-500/10 text-emerald-400; }
-.badge-invited { @apply bg-sky-500/10 text-sky-300; }
-.badge-suspended { @apply bg-red-500/10 text-red-400; }
-.badge-default { @apply bg-stone-500/10 text-stone-400; }
+.badge-active   { background: rgba(16,185,129,0.12); color: var(--c-badge-emerald); }
+.badge-invited  { background: rgba(14,165,233,0.12); color: var(--c-badge-sky); }
+.badge-suspended{ background: rgba(239,68,68,0.12);  color: var(--c-badge-red); }
+.badge-default  { @apply bg-stone-500/10 text-stone-400; }
 
 .input {
   @apply w-full rounded-xl border px-3 py-2 text-sm outline-none transition;

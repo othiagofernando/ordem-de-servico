@@ -542,15 +542,18 @@ async function downloadAttachment(attachmentId: number) {
           </div>
           <h1 class="mt-1 text-2xl font-semibold text-white">{{ os.title }}</h1>
         </div>
-        <!-- Links de documentos: discretos, no cabeçalho -->
-        <div class="flex items-center gap-4 pt-1 text-xs text-stone-500">
+        <!-- Links de documentos -->
+        <div class="flex flex-wrap items-center gap-2 pt-1">
           <a
             v-if="os.status !== 'draft'"
             :href="printableHref"
             target="_blank"
             rel="noopener noreferrer"
-            class="transition hover:text-amber-300"
+            class="link-doc"
           >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path fill-rule="evenodd" d="M5 4v3H4a2 2 0 0 0-2 2v3a2 2 0 0 0 2 2h1v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-2h1a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-1V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1zm2 0h6v3H7V4zm-1 9v-2h8v2H6zm8-6H6V6h8v1z" clip-rule="evenodd" />
+            </svg>
             Imprimir OS
           </a>
           <a
@@ -558,8 +561,11 @@ async function downloadAttachment(attachmentId: number) {
             :href="quotePrintableHref"
             target="_blank"
             rel="noopener noreferrer"
-            class="transition hover:text-amber-300"
+            class="link-doc"
           >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0 1 12 2.586L15.414 6A2 2 0 0 1 16 7.414V16a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4zm2 6a1 1 0 0 1 1-1h6a1 1 0 1 1 0 2H7a1 1 0 0 1-1-1zm1 3a1 1 0 1 0 0 2h6a1 1 0 1 0 0-2H7z" clip-rule="evenodd" />
+            </svg>
             Orçamento PDF
           </a>
           <a
@@ -567,8 +573,12 @@ async function downloadAttachment(attachmentId: number) {
             :href="deliveryTermPrintableHref"
             target="_blank"
             rel="noopener noreferrer"
-            class="transition hover:text-amber-300"
+            class="link-doc"
           >
+            <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5 shrink-0">
+              <path d="M9 2a1 1 0 0 0 0 2h2a1 1 0 1 0 0-2H9z" />
+              <path fill-rule="evenodd" d="M4 5a2 2 0 0 1 2-2 3 3 0 0 0 3 3h2a3 3 0 0 0 3-3 2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5zm9.707 5.707a1 1 0 0 0-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 0 0-1.414 1.414l2 2a1 1 0 0 0 1.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
             Termo de Entrega
           </a>
         </div>
@@ -1214,7 +1224,4 @@ async function downloadAttachment(attachmentId: number) {
 <style scoped>
 @reference "../../style.css";
 
-.input {
-  @apply w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-stone-500 outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20;
-}
 </style>

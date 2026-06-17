@@ -22,6 +22,12 @@
   --c-input-border:   rgba(255, 255, 255, 0.10);
   --c-select-bg:      #1a1418;
   --c-select-color:   #f6efe5;
+  --c-table:          rgba(255, 255, 255, 0.04);
+  --c-table-head:     rgba(255, 255, 255, 0.06);
+  --c-table-stripe:   rgba(255, 255, 255, 0.015);
+  --c-badge-emerald:  #34d399;
+  --c-badge-sky:      #7dd3fc;
+  --c-badge-red:      #f87171;
 
   color: var(--c-text);
   background:
@@ -54,6 +60,12 @@ html.light {
   --c-input-border:   rgba(0, 0, 0, 0.12);
   --c-select-bg:      #ffffff;
   --c-select-color:   #1c1917;
+  --c-table:          #ffffff;
+  --c-table-head:     rgba(0, 0, 0, 0.03);
+  --c-table-stripe:   rgba(0, 0, 0, 0.015);
+  --c-badge-emerald:  #047857;
+  --c-badge-sky:      #0369a1;
+  --c-badge-red:      #b91c1c;
 }
 
 /* ─── Base resets ─────────────────────────────────────── */
@@ -101,6 +113,17 @@ html.light .text-stone-200 {
   color: #1c1917 !important;
 }
 
+/* Restore white text on colored buttons — override the rule above */
+html.light button.text-white,
+html.light a.text-white {
+  color: #ffffff !important;
+}
+
+/* Soften near-black on amber/colored buttons */
+html.light .text-stone-950 {
+  color: #44403c !important;  /* stone-700: dark but not harsh */
+}
+
 html.light .text-stone-300 {
   color: #44403c !important;
 }
@@ -144,3 +167,23 @@ html.light .border-white\/\[0\.08\] {
 html.light .placeholder-stone-500::placeholder {
   color: #a8a29e;
 }
+
+/* Badge / accent text — pastel variants → saturated in light mode */
+html.light .text-sky-300    { color: #0369a1 !important; }   /* sky-700 */
+html.light .text-amber-300  { color: #b45309 !important; }   /* amber-700 */
+html.light .text-emerald-300{ color: #047857 !important; }   /* emerald-700 */
+html.light .text-emerald-400{ color: #047857 !important; }
+html.light .text-violet-300 { color: #6d28d9 !important; }   /* violet-700 */
+html.light .text-red-300    { color: #b91c1c !important; }   /* red-700 */
+html.light .text-red-400    { color: #b91c1c !important; }
+html.light .text-orange-300 { color: #c2410c !important; }   /* orange-700 */
+html.light .text-orange-400 { color: #c2410c !important; }
+
+/* Badge backgrounds — keep the tint visible but not washed out */
+html.light .bg-sky-500\/20     { background-color: rgba(14, 165, 233, 0.12) !important; }
+html.light .bg-amber-500\/20   { background-color: rgba(245, 158, 11, 0.12) !important; }
+html.light .bg-emerald-500\/20 { background-color: rgba(16, 185, 129, 0.12) !important; }
+html.light .bg-emerald-600\/20 { background-color: rgba(5,  150, 105, 0.12) !important; }
+html.light .bg-violet-500\/20  { background-color: rgba(139, 92, 246, 0.12) !important; }
+html.light .bg-red-500\/20     { background-color: rgba(239, 68, 68,  0.12) !important; }
+html.light .bg-orange-500\/20  { background-color: rgba(249, 115, 22, 0.12) !important; }
