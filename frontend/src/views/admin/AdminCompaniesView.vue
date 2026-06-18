@@ -2,6 +2,9 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../../api/client'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
+import AppPagination from '../../components/AppPagination.vue'
 import {
   activateAdminCompany,
   deleteAdminCompany,
@@ -35,6 +38,41 @@ const subscriptionForm = ref({
   started_at: '',
   status: 'active',
   extend_months: '1',
+})
+
+const page = ref(1)
+const perPage = ref(15)
+
+const paginationMeta = computed(() => {
+  const total = companies.value.length
+  const lastPage = Math.ceil(total / perPage.value) || 1
+  const from = (page.value - 1) * perPage.value + 1
+  const to = Math.min(page.value * perPage.value, total)
+  return {
+    total,
+    per_page: perPage.value,
+    current_page: page.value,
+    last_page: lastPage,
+    from: total === 0 ? 0 : from,
+    to,
+  }
+})
+
+const { sorted: sortedCompanies, toggleSort, sortState } = useSortable(companies, {
+  name: (c) => c.name,
+  document: (c) => c.document,
+  status: (c) => c.status,
+  memberships_count: (c) => c.memberships_count,
+  service_orders_count: (c) => c.service_orders_count,
+  plan_name: (c) => c.subscription?.plan.name,
+  expires_at: (c) => c.subscription?.expires_at,
+  created_at: (c) => c.created_at,
+})
+
+const paginatedCompanies = computed(() => {
+  const start = (page.value - 1) * perPage.value
+  const end = start + perPage.value
+  return sortedCompanies.value.slice(start, end)
 })
 
 const activePlanId = computed(() => {
@@ -266,18 +304,18 @@ async function clearPlanFilter() {
       <table v-else class="min-w-full divide-y divide-white/10 text-sm">
         <thead class="bg-black/20 text-left text-xs uppercase tracking-widest text-stone-500">
           <tr>
-            <th class="px-4 py-3">Empresa</th>
-            <th class="px-4 py-3">Status</th>
-            <th class="px-4 py-3">Membros</th>
-            <th class="px-4 py-3">OS</th>
-            <th class="px-4 py-3">Plano</th>
-            <th class="px-4 py-3">Validade</th>
-            <th class="px-4 py-3">Cadastro</th>
-            <th class="px-4 py-3 text-right">Ações</th>
+            <ThSort :state="sortState('name')" @click="toggleSort('name')">Empresa</ThSort>
+            <ThSort :state="sortState('status')" @click="toggleSort('status')">Status</ThSort>
+            <ThSort :state="sortState('memberships_count')" @click="toggleSort('memberships_count')">Membros</ThSort>
+            <ThSort :state="sortState('service_orders_count')" @click="toggleSort('service_orders_count')">OS</ThSort>
+            <ThSort :state="sortState('plan_name')" @click="toggleSort('plan_name')">Plano</ThSort>
+            <ThSort :state="sortState('expires_at')" @click="toggleSort('expires_at')">Validade</ThSort>
+            <ThSort :state="sortState('created_at')" @click="toggleSort('created_at')">Cadastro</ThSort>
+            <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-widest">Ações</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-white/5">
-          <tr v-for="company in companies" :key="company.id" class="hover:bg-white/5">
+          <tr v-for="company in paginatedCompanies" :key="company.id" class="hover:bg-white/5">
             <td class="px-4 py-4">
               <div class="font-medium text-white">{{ company.name }}</div>
               <div class="mt-1 text-xs text-stone-500">{{ company.document || company.email || 'Sem identificador' }}</div>
@@ -357,6 +395,12 @@ async function clearPlanFilter() {
         </tbody>
       </table>
     </div>
+
+    <AppPagination
+      :meta="paginationMeta"
+      @update:page="(p) => { page = p }"
+      @update:perPage="(n) => { perPage = n; page = 1 }"
+    />
 
     <div v-if="action && selectedCompany" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div class="w-full max-w-xl rounded-3xl border border-white/10 bg-stone-950 p-6 shadow-2xl">
