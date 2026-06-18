@@ -84,7 +84,7 @@ export interface MembershipInvitation {
 export interface TenantContext {
   company: { id: number; uuid: string; name: string; slug?: string } | null
   membership: { id: number; role: string; status: string } | null
-  user: { id: number; name: string; email: string; super_admin: boolean } | null
+  user: { id: number; name: string; email: string; super_admin: boolean; admin_role: string | null } | null
 }
 
 export interface BootstrapMembership {

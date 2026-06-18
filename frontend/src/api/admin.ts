@@ -433,3 +433,43 @@ export function listAdminBillingInvoices(
 export function getAdminBillingInvoice(invoiceId: number) {
   return apiGet<{ data: AdminBillingInvoiceListEntry }>(`/admin/billing/invoices/${invoiceId}`)
 }
+
+export interface AdminUser {
+  id: number
+  name: string
+  email: string
+  admin_role: string
+  created_at: string | null
+}
+
+export const ADMIN_ROLE_LABELS: Record<string, string> = {
+  super_admin: 'Super Admin',
+  support: 'Suporte',
+  billing: 'Financeiro',
+  plans: 'Planos',
+  viewer: 'Visualizador',
+}
+
+export function listAdminUsers() {
+  return apiGet<{ data: AdminUser[] }>('/admin/users')
+}
+
+export function createAdminUser(payload: {
+  name: string
+  email: string
+  password: string
+  admin_role: string
+}) {
+  return apiPost<{ data: AdminUser }>('/admin/users', payload)
+}
+
+export function updateAdminUser(
+  userId: number,
+  payload: { name?: string; admin_role?: string; password?: string },
+) {
+  return apiPatch<{ data: AdminUser }>(`/admin/users/${userId}`, payload)
+}
+
+export function revokeAdminUser(userId: number) {
+  return apiDelete<{ message: string }>(`/admin/users/${userId}`)
+}

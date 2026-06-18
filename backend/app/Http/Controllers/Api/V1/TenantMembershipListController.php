@@ -36,9 +36,12 @@ class TenantMembershipListController extends Controller
                 'user_id' => $m->user_id,
                 'role' => $m->role,
                 'status' => $m->status,
+                'permissions' => $m->permissions ?? [],
+                'resolved_permissions' => $m->resolvedPermissions(),
                 'user_name' => $m->user?->name,
                 'user_email' => $m->user?->email,
                 'user_phone' => $m->user?->phone,
+                'created_at' => $m->created_at?->toISOString(),
             ])->all(),
         ]);
     }

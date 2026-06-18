@@ -5,15 +5,26 @@ export interface Membership {
   user_id: number
   role: string
   status: string
+  permissions: string[]
+  resolved_permissions: string[]
   user_name: string | null
   user_email: string | null
   user_phone: string | null
+  created_at: string | null
+}
+
+export interface RolePreset {
+  role: string
+  permissions: string[]
 }
 
 export function listMemberships(includeInactive = false) {
   const query = includeInactive ? '?include_inactive=1' : ''
-
   return apiGet<{ data: Membership[] }>(`/tenant/memberships${query}`)
+}
+
+export function listRoles() {
+  return apiGet<{ data: RolePreset[] }>('/tenant/roles')
 }
 
 export function inviteMembership(payload: { name: string; email: string; role: string }) {
@@ -23,6 +34,17 @@ export function inviteMembership(payload: { name: string; email: string; role: s
       invitation: { token: string; accept_url: string; requires_password_setup: boolean }
     }
   }>('/tenant/memberships/invitations', payload)
+}
+
+export function updateMembershipAuthorization(
+  membershipId: number,
+  role: string,
+  permissions: string[],
+) {
+  return apiPatch<{ data: { id: number; role: string; permissions: string[] } }>(
+    `/tenant/memberships/${membershipId}/authorization`,
+    { role, permissions },
+  )
 }
 
 export function updateMembershipStatus(membershipId: number, status: 'active' | 'suspended') {

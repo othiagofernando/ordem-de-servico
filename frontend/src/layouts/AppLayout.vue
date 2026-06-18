@@ -48,6 +48,9 @@ const navLinks = computed(() => {
         { to: { name: 'admin.billing' }, label: 'Cobranças' },
         { to: { name: 'admin.plans' }, label: 'Planos' },
         { to: { name: 'admin.audit' }, label: 'Auditoria' },
+        ...(auth.adminRole === 'super_admin'
+          ? [{ to: { name: 'admin.users' }, label: 'Usuários' }]
+          : []),
       ]
     : [
         { to: tenantRoute('dashboard'), label: 'Dashboard' },
@@ -164,7 +167,7 @@ const navLinks = computed(() => {
 
         <RouterLink :to="accountRoute" class="header-account-link">
           <span>{{ auth.user?.name }}</span>
-          <span class="role-badge capitalize">{{ auth.isSuperAdmin ? 'super_admin' : auth.role }}</span>
+          <span class="role-badge capitalize">{{ auth.isSuperAdmin ? (auth.adminRole ?? 'super_admin') : auth.role }}</span>
         </RouterLink>
       </header>
 

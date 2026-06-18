@@ -57,6 +57,7 @@ class BootstrapController extends Controller
                     'name' => $user?->name,
                     'email' => $user?->email,
                     'super_admin' => $user?->super_admin ?? false,
+                    'admin_role' => $user?->admin_role,
                 ],
             ],
             'permissions' => $user?->super_admin ? ['super_admin'] : ($activeMembership?->resolvedPermissions() ?? []),

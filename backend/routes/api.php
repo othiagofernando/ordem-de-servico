@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlanController;
 use App\Http\Controllers\Api\V1\Admin\AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminSubscriptionController;
+use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\BusinessAuditController;
 use App\Http\Controllers\Api\V1\CompanyOperationalSettingController;
 use App\Http\Controllers\Api\V1\CompanyLogoController;
@@ -62,6 +63,7 @@ use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
+use App\Http\Controllers\Api\V1\RoleCatalogController;
 use App\Http\Controllers\Api\V1\CepLookupController;
 use Illuminate\Support\Facades\Route;
 
@@ -143,6 +145,12 @@ Route::middleware('auth.token')->group(function (): void {
         Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
         Route::get('/companies/{company}/memberships', [AdminImpersonationController::class, 'memberships'])->name('api.v1.admin.companies.memberships.index');
         Route::post('/companies/{company}/memberships/{membership}/impersonate', [AdminImpersonationController::class, 'impersonate'])->name('api.v1.admin.companies.memberships.impersonate');
+        Route::middleware('super_admin:super_admin')->group(function (): void {
+            Route::get('/users', [AdminUserController::class, 'index'])->name('api.v1.admin.users.index');
+            Route::post('/users', [AdminUserController::class, 'store'])->name('api.v1.admin.users.store');
+            Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('api.v1.admin.users.update');
+            Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('api.v1.admin.users.destroy');
+        });
     });
     Route::middleware('subscription.active')->group(function (): void {
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
@@ -160,6 +168,8 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/settings/logo', CompanyLogoController::class)
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.settings.logo');
+    Route::get('/tenant/roles', RoleCatalogController::class)
+        ->name('api.v1.tenant.roles.index');
     Route::get('/tenant/memberships', TenantMembershipListController::class)
         ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)

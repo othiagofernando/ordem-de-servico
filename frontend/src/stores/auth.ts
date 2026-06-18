@@ -50,6 +50,7 @@ export const useAuthStore = defineStore('auth', {
     role: (state) => state.context?.membership?.role ?? null,
     membershipCount: (state) => state.memberships.length,
     isSuperAdmin: (state) => state.context?.user?.super_admin ?? false,
+    adminRole: (state) => state.context?.user?.admin_role ?? null,
     subscriptionExpiringSoon: (state) => (state.subscription?.days_until_expiration ?? 999) <= 7,
     isImpersonating: (state) => state.impersonation !== null,
   },

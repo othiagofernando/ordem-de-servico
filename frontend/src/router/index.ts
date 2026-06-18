@@ -261,6 +261,12 @@ const router = createRouter({
           meta: { requiresAuth: true, superAdminOnly: true },
         },
         {
+          path: 'usuarios',
+          name: 'admin.users',
+          component: () => import('../views/admin/AdminUsersView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
           path: 'minha-conta',
           name: 'account.global',
           component: () => import('../views/account/AccountView.vue'),
