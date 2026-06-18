@@ -50,7 +50,7 @@ const pages = computed((): (number | '…')[] => {
 </script>
 
 <template>
-  <div v-if="meta.last_page > 1 || meta.total > 0" class="pagination-bar">
+  <div v-if="meta.last_page > 1" class="pagination-bar">
     <!-- Info -->
     <span class="pg-info">
       {{ meta.from }}–{{ meta.to }} de {{ meta.total }}
