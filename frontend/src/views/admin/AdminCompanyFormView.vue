@@ -37,6 +37,7 @@ const form = reactive<AdminCompanyUpsertPayload>({
 })
 
 const companyId = computed(() => (isEdit.value ? String(route.params.id) : null))
+const cepLoading = ref(false)
 const statusLabel = computed(() => {
   switch (form.status) {
     case 'active':
@@ -142,6 +143,7 @@ function handleCepInput(event: Event) {
 }
 
 async function lookupCep(cep: string) {
+  cepLoading.value = true
   try {
     const response = await fetch(`/api/v1/cep/${cep}`)
     const data = await response.json()
@@ -154,6 +156,8 @@ async function lookupCep(cep: string) {
     }
   } catch (e) {
     console.error('Erro ao buscar CEP:', e)
+  } finally {
+    cepLoading.value = false
   }
 }
 </script>
@@ -286,13 +290,19 @@ async function lookupCep(cep: string) {
           <div class="mt-5 grid gap-4 md:grid-cols-2">
             <div>
               <label class="mb-1.5 block text-sm text-stone-300">CEP</label>
-              <input
-                v-model="form.postal_code"
-                placeholder="88901-056"
-                maxlength="9"
-                class="input"
-                @input="handleCepInput"
-              />
+              <div class="relative">
+                <input
+                  v-model="form.postal_code"
+                  placeholder="88901-056"
+                  maxlength="9"
+                  :disabled="cepLoading"
+                  class="input"
+                  @input="handleCepInput"
+                />
+                <div v-if="cepLoading" class="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div class="h-4 w-4 animate-spin rounded-full border-2 border-stone-500 border-t-amber-500"></div>
+                </div>
+              </div>
             </div>
             <div></div>
             <div class="md:col-span-2">

@@ -14,6 +14,7 @@ const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
 const saving = ref(false)
 const error = ref('')
+const cepLoading = ref<Record<number, boolean>>({})
 
 const form = ref<CustomerPayload>({
   customer_type: 'PF',
@@ -61,17 +62,18 @@ function removeAddress(i: number) {
   form.value.addresses!.splice(i, 1)
 }
 
-function handleCepInput(addr: any, event: Event) {
+function handleCepInput(addr: any, index: number, event: Event) {
   const input = event.target as HTMLInputElement
   addr.postal_code = cepMask(input.value)
 
   const digits = addr.postal_code.replace(/\D/g, '')
   if (digits.length === 8) {
-    lookupCep(addr, digits)
+    lookupCep(addr, index, digits)
   }
 }
 
-async function lookupCep(addr: any, cep: string) {
+async function lookupCep(addr: any, index: number, cep: string) {
+  cepLoading.value[index] = true
   try {
     const response = await fetch(`/api/v1/cep/${cep}`)
     const data = await response.json()
@@ -84,6 +86,8 @@ async function lookupCep(addr: any, cep: string) {
     }
   } catch (e) {
     console.error('Erro ao buscar CEP:', e)
+  } finally {
+    cepLoading.value[index] = false
   }
 }
 
@@ -229,9 +233,13 @@ async function submit() {
                   v-model="addr.postal_code"
                   placeholder="CEP (88901-056)"
                   maxlength="9"
+                  :disabled="cepLoading[i]"
                   class="input"
-                  @input="handleCepInput(addr, $event)"
+                  @input="handleCepInput(addr, i, $event)"
                 />
+                <div v-if="cepLoading[i]" class="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div class="h-4 w-4 animate-spin rounded-full border-2 border-stone-500 border-t-amber-500"></div>
+                </div>
               </div>
               <input v-model="addr.label" placeholder="Rótulo (ex: Residencial, Comercial)" class="input" />
               <input v-model="addr.recipient" placeholder="Destinatário" class="input" />
