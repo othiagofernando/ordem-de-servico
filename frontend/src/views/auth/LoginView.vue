@@ -7,6 +7,7 @@ import {
   lookupPasswordlessCompanies,
   requestPasswordlessCode,
   requestMagicLink,
+  recoverAccess,
   type PasswordlessCompany,
 } from '../../api/auth'
 import { ApiError } from '../../api/client'
@@ -15,7 +16,7 @@ const auth = useAuthStore()
 const router = useRouter()
 const { tenantRoute } = useTenantRouting()
 
-type Method = 'password' | 'code' | 'magic'
+type Method = 'password' | 'code' | 'magic' | 'recover'
 type Step = 'email' | 'company_select' | 'code_entry' | 'link_sent'
 
 const method = ref<Method>('password')
@@ -58,14 +59,20 @@ async function lookupAndProceed() {
   submitting.value = true
   try {
     const res = await lookupPasswordlessCompanies(email.value)
-    const flag = method.value === 'code' ? 'passwordless_code_enabled' : 'magic_link_enabled'
-    const eligible = res.companies.filter(c => c[flag])
 
-    if (eligible.length === 0) {
-      const featureName = method.value === 'code' ? 'Login por código' : 'Magic link'
-      error.value = res.companies.length === 0
-        ? 'Nenhuma conta encontrada para este e-mail.'
-        : `${featureName} não está habilitado para ${res.companies.length === 1 ? 'esta empresa' : 'nenhuma das suas empresas'}.`
+    let eligible = res.companies
+    if (method.value !== 'recover') {
+      const flag = method.value === 'code' ? 'passwordless_code_enabled' : 'magic_link_enabled'
+      eligible = res.companies.filter(c => c[flag])
+      if (eligible.length === 0) {
+        const featureName = method.value === 'code' ? 'Login por código' : 'Magic link'
+        error.value = res.companies.length === 0
+          ? 'Nenhuma conta encontrada para este e-mail.'
+          : `${featureName} não está habilitado para ${res.companies.length === 1 ? 'esta empresa' : 'nenhuma das suas empresas'}.`
+        return
+      }
+    } else if (eligible.length === 0) {
+      step.value = 'link_sent'
       return
     }
 
@@ -91,6 +98,9 @@ async function requestForCompany(company: PasswordlessCompany) {
       await requestPasswordlessCode(email.value, company.uuid)
       codeInput.value = ''
       step.value = 'code_entry'
+    } else if (method.value === 'recover') {
+      await recoverAccess(email.value, company.uuid)
+      step.value = 'link_sent'
     } else {
       await requestMagicLink(email.value, company.uuid)
       step.value = 'link_sent'
@@ -103,6 +113,14 @@ async function requestForCompany(company: PasswordlessCompany) {
   } finally {
     submitting.value = false
   }
+}
+
+async function startRecovery() {
+  method.value = 'recover'
+  step.value = 'email'
+  error.value = ''
+  foundCompanies.value = []
+  selectedCompany.value = null
 }
 
 // ─── Código OTP: verificar ─────────────────────────────────
@@ -137,8 +155,8 @@ function backToEmail() {
       <div class="rounded-2xl border border-white/10 bg-black/30 p-8 shadow-2xl backdrop-blur">
         <h1 class="mb-6 text-xl font-semibold text-white">Entrar</h1>
 
-        <!-- Seletor de método -->
-        <div class="mb-6 flex rounded-xl border border-white/10 bg-white/5 p-1">
+        <!-- Seletor de método (oculto no modo recuperação) -->
+        <div v-if="method !== 'recover'" class="mb-6 flex rounded-xl border border-white/10 bg-white/5 p-1">
           <button
             v-for="(label, key) in { password: 'Senha', code: 'Código', magic: 'Magic Link' }"
             :key="key"
@@ -151,6 +169,12 @@ function backToEmail() {
           >
             {{ label }}
           </button>
+        </div>
+
+        <!-- Título de recuperação -->
+        <div v-if="method === 'recover'" class="mb-5">
+          <h2 class="text-base font-semibold text-white">Recuperar acesso</h2>
+          <p class="mt-0.5 text-xs text-stone-500">Enviaremos um link de acesso para o seu e-mail.</p>
         </div>
 
         <div v-if="error" class="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
@@ -175,13 +199,68 @@ function backToEmail() {
             {{ auth.loading ? 'Entrando…' : 'Entrar' }}
           </button>
 
-          <p class="text-center text-sm text-stone-400">
-            Ainda não tem conta?
-            <RouterLink :to="{ name: 'register' }" class="font-medium text-amber-300 hover:text-amber-200">
-              Criar conta
-            </RouterLink>
-          </p>
+          <div class="flex items-center justify-between">
+            <p class="text-sm text-stone-400">
+              Ainda não tem conta?
+              <RouterLink :to="{ name: 'register' }" class="font-medium text-amber-300 hover:text-amber-200">
+                Criar conta
+              </RouterLink>
+            </p>
+            <button type="button" class="text-xs text-stone-500 hover:text-stone-300" @click="startRecovery">
+              Esqueci minha senha
+            </button>
+          </div>
         </form>
+
+        <!-- ═══ RECUPERAÇÃO DE ACESSO ═══ -->
+        <template v-else-if="method === 'recover'">
+          <form v-if="step === 'email'" class="space-y-4" @submit.prevent="lookupAndProceed">
+            <div>
+              <label class="mb-1.5 block text-sm font-medium text-stone-300">E-mail</label>
+              <input v-model="email" type="email" required autocomplete="email" class="input" placeholder="seu@email.com" />
+            </div>
+            <button
+              type="submit"
+              :disabled="submitting"
+              class="mt-2 w-full rounded-xl bg-amber-500 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+            >
+              {{ submitting ? 'Enviando…' : 'Enviar link de recuperação' }}
+            </button>
+            <button type="button" class="w-full text-center text-xs text-stone-500 hover:text-stone-300" @click="switchMethod('password')">
+              ← Voltar ao login
+            </button>
+          </form>
+
+          <div v-else-if="step === 'company_select'" class="space-y-3">
+            <p class="text-sm text-stone-300">Selecione a empresa:</p>
+            <button
+              v-for="company in foundCompanies"
+              :key="company.uuid"
+              type="button"
+              :disabled="submitting"
+              class="w-full rounded-xl border border-white/10 px-4 py-3 text-left text-sm text-stone-200 transition hover:border-amber-500/30 hover:bg-amber-500/5 disabled:opacity-50"
+              @click="requestForCompany(company)"
+            >
+              {{ company.name }}
+            </button>
+            <button type="button" class="w-full text-center text-xs text-stone-500 hover:text-stone-300" @click="backToEmail">
+              ← Voltar
+            </button>
+          </div>
+
+          <div v-else-if="step === 'link_sent'" class="space-y-4 text-center">
+            <div class="mx-auto flex size-14 items-center justify-center rounded-full bg-emerald-500/10 text-3xl">📧</div>
+            <div>
+              <p class="text-base font-semibold text-white">Verifique seu e-mail</p>
+              <p class="mt-1 text-sm text-stone-400">
+                Se o e-mail <strong class="text-stone-200">{{ email }}</strong> está cadastrado, você receberá um link de recuperação em instantes.
+              </p>
+            </div>
+            <button type="button" class="w-full text-center text-xs text-stone-500 hover:text-stone-300" @click="switchMethod('password')">
+              ← Voltar ao login
+            </button>
+          </div>
+        </template>
 
         <!-- ═══ CÓDIGO OTP e MAGIC LINK (fluxo compartilhado) ═══ -->
         <template v-else>

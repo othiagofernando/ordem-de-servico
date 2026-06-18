@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../../api/client'
 import { getAdminOverview, type AdminOverviewPayload } from '../../api/admin'
+import { documentMask } from '../../utils/masks'
 
 const overview = ref<AdminOverviewPayload | null>(null)
 const loading = ref(true)
@@ -178,7 +179,7 @@ watch(
               <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p class="font-medium text-white">{{ company.name }}</p>
-                  <p class="mt-1 text-xs text-stone-500">{{ company.document || 'Sem documento' }}</p>
+                  <p class="mt-1 text-xs text-stone-500">{{ company.document ? documentMask(company.document) : 'Sem documento' }}</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-2 lg:justify-end">
                   <p class="text-xs font-semibold text-violet-300">{{ company.subscription?.days_until_expiration ?? '—' }} dia(s)</p>

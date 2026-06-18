@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\UnprocessableEntityHttpException;
 
 class AdminPlanController extends Controller
 {
@@ -86,6 +87,21 @@ class AdminPlanController extends Controller
         return response()->json([
             'data' => $this->serializePlan($plan),
         ]);
+    }
+
+    public function destroy(Plan $plan): JsonResponse
+    {
+        $activeCount = $plan->subscriptions()->where('status', 'active')->count();
+
+        if ($activeCount > 0) {
+            throw new UnprocessableEntityHttpException(
+                "Não é possível excluir este plano: {$activeCount} empresa(s) com assinatura ativa."
+            );
+        }
+
+        $plan->delete();
+
+        return response()->json([], Response::HTTP_NO_CONTENT);
     }
 
     /**

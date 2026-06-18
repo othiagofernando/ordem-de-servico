@@ -2,6 +2,8 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { ApiError } from '../../api/client'
+import { useSortable } from '../../composables/useSortable'
+import AppPagination from '../../components/AppPagination.vue'
 import {
   activateAdminCompany,
   extendAdminCompanySubscription,
@@ -12,6 +14,7 @@ import {
   type AdminSubscriptionListEntry,
   type AdminSubscriptionSummary,
 } from '../../api/admin'
+import { documentMask } from '../../utils/masks'
 
 const subscriptions = ref<AdminSubscriptionListEntry[]>([])
 const summary = ref<AdminSubscriptionSummary | null>(null)
@@ -28,6 +31,38 @@ const router = useRouter()
 const actionKey = ref('')
 
 const activePlan = computed(() => plans.value.find((plan) => String(plan.id) === planId.value) ?? null)
+
+const page = ref(1)
+const perPage = ref(15)
+
+const { sorted: sortedSubscriptions, toggleSort, sortState } = useSortable(subscriptions, {
+  company_name: (e) => e.company.name,
+  plan_name: (e) => e.subscription?.plan.name,
+  status: (e) => e.subscription?.status,
+  expires_at: (e) => e.subscription?.expires_at,
+  days_until_expiration: (e) => e.subscription?.days_until_expiration,
+})
+
+const paginationMeta = computed(() => {
+  const total = sortedSubscriptions.value.length
+  const lastPage = Math.ceil(total / perPage.value) || 1
+  const from = (page.value - 1) * perPage.value + 1
+  const to = Math.min(page.value * perPage.value, total)
+  return { total, per_page: perPage.value, current_page: page.value, last_page: lastPage, from: total === 0 ? 0 : from, to }
+})
+
+const paginatedSubscriptions = computed(() => {
+  const start = (page.value - 1) * perPage.value
+  return sortedSubscriptions.value.slice(start, start + perPage.value)
+})
+
+const SORT_LABELS: Record<string, string> = {
+  company_name: 'Empresa',
+  plan_name: 'Plano',
+  status: 'Status',
+  expires_at: 'Vencimento',
+  days_until_expiration: 'Dias restantes',
+}
 
 function fmtDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -226,9 +261,30 @@ watch(
       Nenhuma assinatura encontrada para os filtros atuais.
     </div>
 
-    <div v-else class="space-y-3">
-      <article
-        v-for="entry in subscriptions"
+    <template v-else>
+      <div class="flex flex-wrap items-center gap-2">
+        <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Ordenar por</span>
+        <button
+          v-for="(label, key) in SORT_LABELS"
+          :key="key"
+          type="button"
+          :class="[
+            'flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition',
+            sortState(key)
+              ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+              : 'border-white/10 bg-white/5 text-stone-400 hover:border-white/20 hover:text-stone-200',
+          ]"
+          @click="toggleSort(key); page = 1"
+        >
+          {{ label }}
+          <svg v-if="sortState(key) === 'asc'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12V4M4 8l4-4 4 4"/></svg>
+          <svg v-else-if="sortState(key) === 'desc'" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" class="h-3 w-3"><path stroke-linecap="round" stroke-linejoin="round" d="M8 4v8m-4-4l4 4 4-4"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <article
+          v-for="entry in paginatedSubscriptions"
         :key="entry.subscription?.id ?? `${entry.company.id}-missing`"
         class="rounded-2xl border border-white/10 bg-white/5 p-5"
       >
@@ -244,7 +300,7 @@ watch(
               </span>
             </div>
             <p class="mt-2 text-sm text-stone-400">
-              {{ entry.company.document || entry.company.email || 'Sem identificador' }}
+              {{ entry.company.document ? documentMask(entry.company.document) : (entry.company.email || 'Sem identificador') }}
             </p>
             <p class="mt-1 text-xs text-stone-500">
               Vence em {{ fmtDate(entry.subscription?.expires_at) }}
@@ -334,7 +390,14 @@ watch(
             </p>
           </div>
         </div>
-      </article>
-    </div>
+        </article>
+      </div>
+
+      <AppPagination
+        :meta="paginationMeta"
+        @update:page="(p) => { page = p }"
+        @update:perPage="(n) => { perPage = n; page = 1 }"
+      />
+    </template>
   </div>
 </template>

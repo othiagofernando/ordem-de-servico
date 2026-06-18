@@ -1,4 +1,23 @@
-import { apiGet, apiPost, apiPut } from './client'
+import { apiGet, apiPost, apiPut, apiPostForm, API_BASE } from './client'
+
+export interface EquipmentEvidence {
+  id: number
+  equipment_id: number
+  file_name: string
+  mime_type: string
+  file_size_bytes: number
+  caption: string | null
+  uploaded_by_membership_id: number | null
+  created_at: string | null
+}
+
+export interface ServiceOrderSummary {
+  id: number
+  order_number: string | null
+  title: string | null
+  status: string
+  opened_at: string | null
+}
 
 export interface Equipment {
   id: number
@@ -11,6 +30,8 @@ export interface Equipment {
   accessories: string | null
   notes: string | null
   serial_overrides: Array<{ id: number; serial_number: string; reason: string | null }>
+  evidences: EquipmentEvidence[]
+  service_orders_history: ServiceOrderSummary[]
 }
 
 export interface EquipmentPayload {
@@ -53,4 +74,19 @@ export function createEquipment(payload: EquipmentPayload) {
 
 export function updateEquipment(id: number, payload: EquipmentPayload) {
   return apiPut<{ data: Equipment }>(`/equipments/${id}`, payload)
+}
+
+export function listEquipmentEvidences(equipmentId: number) {
+  return apiGet<{ data: EquipmentEvidence[] }>(`/equipments/${equipmentId}/evidences`)
+}
+
+export function uploadEquipmentEvidence(equipmentId: number, file: File, caption?: string) {
+  const form = new FormData()
+  form.append('file', file)
+  if (caption) form.append('caption', caption)
+  return apiPostForm<{ data: EquipmentEvidence }>(`/equipments/${equipmentId}/evidences`, form)
+}
+
+export function equipmentEvidenceDownloadUrl(equipmentId: number, evidenceId: number) {
+  return `${API_BASE}/equipments/${equipmentId}/evidences/${evidenceId}/download`
 }

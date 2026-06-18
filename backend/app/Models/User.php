@@ -8,6 +8,7 @@ use App\Domains\Auth\Models\Membership;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
@@ -32,6 +33,13 @@ class User extends Authenticatable
             'password' => 'hashed',
             'super_admin' => 'bool',
         ];
+    }
+
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? preg_replace('/\D+/', '', $value) : $value,
+        );
     }
 
     public function memberships(): HasMany

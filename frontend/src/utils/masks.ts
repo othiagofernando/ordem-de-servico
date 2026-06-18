@@ -56,3 +56,74 @@ export function phoneMask(value: string | null | undefined) {
   if (rest.length <= 4) return `(${ddd}) ${p1}`
   return `(${ddd}) ${p1} ${p2}`
 }
+
+/** Remove all non-digit characters. Use before saving to backend. */
+export function stripDigits(value: string | null | undefined): string {
+  return String(value ?? '').replace(/\D/g, '')
+}
+
+/**
+ * Converts a cents integer to a BRL decimal string suitable for a number input.
+ * Example: 9900 → "99.00"
+ */
+export function centsToDecimalString(cents: number | null | undefined): string {
+  if (cents === null || cents === undefined) return ''
+  return (cents / 100).toFixed(2)
+}
+
+/**
+ * Parses a user-typed monetary string (BRL format or plain decimal) to integer cents.
+ * Handles: "99,90" → 9990, "1.057,90" → 105790, "99.90" → 9990
+ * Returns null when input is blank or non-numeric.
+ */
+export function parseMoneyCents(value: string | null | undefined): number | null {
+  const raw = String(value ?? '').trim()
+  if (!raw) return null
+
+  // Remove thousand separators (dot in pt-BR) then normalize decimal separator
+  // Strategy: if string has both '.' and ',' → dot is thousands, comma is decimal
+  //           if string has only ',' → comma is decimal
+  //           if string has only '.' → dot is decimal (e.g. "99.90" from <input type="number">)
+  let normalized: string
+  const hasDot = raw.includes('.')
+  const hasComma = raw.includes(',')
+
+  if (hasDot && hasComma) {
+    // "1.057,90" → "1057.90"
+    normalized = raw.replace(/\./g, '').replace(',', '.')
+  } else if (hasComma) {
+    // "99,90" → "99.90"
+    normalized = raw.replace(',', '.')
+  } else {
+    // "99.90" or "9900" (plain integer)
+    normalized = raw
+  }
+
+  const num = parseFloat(normalized)
+  if (isNaN(num)) return null
+  return Math.round(num * 100)
+}
+
+/**
+ * Formats cents as a BRL display string (e.g. 9990 → "R$ 99,90").
+ */
+export function fmtMoneyCents(cents: number | null | undefined, currency = 'BRL'): string {
+  if (cents === null || cents === undefined) return '—'
+  return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency })
+}
+
+/**
+ * ATM-style currency mask for text inputs.
+ * Strips non-digits and interprets the whole digit string as cents.
+ * Example: "15000" → "150,00", "9990" → "99,90", "" → ""
+ * Use on @input to reformat as the user types.
+ */
+export function moneyInputMask(value: string | null | undefined): string {
+  const digits = String(value ?? '').replace(/\D/g, '')
+  if (!digits) return ''
+  const cents = parseInt(digits, 10)
+  if (!cents) return ''
+  const reais = Math.floor(cents / 100)
+  const centsPart = cents % 100
+  return `${new Intl.NumberFormat('pt-BR').format(reais)},${String(centsPart).padStart(2, '0')}`
+}

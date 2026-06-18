@@ -60,7 +60,7 @@ class CustomerRegistryTest extends TestCase
                     [
                         'label' => 'principal',
                         'email' => 'maria@example.com',
-                        'phone' => '(11) 98888-2222',
+                        'phone' => '11988882222',
                     ],
                 ],
                 'addresses' => [
@@ -74,7 +74,7 @@ class CustomerRegistryTest extends TestCase
             ])
             ->assertOk()
             ->assertJsonPath('data.name', 'Maria Souza')
-            ->assertJsonPath('data.contacts.0.phone', '(11) 98888-2222');
+            ->assertJsonPath('data.contacts.0.phone', '11988882222');
 
         $this->withToken($token)
             ->getJson('/api/v1/customers/'.$customerId)

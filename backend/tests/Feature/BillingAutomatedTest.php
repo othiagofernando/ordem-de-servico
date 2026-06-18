@@ -29,10 +29,14 @@ class BillingAutomatedTest extends TestCase
 
         Http::fake([
             '*/customers' => Http::response(['id' => 'cus_123'], 200),
+            '*/subscriptions/*/payments*' => Http::response([
+                'data' => [
+                    ['id' => 'pay_123', 'invoiceUrl' => 'https://gateway.test/checkout/sub_123', 'bankSlipUrl' => null],
+                ],
+            ], 200),
             '*/subscriptions' => Http::response([
                 'id' => 'sub_123',
                 'customer' => 'cus_123',
-                'invoiceUrl' => 'https://gateway.test/checkout/sub_123',
             ], 200),
         ]);
 

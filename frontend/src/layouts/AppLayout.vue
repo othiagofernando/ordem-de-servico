@@ -30,6 +30,11 @@ async function logout() {
   }
 }
 
+async function exitImpersonation() {
+  await auth.stopImpersonation()
+  await router.push({ name: 'admin' })
+}
+
 const navLinks = computed(() => {
   if (!auth.isAuthenticated) {
     return []
@@ -52,6 +57,7 @@ const navLinks = computed(() => {
         { to: tenantRoute('equipments'), label: 'Equipamentos' },
         { to: tenantRoute('members'), label: 'Usuários' },
         { to: tenantRoute('checklists'), label: 'Checklists' },
+        ...(['administrator', 'manager'].includes(auth.role ?? '') ? [{ to: tenantRoute('audit'), label: 'Auditoria' }] : []),
         { to: tenantRoute('settings'), label: 'Configurações' },
       ]
 })
@@ -163,6 +169,24 @@ const navLinks = computed(() => {
       </header>
 
       <main class="flex-1 p-6">
+        <!-- Banner de impersonação -->
+        <div
+          v-if="auth.isImpersonating && auth.impersonation"
+          class="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3"
+        >
+          <p class="text-sm text-violet-200">
+            <strong class="font-semibold">Modo impersonação:</strong>
+            você está acessando como <strong>{{ auth.impersonation.userName }}</strong> em <strong>{{ auth.impersonation.companyName }}</strong>.
+          </p>
+          <button
+            type="button"
+            class="shrink-0 rounded-lg border border-violet-500/30 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-500/20"
+            @click="exitImpersonation"
+          >
+            Encerrar impersonação
+          </button>
+        </div>
+
         <div
           v-if="!auth.isSuperAdmin && auth.subscription && auth.subscription.days_until_expiration <= 7"
           class="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"

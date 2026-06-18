@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ApiError } from '../../api/client'
 import { getAdminBillingInvoice, type AdminBillingInvoiceListEntry } from '../../api/admin'
+import { documentMask } from '../../utils/masks'
 
 const route = useRoute()
 const loading = ref(true)
@@ -13,6 +14,74 @@ const payloadJson = computed(() => {
   if (!invoice.value?.payload) return ''
   return JSON.stringify(invoice.value.payload, null, 2)
 })
+
+const INVOICE_STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  confirmed: 'Confirmado',
+  received: 'Recebido',
+  received_in_cash: 'Recebido em dinheiro',
+  overdue: 'Vencida',
+  refunded: 'Reembolsado',
+  refund_requested: 'Solicitação de reembolso',
+  refund_in_progress: 'Reembolso em andamento',
+  cancelled: 'Cancelado',
+  chargeback_requested: 'Chargeback solicitado',
+  chargeback_dispute: 'Disputa de chargeback',
+  awaiting_chargeback_reversal: 'Aguardando reversão de chargeback',
+  dunning_requested: 'Em negativação',
+  dunning_received: 'Recuperado (negativação)',
+  awaiting_risk_analysis: 'Aguardando análise de risco',
+}
+
+const INVOICE_STATUS_CLASSES: Record<string, string> = {
+  pending: 'border-amber-500/30 text-amber-300',
+  confirmed: 'border-emerald-500/30 text-emerald-300',
+  received: 'border-emerald-500/30 text-emerald-300',
+  received_in_cash: 'border-emerald-500/30 text-emerald-300',
+  dunning_received: 'border-emerald-500/30 text-emerald-300',
+  overdue: 'border-red-500/30 text-red-300',
+  dunning_requested: 'border-red-500/30 text-red-300',
+  refunded: 'border-sky-500/30 text-sky-300',
+  refund_requested: 'border-sky-500/30 text-sky-300',
+  refund_in_progress: 'border-sky-500/30 text-sky-300',
+  chargeback_requested: 'border-orange-500/30 text-orange-300',
+  chargeback_dispute: 'border-orange-500/30 text-orange-300',
+  awaiting_chargeback_reversal: 'border-orange-500/30 text-orange-300',
+  awaiting_risk_analysis: 'border-amber-500/30 text-amber-300',
+  cancelled: 'border-stone-500/20 text-stone-400',
+}
+
+const COMPANY_STATUS_LABELS: Record<string, string> = {
+  active: 'Ativa',
+  suspended: 'Suspensa',
+  cancelled: 'Cancelada',
+  pending: 'Pendente',
+}
+
+const SUBSCRIPTION_STATUS_LABELS: Record<string, string> = {
+  active: 'Ativa',
+  suspended: 'Suspensa',
+  cancelled: 'Cancelada',
+}
+
+function invoiceStatusLabel(s: string | null | undefined): string {
+  if (!s) return '—'
+  return INVOICE_STATUS_LABELS[s.toLowerCase()] ?? s
+}
+
+function invoiceStatusClass(s: string | null | undefined): string {
+  return INVOICE_STATUS_CLASSES[(s ?? '').toLowerCase()] ?? 'border-white/10 text-stone-300'
+}
+
+function companyStatusLabel(s: string | null | undefined): string {
+  if (!s) return '—'
+  return COMPANY_STATUS_LABELS[s.toLowerCase()] ?? s
+}
+
+function subscriptionStatusLabel(s: string | null | undefined): string {
+  if (!s) return '—'
+  return SUBSCRIPTION_STATUS_LABELS[s.toLowerCase()] ?? s
+}
 
 function fmtDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -76,15 +145,15 @@ onMounted(load)
           <div>
             <div class="flex flex-wrap items-center gap-3">
               <h2 class="text-xl font-semibold text-white">{{ invoice.company.name ?? 'Empresa sem nome' }}</h2>
-              <span class="rounded-full border border-white/10 px-2.5 py-1 text-xs font-semibold text-stone-300">
-                {{ invoice.status }}
+              <span :class="invoiceStatusClass(invoice.status)" class="rounded-full border px-2.5 py-1 text-xs font-semibold">
+                {{ invoiceStatusLabel(invoice.status) }}
               </span>
               <span class="rounded-full border border-white/10 px-2.5 py-1 text-xs font-semibold text-stone-400">
                 {{ invoice.subscription.plan.name ?? 'Sem plano' }}
               </span>
             </div>
             <p class="mt-2 text-sm text-stone-400">
-              {{ invoice.company.document || invoice.company.email || 'Sem identificador' }}
+              {{ invoice.company.document ? documentMask(invoice.company.document) : (invoice.company.email || 'Sem identificador') }}
             </p>
           </div>
 
@@ -140,11 +209,11 @@ onMounted(load)
             </div>
             <div>
               <dt class="text-xs uppercase tracking-widest text-stone-500">Status da empresa</dt>
-              <dd class="mt-1 text-sm text-stone-200">{{ invoice.company.status ?? '—' }}</dd>
+              <dd class="mt-1 text-sm text-stone-200">{{ companyStatusLabel(invoice.company.status) }}</dd>
             </div>
             <div>
               <dt class="text-xs uppercase tracking-widest text-stone-500">Assinatura</dt>
-              <dd class="mt-1 text-sm text-stone-200">{{ invoice.subscription.status ?? '—' }}</dd>
+              <dd class="mt-1 text-sm text-stone-200">{{ subscriptionStatusLabel(invoice.subscription.status) }}</dd>
             </div>
             <div>
               <dt class="text-xs uppercase tracking-widest text-stone-500">Plano</dt>

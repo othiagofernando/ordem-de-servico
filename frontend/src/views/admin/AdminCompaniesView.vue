@@ -18,6 +18,7 @@ import {
   type AdminCompanySummary,
   updateAdminCompanySubscription,
 } from '../../api/admin'
+import { documentMask } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
@@ -42,9 +43,27 @@ const subscriptionForm = ref({
 
 const page = ref(1)
 const perPage = ref(15)
+const statusFilter = ref('')
+
+const filteredCompanies = computed(() =>
+  statusFilter.value
+    ? companies.value.filter((c) => c.status === statusFilter.value)
+    : companies.value,
+)
+
+const { sorted: sortedCompanies, toggleSort, sortState } = useSortable(filteredCompanies, {
+  name: (c) => c.name,
+  document: (c) => c.document,
+  status: (c) => c.status,
+  memberships_count: (c) => c.memberships_count,
+  service_orders_count: (c) => c.service_orders_count,
+  plan_name: (c) => c.subscription?.plan.name,
+  expires_at: (c) => c.subscription?.expires_at,
+  created_at: (c) => c.created_at,
+})
 
 const paginationMeta = computed(() => {
-  const total = companies.value.length
+  const total = sortedCompanies.value.length
   const lastPage = Math.ceil(total / perPage.value) || 1
   const from = (page.value - 1) * perPage.value + 1
   const to = Math.min(page.value * perPage.value, total)
@@ -56,17 +75,6 @@ const paginationMeta = computed(() => {
     from: total === 0 ? 0 : from,
     to,
   }
-})
-
-const { sorted: sortedCompanies, toggleSort, sortState } = useSortable(companies, {
-  name: (c) => c.name,
-  document: (c) => c.document,
-  status: (c) => c.status,
-  memberships_count: (c) => c.memberships_count,
-  service_orders_count: (c) => c.service_orders_count,
-  plan_name: (c) => c.subscription?.plan.name,
-  expires_at: (c) => c.subscription?.expires_at,
-  created_at: (c) => c.created_at,
 })
 
 const paginatedCompanies = computed(() => {
@@ -298,6 +306,24 @@ async function clearPlanFilter() {
       </div>
     </div>
 
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Status</span>
+      <button
+        v-for="(label, key) in ({ '': 'Todos', active: 'Ativas', suspended: 'Suspensas', cancelled: 'Canceladas' } as Record<string, string>)"
+        :key="key"
+        type="button"
+        :class="[
+          'flex items-center gap-1 rounded-lg border px-3 py-1.5 text-xs font-medium transition',
+          statusFilter === key
+            ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
+            : 'border-white/10 bg-white/5 text-stone-400 hover:border-white/20 hover:text-stone-200',
+        ]"
+        @click="statusFilter = key; page = 1"
+      >
+        {{ label }}
+      </button>
+    </div>
+
     <div class="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
       <div v-if="loading" class="px-6 py-12 text-center text-stone-500">Carregando empresas…</div>
 
@@ -318,7 +344,7 @@ async function clearPlanFilter() {
           <tr v-for="company in paginatedCompanies" :key="company.id" class="hover:bg-white/5">
             <td class="px-4 py-4">
               <div class="font-medium text-white">{{ company.name }}</div>
-              <div class="mt-1 text-xs text-stone-500">{{ company.document || company.email || 'Sem identificador' }}</div>
+              <div class="mt-1 text-xs text-stone-500">{{ company.document ? documentMask(company.document) : (company.email || 'Sem identificador') }}</div>
             </td>
             <td class="px-4 py-4">
               <span :class="statusClasses[company.status] ?? 'bg-stone-500/15 text-stone-300 border-stone-500/20'" class="inline-flex rounded-full border px-2.5 py-1 text-xs font-semibold">

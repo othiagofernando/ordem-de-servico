@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ApiError } from '../../api/client'
 import { getAdminCompany, listAdminCompanyAudits, type AdminAuditEntry, type AdminCompany } from '../../api/admin'
+import AuditDiff from '../../components/AuditDiff.vue'
 
 const route = useRoute()
 
@@ -132,18 +133,16 @@ onMounted(load)
           </div>
         </div>
 
-        <div class="mt-4 grid gap-4 lg:grid-cols-3">
+        <div class="mt-4 grid gap-4 lg:grid-cols-[1fr_2fr]">
           <div class="rounded-xl border border-white/10 bg-black/20 p-4">
             <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Contexto</p>
             <pre class="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ JSON.stringify(audit.context, null, 2) }}</pre>
           </div>
           <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Antes</p>
-            <pre class="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ JSON.stringify(audit.before_values, null, 2) }}</pre>
-          </div>
-          <div class="rounded-xl border border-white/10 bg-black/20 p-4">
-            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Depois</p>
-            <pre class="mt-2 overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ JSON.stringify(audit.after_values, null, 2) }}</pre>
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Alterações (Antes → Depois)</p>
+            <div class="mt-2">
+              <AuditDiff :before="audit.before_values" :after="audit.after_values" />
+            </div>
           </div>
         </div>
       </div>

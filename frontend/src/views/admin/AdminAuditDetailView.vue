@@ -1,17 +1,14 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { ApiError } from '../../api/client'
 import { getAdminAudit, type AdminAuditEntry } from '../../api/admin'
+import AuditDiff from '../../components/AuditDiff.vue'
 
 const route = useRoute()
 const loading = ref(true)
 const error = ref('')
 const audit = ref<AdminAuditEntry | null>(null)
-
-const contextJson = computed(() => JSON.stringify(audit.value?.context ?? null, null, 2))
-const beforeJson = computed(() => JSON.stringify(audit.value?.before_values ?? null, null, 2))
-const afterJson = computed(() => JSON.stringify(audit.value?.after_values ?? null, null, 2))
 
 function fmtDateTime(value: string | null | undefined) {
   if (!value) return '—'
@@ -108,21 +105,14 @@ onMounted(load)
         <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
           <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Contexto</h2>
           <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-            <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ contextJson }}</pre>
+            <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ JSON.stringify(audit.context ?? null, null, 2) }}</pre>
           </div>
         </section>
 
-        <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Antes</h2>
-          <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-            <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ beforeJson }}</pre>
-          </div>
-        </section>
-
-        <section class="rounded-3xl border border-white/10 bg-white/5 p-6">
-          <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Depois</h2>
-          <div class="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
-            <pre class="overflow-x-auto whitespace-pre-wrap text-xs text-stone-300">{{ afterJson }}</pre>
+        <section class="rounded-3xl border border-white/10 bg-white/5 p-6 xl:col-span-2">
+          <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Alterações (Antes → Depois)</h2>
+          <div class="mt-4">
+            <AuditDiff :before="audit.before_values" :after="audit.after_values" />
           </div>
         </section>
       </div>

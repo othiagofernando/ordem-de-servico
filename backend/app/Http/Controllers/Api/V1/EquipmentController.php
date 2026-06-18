@@ -108,7 +108,7 @@ class EquipmentController extends Controller
         $this->ensureEquipmentBelongsToCurrentCompany($equipment);
 
         return response()->json([
-            'data' => $this->serializeEquipment($equipment->load(['customer', 'serialOverrides'])),
+            'data' => $this->serializeEquipment($equipment->load(['customer', 'serialOverrides', 'evidences', 'serviceOrders'])),
         ]);
     }
 
@@ -214,6 +214,25 @@ class EquipmentController extends Controller
                     'reason' => $override->reason,
                     'membership_id' => $override->membership_id,
                 ])->all()
+                : [],
+            'evidences' => $equipment->relationLoaded('evidences')
+                ? $equipment->evidences->map(fn ($e): array => [
+                    'id' => $e->getKey(),
+                    'file_name' => $e->file_name,
+                    'mime_type' => $e->mime_type,
+                    'file_size_bytes' => $e->file_size_bytes,
+                    'caption' => $e->caption,
+                    'created_at' => $e->created_at?->toIso8601String(),
+                ])->all()
+                : [],
+            'service_orders_history' => $equipment->relationLoaded('serviceOrders')
+                ? $equipment->serviceOrders->sortByDesc('id')->map(fn ($so): array => [
+                    'id' => $so->getKey(),
+                    'order_number' => $so->order_number,
+                    'title' => $so->title,
+                    'status' => $so->status,
+                    'opened_at' => $so->opened_at?->toIso8601String(),
+                ])->values()->all()
                 : [],
         ];
     }

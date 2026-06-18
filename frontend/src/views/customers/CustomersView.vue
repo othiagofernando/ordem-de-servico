@@ -2,6 +2,7 @@
 import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listCustomers, type Customer, type PaginationMeta } from '../../api/customers'
+import { documentMask, phoneMask } from '../../utils/masks'
 import { useSortable } from '../../composables/useSortable'
 import { useTenantRouting } from '../../composables/useTenantRouting'
 import ThSort from '../../components/ThSort.vue'
@@ -96,10 +97,10 @@ const { sorted: sortedCustomers, toggleSort, sortState } = useSortable(customers
                 {{ c.customer_type }}
               </span>
             </td>
-            <td class="px-5 py-3.5 td-data">{{ c.document ?? '—' }}</td>
+            <td class="px-5 py-3.5 td-data">{{ c.document ? documentMask(c.document) : '—' }}</td>
             <td class="px-5 py-3.5 td-data">
               <span v-if="c.contacts[0]">
-                {{ c.contacts[0].phone ?? c.contacts[0].email ?? '—' }}
+                {{ c.contacts[0].phone ? phoneMask(c.contacts[0].phone) : (c.contacts[0].email ?? '—') }}
               </span>
               <span v-else>—</span>
             </td>

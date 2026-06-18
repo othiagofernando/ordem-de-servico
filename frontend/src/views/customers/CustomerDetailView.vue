@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { getCustomer, type Customer } from '../../api/customers'
 import { useTenantRouting } from '../../composables/useTenantRouting'
+import { documentMask, phoneMask, cepMask } from '../../utils/masks'
 
 const route = useRoute()
 const { tenantRoute } = useTenantRouting()
@@ -79,7 +80,7 @@ onMounted(async () => {
             </div>
             <div class="flex justify-between">
               <dt class="text-sm text-stone-500">Documento</dt>
-              <dd class="text-sm text-stone-200">{{ customer.document ?? '—' }}</dd>
+              <dd class="text-sm text-stone-200">{{ customer.document ? documentMask(customer.document) : '—' }}</dd>
             </div>
             <div v-if="customer.notes" class="border-t border-white/5 pt-3">
               <dt class="mb-1 text-sm text-stone-500">Observações</dt>
@@ -100,7 +101,7 @@ onMounted(async () => {
             >
               <p v-if="contact.label" class="mb-1 text-xs text-stone-500">{{ contact.label }}</p>
               <p class="text-sm font-medium text-stone-200">{{ contact.name ?? '—' }}</p>
-              <p v-if="contact.phone" class="text-sm text-stone-400">{{ contact.phone }}</p>
+              <p v-if="contact.phone" class="text-sm text-stone-400">{{ phoneMask(contact.phone) }}</p>
               <p v-if="contact.email" class="text-sm text-stone-400">{{ contact.email }}</p>
             </div>
           </div>
@@ -118,7 +119,7 @@ onMounted(async () => {
               <p v-if="addr.label" class="mb-1 text-xs text-stone-500">{{ addr.label }}</p>
               <p class="text-sm text-stone-200">{{ addr.line_1 }}<span v-if="addr.line_2">, {{ addr.line_2 }}</span></p>
               <p class="text-sm text-stone-400">{{ addr.district }} — {{ addr.city }}/{{ addr.state }}</p>
-              <p v-if="addr.postal_code" class="text-sm text-stone-500">CEP {{ addr.postal_code }}</p>
+              <p v-if="addr.postal_code" class="text-sm text-stone-500">CEP {{ cepMask(addr.postal_code) }}</p>
             </div>
           </div>
         </div>

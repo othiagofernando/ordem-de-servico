@@ -13,6 +13,7 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
 use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\BootstrapController;
+use App\Http\Controllers\Api\V1\Auth\RecoverAccessController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
 use App\Http\Controllers\Api\V1\Admin\AdminAuditController;
 use App\Http\Controllers\Api\V1\Admin\AdminAlertController;
@@ -20,6 +21,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminBillingInvoiceController;
 use App\Http\Controllers\Api\V1\Admin\AdminCompanyController;
 use App\Http\Controllers\Api\V1\Admin\AdminCompanyAuditController;
 use App\Http\Controllers\Api\V1\Admin\AdminCompanySubscriptionController;
+use App\Http\Controllers\Api\V1\Admin\AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlanController;
 use App\Http\Controllers\Api\V1\Admin\AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminSubscriptionController;
@@ -32,6 +34,7 @@ use App\Http\Controllers\Api\V1\BillingCheckoutController;
 use App\Http\Controllers\Api\V1\BillingSubscriptionCancelController;
 use App\Http\Controllers\Api\V1\BillingWebhookController;
 use App\Http\Controllers\Api\V1\EquipmentController;
+use App\Http\Controllers\Api\V1\EquipmentEvidenceController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
 use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
@@ -83,6 +86,8 @@ Route::prefix('auth')->group(function (): void {
         ->name('api.v1.auth.passwordless.magic-link.consume');
     Route::post('/passwordless/lookup', PasswordlessCompanyLookupController::class)
         ->name('api.v1.auth.passwordless.lookup');
+    Route::post('/recover-access', RecoverAccessController::class)
+        ->name('api.v1.auth.recover-access');
 });
 
 Route::prefix('portal')->group(function (): void {
@@ -124,6 +129,7 @@ Route::middleware('auth.token')->group(function (): void {
         Route::post('/plans', [AdminPlanController::class, 'store'])->name('api.v1.admin.plans.store');
         Route::get('/plans/{plan}', [AdminPlanController::class, 'show'])->name('api.v1.admin.plans.show');
         Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('api.v1.admin.plans.update');
+        Route::delete('/plans/{plan}', [AdminPlanController::class, 'destroy'])->name('api.v1.admin.plans.destroy');
         Route::get('/subscriptions', [AdminSubscriptionController::class, 'index'])->name('api.v1.admin.subscriptions.index');
         Route::get('/companies', [AdminCompanyController::class, 'index'])->name('api.v1.admin.companies.index');
         Route::post('/companies', [AdminCompanyController::class, 'store'])->name('api.v1.admin.companies.store');
@@ -135,6 +141,8 @@ Route::middleware('auth.token')->group(function (): void {
         Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('api.v1.admin.companies.suspend');
         Route::patch('/companies/{company}/activate', [AdminCompanyController::class, 'activate'])->name('api.v1.admin.companies.activate');
         Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
+        Route::get('/companies/{company}/memberships', [AdminImpersonationController::class, 'memberships'])->name('api.v1.admin.companies.memberships.index');
+        Route::post('/companies/{company}/memberships/{membership}/impersonate', [AdminImpersonationController::class, 'impersonate'])->name('api.v1.admin.companies.memberships.impersonate');
     });
     Route::middleware('subscription.active')->group(function (): void {
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
@@ -198,6 +206,15 @@ Route::middleware('auth.token')->group(function (): void {
     Route::put('/equipments/{equipment}', [EquipmentController::class, 'update'])
         ->middleware('permission:equipments.manage')
         ->name('api.v1.equipments.update');
+    Route::get('/equipments/{equipment}/evidences', [EquipmentEvidenceController::class, 'index'])
+        ->middleware('permission:equipments.view_any')
+        ->name('api.v1.equipment.evidences.index');
+    Route::post('/equipments/{equipment}/evidences', [EquipmentEvidenceController::class, 'store'])
+        ->middleware('permission:equipments.manage')
+        ->name('api.v1.equipment.evidences.store');
+    Route::get('/equipments/{equipment}/evidences/{evidence}/download', [EquipmentEvidenceController::class, 'download'])
+        ->middleware('permission:equipments.view_any')
+        ->name('api.v1.equipment.evidences.download');
     Route::get('/intake-checklist-templates', [IntakeChecklistTemplateController::class, 'index'])
         ->middleware('permission:service_orders.manage')
         ->name('api.v1.intake-checklist-templates.index');

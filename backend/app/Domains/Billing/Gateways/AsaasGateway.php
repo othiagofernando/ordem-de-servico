@@ -79,17 +79,34 @@ class AsaasGateway
         $payload = [
             'customer' => $customer['id'],
             'billingType' => 'BOLETO',
+            'cycle' => 'MONTHLY',
             'nextDueDate' => $dueDate,
             'value' => $this->referenceValue($plan),
-            'callback' => ['successUrl' => $callbackUrl],
             'description' => sprintf('Plano %s - %s', $plan->name, $company->name),
         ];
+
+        if (filled($callbackUrl)) {
+            $payload['callback'] = ['successUrl' => $callbackUrl];
+        }
 
         if (filled(config('billing.asaas.wallet_id'))) {
             $payload['walletId'] = (string) config('billing.asaas.wallet_id');
         }
 
-        return $this->client()->post('/subscriptions', $payload)->throw()->json();
+        $subscription = $this->client()->post('/subscriptions', $payload)->throw()->json();
+
+        // Busca o primeiro pagamento gerado para retornar as URLs de boleto/invoice
+        $payments = $this->client()
+            ->get('/subscriptions/' . $subscription['id'] . '/payments', ['limit' => 1])
+            ->json('data', []);
+
+        $firstPayment = $payments[0] ?? [];
+
+        return array_merge($subscription, [
+            'invoiceUrl' => $firstPayment['invoiceUrl'] ?? null,
+            'bankSlipUrl' => $firstPayment['bankSlipUrl'] ?? null,
+            'firstPaymentId' => $firstPayment['id'] ?? null,
+        ]);
     }
 
     public function cancelSubscription(Subscription $subscription): void

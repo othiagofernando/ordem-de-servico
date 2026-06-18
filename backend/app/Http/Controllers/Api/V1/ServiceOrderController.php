@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Billing\Actions\ResolveCurrentSubscription;
 use App\Domains\Billing\Actions\SerializeSubscription;
+use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\CreateDraftServiceOrder;
 use App\Domains\ServiceOrders\Actions\OpenDraftServiceOrder;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderDiagnosis;
@@ -94,12 +95,23 @@ class ServiceOrderController extends Controller
         ServiceOrder $serviceOrder,
         OpenDraftServiceOrder $openDraftServiceOrder,
         SerializeServiceOrder $serializeServiceOrder,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse
     {
         $this->ensureServiceOrderBelongsToCurrentCompany($serviceOrder);
         $this->validateOpenableDraft($serviceOrder);
 
         $opened = $openDraftServiceOrder->handle($serviceOrder);
+
+        $fresh = $opened->fresh(['customerContact', 'company']);
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'service_order_opened',
+            [
+                'service_order_reference' => $fresh->reference,
+                'status' => $fresh->status,
+            ],
+        );
 
         return response()->json([
             'data' => $serializeServiceOrder->handle($opened),

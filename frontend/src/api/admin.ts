@@ -307,6 +307,37 @@ export function updateAdminPlan(planId: number, payload: AdminPlanUpsertPayload)
   return apiPut<{ data: AdminPlan }>(`/admin/plans/${planId}`, payload)
 }
 
+export function deleteAdminPlan(planId: number) {
+  return apiDelete<void>(`/admin/plans/${planId}`)
+}
+
+export interface AdminMembership {
+  id: number
+  role: string
+  status: string
+  user: {
+    id: number
+    name: string
+    email: string
+  }
+}
+
+export interface ImpersonationResult {
+  access_token: string
+  expires_at: string | null
+  user: { id: number; name: string; email: string }
+  membership: { id: number; role: string; status: string }
+  company: { id: number; uuid: string; name: string }
+}
+
+export function listAdminCompanyMemberships(companyId: number) {
+  return apiGet<{ data: AdminMembership[] }>(`/admin/companies/${companyId}/memberships`)
+}
+
+export function impersonateMembership(companyId: number, membershipId: number) {
+  return apiPost<ImpersonationResult>(`/admin/companies/${companyId}/memberships/${membershipId}/impersonate`)
+}
+
 export function getAdminCompany(companyId: number) {
   return apiGet<{ data: AdminCompany }>(`/admin/companies/${companyId}`)
 }

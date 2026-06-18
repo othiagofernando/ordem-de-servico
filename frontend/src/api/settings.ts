@@ -43,6 +43,18 @@ export interface CompanySettings {
     ready_for_pickup_text: string | null
     payment_receipt: boolean
     payment_receipt_text: string | null
+    service_order_opened: boolean
+    service_order_opened_text: string | null
+    service_order_in_progress: boolean
+    service_order_in_progress_text: string | null
+    service_order_completed: boolean
+    service_order_completed_text: string | null
+    service_order_delivered: boolean
+    service_order_delivered_text: string | null
+    service_order_cancelled: boolean
+    service_order_cancelled_text: string | null
+    service_order_no_repair: boolean
+    service_order_no_repair_text: string | null
   }
   auth: {
     passwordless_code_enabled: boolean
@@ -84,6 +96,18 @@ export interface SettingsPayload {
   notify_ready_for_pickup_text?: string | null
   notify_payment_receipt?: boolean
   notify_payment_receipt_text?: string | null
+  notify_service_order_opened?: boolean
+  notify_service_order_opened_text?: string | null
+  notify_service_order_in_progress?: boolean
+  notify_service_order_in_progress_text?: string | null
+  notify_service_order_completed?: boolean
+  notify_service_order_completed_text?: string | null
+  notify_service_order_delivered?: boolean
+  notify_service_order_delivered_text?: string | null
+  notify_service_order_cancelled?: boolean
+  notify_service_order_cancelled_text?: string | null
+  notify_service_order_no_repair?: boolean
+  notify_service_order_no_repair_text?: string | null
   notification_footer_text?: string | null
   passwordless_code_enabled?: boolean
   magic_link_enabled?: boolean

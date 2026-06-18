@@ -7,6 +7,7 @@ import { listEquipments, type Equipment } from '../../api/equipments'
 import { listChecklistTemplates, type ChecklistTemplate } from '../../api/checklistTemplates'
 import { ApiError } from '../../api/client'
 import { useTenantRouting } from '../../composables/useTenantRouting'
+import { documentMask, phoneMask } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
@@ -184,7 +185,7 @@ async function submit() {
             <select v-model="form.customer_contact_id" class="input">
               <option :value="null">Selecione o contato</option>
               <option v-for="ct in selectedCustomer.contacts" :key="ct.id" :value="ct.id">
-                {{ ct.name }} {{ ct.phone ? `— ${ct.phone}` : '' }}
+                {{ ct.name }} {{ ct.phone ? `— ${phoneMask(ct.phone)}` : '' }}
               </option>
             </select>
           </div>
@@ -193,8 +194,8 @@ async function submit() {
           <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Cliente selecionado</p>
           <div class="mt-2 grid gap-2 md:grid-cols-3 text-sm">
             <p class="text-stone-200">{{ selectedCustomer.name }}</p>
-            <p class="text-stone-400">{{ selectedCustomer.document ?? 'Sem documento' }}</p>
-            <p class="text-stone-400">{{ selectedContact?.phone ?? selectedContact?.email ?? 'Sem contato principal definido' }}</p>
+            <p class="text-stone-400">{{ selectedCustomer.document ? documentMask(selectedCustomer.document) : 'Sem documento' }}</p>
+            <p class="text-stone-400">{{ selectedContact?.phone ? phoneMask(selectedContact.phone) : (selectedContact?.email ?? 'Sem contato principal definido') }}</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ namespace App\Domains\Equipments\Models;
 
 use App\Domains\Companies\Concerns\BelongsToCompany;
 use App\Domains\Customers\Models\Customer;
+use App\Domains\ServiceOrders\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -31,5 +32,15 @@ class Equipment extends Model
     public function serialOverrides(): HasMany
     {
         return $this->hasMany(EquipmentSerialOverride::class);
+    }
+
+    public function evidences(): HasMany
+    {
+        return $this->hasMany(EquipmentEvidence::class);
+    }
+
+    public function serviceOrders(): HasMany
+    {
+        return $this->hasMany(ServiceOrder::class);
     }
 }

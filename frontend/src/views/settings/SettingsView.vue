@@ -10,6 +10,7 @@ import {
 } from '../../api/settings'
 import { ApiError } from '../../api/client'
 import { useTenantRouting } from '../../composables/useTenantRouting'
+import { phoneMask, documentMask, cepMask, stripDigits } from '../../utils/masks'
 
 const auth = useAuthStore()
 const { tenantRoute } = useTenantRouting()
@@ -55,6 +56,18 @@ const form = ref({
   notify_ready_for_pickup_text: '',
   notify_payment_receipt: true,
   notify_payment_receipt_text: '',
+  notify_service_order_opened: false,
+  notify_service_order_opened_text: '',
+  notify_service_order_in_progress: false,
+  notify_service_order_in_progress_text: '',
+  notify_service_order_completed: true,
+  notify_service_order_completed_text: '',
+  notify_service_order_delivered: true,
+  notify_service_order_delivered_text: '',
+  notify_service_order_cancelled: false,
+  notify_service_order_cancelled_text: '',
+  notify_service_order_no_repair: true,
+  notify_service_order_no_repair_text: '',
   notification_footer_text: '',
   passwordless_code_enabled: false,
   magic_link_enabled: false,
@@ -67,16 +80,16 @@ function applySettings(data: CompanySettings) {
     name: data.profile.name,
     slug: data.profile.slug,
     trade_name: data.profile.trade_name ?? '',
-    document: data.profile.document ?? '',
+    document: documentMask(data.profile.document),
     email: data.profile.email ?? '',
-    phone: data.profile.phone ?? '',
+    phone: phoneMask(data.profile.phone),
     website: data.profile.website ?? '',
     address_line_1: data.profile.address.line_1 ?? '',
     address_line_2: data.profile.address.line_2 ?? '',
     district: data.profile.address.district ?? '',
     city: data.profile.address.city ?? '',
     state: data.profile.address.state ?? '',
-    postal_code: data.profile.address.postal_code ?? '',
+    postal_code: cepMask(data.profile.address.postal_code),
     brand_name: data.branding.brand_name ?? '',
     customer_contact_line: data.branding.customer_contact_line ?? '',
     service_order_reference_prefix: data.service_orders.reference_prefix,
@@ -97,6 +110,18 @@ function applySettings(data: CompanySettings) {
     notify_ready_for_pickup_text: data.notifications.ready_for_pickup_text ?? '',
     notify_payment_receipt: data.notifications.payment_receipt,
     notify_payment_receipt_text: data.notifications.payment_receipt_text ?? '',
+    notify_service_order_opened: data.notifications.service_order_opened,
+    notify_service_order_opened_text: data.notifications.service_order_opened_text ?? '',
+    notify_service_order_in_progress: data.notifications.service_order_in_progress,
+    notify_service_order_in_progress_text: data.notifications.service_order_in_progress_text ?? '',
+    notify_service_order_completed: data.notifications.service_order_completed,
+    notify_service_order_completed_text: data.notifications.service_order_completed_text ?? '',
+    notify_service_order_delivered: data.notifications.service_order_delivered,
+    notify_service_order_delivered_text: data.notifications.service_order_delivered_text ?? '',
+    notify_service_order_cancelled: data.notifications.service_order_cancelled,
+    notify_service_order_cancelled_text: data.notifications.service_order_cancelled_text ?? '',
+    notify_service_order_no_repair: data.notifications.service_order_no_repair,
+    notify_service_order_no_repair_text: data.notifications.service_order_no_repair_text ?? '',
     notification_footer_text: data.communications.notification_footer_text ?? '',
     passwordless_code_enabled: data.auth.passwordless_code_enabled,
     magic_link_enabled: data.auth.magic_link_enabled,
@@ -124,16 +149,16 @@ async function save() {
       name: form.value.name,
       slug: form.value.slug,
       trade_name: form.value.trade_name || null,
-      document: form.value.document || null,
+      document: form.value.document ? stripDigits(form.value.document) : null,
       email: form.value.email || null,
-      phone: form.value.phone || null,
+      phone: form.value.phone ? stripDigits(form.value.phone) : null,
       website: form.value.website || null,
       address_line_1: form.value.address_line_1 || null,
       address_line_2: form.value.address_line_2 || null,
       district: form.value.district || null,
       city: form.value.city || null,
       state: form.value.state || null,
-      postal_code: form.value.postal_code || null,
+      postal_code: form.value.postal_code ? stripDigits(form.value.postal_code) : null,
       brand_name: form.value.brand_name || null,
       customer_contact_line: form.value.customer_contact_line || null,
       service_order_reference_prefix: form.value.service_order_reference_prefix || null,
@@ -154,6 +179,18 @@ async function save() {
       notify_ready_for_pickup_text: form.value.notify_ready_for_pickup_text || null,
       notify_payment_receipt: form.value.notify_payment_receipt,
       notify_payment_receipt_text: form.value.notify_payment_receipt_text || null,
+      notify_service_order_opened: form.value.notify_service_order_opened,
+      notify_service_order_opened_text: form.value.notify_service_order_opened_text || null,
+      notify_service_order_in_progress: form.value.notify_service_order_in_progress,
+      notify_service_order_in_progress_text: form.value.notify_service_order_in_progress_text || null,
+      notify_service_order_completed: form.value.notify_service_order_completed,
+      notify_service_order_completed_text: form.value.notify_service_order_completed_text || null,
+      notify_service_order_delivered: form.value.notify_service_order_delivered,
+      notify_service_order_delivered_text: form.value.notify_service_order_delivered_text || null,
+      notify_service_order_cancelled: form.value.notify_service_order_cancelled,
+      notify_service_order_cancelled_text: form.value.notify_service_order_cancelled_text || null,
+      notify_service_order_no_repair: form.value.notify_service_order_no_repair,
+      notify_service_order_no_repair_text: form.value.notify_service_order_no_repair_text || null,
       notification_footer_text: form.value.notification_footer_text || null,
       passwordless_code_enabled: form.value.passwordless_code_enabled,
       magic_link_enabled: form.value.magic_link_enabled,
@@ -269,11 +306,11 @@ async function onLogoSelected(event: Event) {
               </label>
               <label class="space-y-1">
                 <span class="text-sm text-stone-300">CNPJ ou CPF</span>
-                <input v-model="form.document" class="input" placeholder="00.000.000/0000-00" />
+                <input v-model="form.document" class="input" placeholder="00.000.000/0000-00" maxlength="18" @input="form.document = documentMask(form.document)" />
               </label>
               <label class="space-y-1">
                 <span class="text-sm text-stone-300">Telefone comercial</span>
-                <input v-model="form.phone" class="input" />
+                <input v-model="form.phone" class="input" type="tel" placeholder="(00) 00000-0000" maxlength="16" @input="form.phone = phoneMask(form.phone)" />
               </label>
               <label class="space-y-1 md:col-span-2">
                 <span class="text-sm text-stone-300">E-mail comercial</span>
@@ -297,7 +334,7 @@ async function onLogoSelected(event: Event) {
               </label>
               <label class="space-y-1">
                 <span class="text-sm text-stone-300">CEP</span>
-                <input v-model="form.postal_code" class="input" />
+                <input v-model="form.postal_code" class="input" placeholder="00000-000" maxlength="9" @input="form.postal_code = cepMask(form.postal_code)" />
               </label>
               <label class="space-y-1">
                 <span class="text-sm text-stone-300">Cidade</span>
@@ -461,6 +498,74 @@ async function onLogoSelected(event: Event) {
                   </div>
                 </label>
                 <input v-model="form.notify_payment_receipt_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <p class="pt-2 text-xs font-semibold uppercase tracking-widest text-stone-500">Ciclo de vida da O.S.</p>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_opened" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">OS aberta</p>
+                    <p class="text-xs text-stone-500">Confirmação ao cliente quando a O.S. é oficialmente aberta.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_opened_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_in_progress" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Serviço iniciado</p>
+                    <p class="text-xs text-stone-500">Avisa quando o técnico inicia a execução.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_in_progress_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_completed" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Serviço concluído</p>
+                    <p class="text-xs text-stone-500">Notifica quando o trabalho técnico é finalizado.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_completed_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_delivered" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Entrega confirmada</p>
+                    <p class="text-xs text-stone-500">Confirmação quando o equipamento é entregue ao cliente.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_delivered_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_cancelled" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">OS cancelada</p>
+                    <p class="text-xs text-stone-500">Avisa quando a O.S. é cancelada.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_cancelled_text" class="input mt-4" placeholder="Mensagem adicional" />
+              </div>
+
+              <div class="rounded-xl border border-white/10 bg-black/20 p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input v-model="form.notify_service_order_no_repair" type="checkbox" class="mt-1 size-4 rounded accent-amber-500" />
+                  <div>
+                    <p class="text-sm text-stone-200">Sem reparo</p>
+                    <p class="text-xs text-stone-500">Notifica quando a O.S. é encerrada como sem conserto.</p>
+                  </div>
+                </label>
+                <input v-model="form.notify_service_order_no_repair_text" class="input mt-4" placeholder="Mensagem adicional" />
               </div>
             </div>
           </div>

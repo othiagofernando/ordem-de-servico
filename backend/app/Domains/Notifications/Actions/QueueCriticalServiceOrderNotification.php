@@ -111,6 +111,12 @@ class QueueCriticalServiceOrderNotification
             'quote_expiring' => sprintf('[%s] Orçamento expirando para %s', $brandName, $serviceOrder->reference),
             'ready_for_pickup' => sprintf('[%s] Equipamento pronto para retirada: %s', $brandName, $serviceOrder->reference),
             'payment_receipt' => sprintf('[%s] Recibo de pagamento: %s', $brandName, $serviceOrder->reference),
+            'service_order_opened' => sprintf('[%s] Ordem de serviço aberta: %s', $brandName, $serviceOrder->reference),
+            'service_order_in_progress' => sprintf('[%s] Serviço em execução: %s', $brandName, $serviceOrder->reference),
+            'service_order_completed' => sprintf('[%s] Serviço concluído: %s', $brandName, $serviceOrder->reference),
+            'service_order_delivered' => sprintf('[%s] Equipamento entregue: %s', $brandName, $serviceOrder->reference),
+            'service_order_cancelled' => sprintf('[%s] Ordem de serviço cancelada: %s', $brandName, $serviceOrder->reference),
+            'service_order_no_repair' => sprintf('[%s] Equipamento sem reparo: %s', $brandName, $serviceOrder->reference),
             default => sprintf('[%s] Atualização da ordem de serviço %s', $brandName, $serviceOrder->reference),
         };
     }

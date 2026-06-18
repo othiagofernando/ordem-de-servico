@@ -28,6 +28,18 @@ use Illuminate\Database\Eloquent\Model;
     'notify_ready_for_pickup_text',
     'notify_payment_receipt',
     'notify_payment_receipt_text',
+    'notify_service_order_opened',
+    'notify_service_order_opened_text',
+    'notify_service_order_in_progress',
+    'notify_service_order_in_progress_text',
+    'notify_service_order_completed',
+    'notify_service_order_completed_text',
+    'notify_service_order_delivered',
+    'notify_service_order_delivered_text',
+    'notify_service_order_cancelled',
+    'notify_service_order_cancelled_text',
+    'notify_service_order_no_repair',
+    'notify_service_order_no_repair_text',
     'notification_footer_text',
 ])]
 class CompanyOperationalSetting extends Model
@@ -68,6 +80,18 @@ class CompanyOperationalSetting extends Model
             'notify_ready_for_pickup_text' => null,
             'notify_payment_receipt' => true,
             'notify_payment_receipt_text' => null,
+            'notify_service_order_opened' => false,
+            'notify_service_order_opened_text' => null,
+            'notify_service_order_in_progress' => false,
+            'notify_service_order_in_progress_text' => null,
+            'notify_service_order_completed' => true,
+            'notify_service_order_completed_text' => null,
+            'notify_service_order_delivered' => true,
+            'notify_service_order_delivered_text' => null,
+            'notify_service_order_cancelled' => false,
+            'notify_service_order_cancelled_text' => null,
+            'notify_service_order_no_repair' => true,
+            'notify_service_order_no_repair_text' => null,
             'notification_footer_text' => null,
         ];
     }
@@ -82,6 +106,12 @@ class CompanyOperationalSetting extends Model
             'notify_quote_expiring' => 'bool',
             'notify_ready_for_pickup' => 'bool',
             'notify_payment_receipt' => 'bool',
+            'notify_service_order_opened' => 'bool',
+            'notify_service_order_in_progress' => 'bool',
+            'notify_service_order_completed' => 'bool',
+            'notify_service_order_delivered' => 'bool',
+            'notify_service_order_cancelled' => 'bool',
+            'notify_service_order_no_repair' => 'bool',
         ];
     }
 
@@ -112,6 +142,12 @@ class CompanyOperationalSetting extends Model
             'quote_expiring' => $this->notify_quote_expiring,
             'ready_for_pickup' => $this->notify_ready_for_pickup,
             'payment_receipt' => $this->notify_payment_receipt,
+            'service_order_opened' => $this->notify_service_order_opened,
+            'service_order_in_progress' => $this->notify_service_order_in_progress,
+            'service_order_completed' => $this->notify_service_order_completed,
+            'service_order_delivered' => $this->notify_service_order_delivered,
+            'service_order_cancelled' => $this->notify_service_order_cancelled,
+            'service_order_no_repair' => $this->notify_service_order_no_repair,
             default => true,
         };
     }
@@ -123,6 +159,12 @@ class CompanyOperationalSetting extends Model
             'quote_expiring' => $this->notify_quote_expiring_text,
             'ready_for_pickup' => $this->notify_ready_for_pickup_text,
             'payment_receipt' => $this->notify_payment_receipt_text,
+            'service_order_opened' => $this->notify_service_order_opened_text,
+            'service_order_in_progress' => $this->notify_service_order_in_progress_text,
+            'service_order_completed' => $this->notify_service_order_completed_text,
+            'service_order_delivered' => $this->notify_service_order_delivered_text,
+            'service_order_cancelled' => $this->notify_service_order_cancelled_text,
+            'service_order_no_repair' => $this->notify_service_order_no_repair_text,
             default => null,
         };
     }

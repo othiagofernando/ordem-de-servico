@@ -4,6 +4,7 @@ namespace App\Domains\Customers\Models;
 
 use App\Domains\Companies\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -22,6 +23,13 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CustomerAddress extends Model
 {
     use BelongsToCompany;
+
+    protected function postalCode(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? preg_replace('/\D+/', '', $value) : $value,
+        );
+    }
 
     public function customer(): BelongsTo
     {

@@ -8,7 +8,7 @@ import {
   updateAdminCompany,
   type AdminCompanyUpsertPayload,
 } from '../../api/admin'
-import { phoneMask, documentMask, cepMask } from '../../utils/masks'
+import { phoneMask, documentMask, cepMask, stripDigits } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
@@ -77,16 +77,16 @@ onMounted(async () => {
 
     form.name = company.name
     form.trade_name = company.trade_name ?? ''
-    form.document = company.document ?? ''
+    form.document = documentMask(company.document)
     form.email = company.email ?? ''
-    form.phone = company.phone ?? ''
+    form.phone = phoneMask(company.phone)
     form.website = company.website ?? ''
     form.address_line_1 = company.address_line_1 ?? ''
     form.address_line_2 = company.address_line_2 ?? ''
     form.district = company.district ?? ''
     form.city = company.city ?? ''
     form.state = company.state ?? ''
-    form.postal_code = company.postal_code ?? ''
+    form.postal_code = cepMask(company.postal_code)
     form.status = company.status
     form.is_active = company.is_active
     form.passwordless_code_enabled = company.passwordless_code_enabled ?? true
@@ -106,16 +106,16 @@ async function submit() {
     const payload: AdminCompanyUpsertPayload = {
       ...form,
       trade_name: form.trade_name || null,
-      document: form.document || null,
+      document: form.document ? stripDigits(form.document) : null,
       email: form.email || null,
-      phone: form.phone || null,
+      phone: form.phone ? stripDigits(form.phone) : null,
       website: form.website || null,
       address_line_1: form.address_line_1 || null,
       address_line_2: form.address_line_2 || null,
       district: form.district || null,
       city: form.city || null,
       state: form.state || null,
-      postal_code: form.postal_code || null,
+      postal_code: form.postal_code ? stripDigits(form.postal_code) : null,
     }
 
     if (isEdit.value) {

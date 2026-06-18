@@ -68,15 +68,15 @@ class CompanyOperationalSettingsTest extends TestCase
             ->putJson('/api/v1/company/settings', [
                 'name' => 'Assistencia Alpha LTDA',
                 'trade_name' => 'Alpha Lab',
-                'document' => '45.723.174/0001-10',
+                'document' => '45723174000110',
                 'email' => 'comercial@alpha.test',
-                'phone' => '(11) 3222-1000',
+                'phone' => '1132221000',
                 'address_line_1' => 'Rua das Oficinas, 123',
                 'address_line_2' => 'Sala 4',
                 'district' => 'Centro',
                 'city' => 'Sao Paulo',
                 'state' => 'sp',
-                'postal_code' => '01000-000',
+                'postal_code' => '01000000',
                 'website' => 'https://alpha.test',
                 'brand_name' => 'Laboratorio Alpha',
                 'customer_contact_line' => 'WhatsApp (11) 98888-0000',
@@ -97,16 +97,16 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.profile.name', 'Assistencia Alpha LTDA')
             ->assertJsonPath('data.profile.trade_name', 'Alpha Lab')
-            ->assertJsonPath('data.profile.document', '45.723.174/0001-10')
+            ->assertJsonPath('data.profile.document', '45723174000110')
             ->assertJsonPath('data.profile.email', 'comercial@alpha.test')
-            ->assertJsonPath('data.profile.phone', '(11) 3222-1000')
+            ->assertJsonPath('data.profile.phone', '1132221000')
             ->assertJsonPath('data.profile.website', 'https://alpha.test')
             ->assertJsonPath('data.profile.address.line_1', 'Rua das Oficinas, 123')
             ->assertJsonPath('data.profile.address.line_2', 'Sala 4')
             ->assertJsonPath('data.profile.address.district', 'Centro')
             ->assertJsonPath('data.profile.address.city', 'Sao Paulo')
             ->assertJsonPath('data.profile.address.state', 'SP')
-            ->assertJsonPath('data.profile.address.postal_code', '01000-000')
+            ->assertJsonPath('data.profile.address.postal_code', '01000000')
             ->assertJsonPath('data.branding.brand_name', 'Laboratorio Alpha')
             ->assertJsonPath('data.branding.customer_contact_line', 'WhatsApp (11) 98888-0000')
             ->assertJsonPath('data.service_orders.reference_prefix', 'LAB')
@@ -249,10 +249,10 @@ class CompanyOperationalSettingsTest extends TestCase
 
         $this->withToken($managerToken)
             ->putJson('/api/v1/settings', [
-                'document' => '123.456.789-09',
+                'document' => '12345678909',
             ])
             ->assertOk()
-            ->assertJsonPath('data.profile.document', '123.456.789-09');
+            ->assertJsonPath('data.profile.document', '12345678909');
 
         $upload = $this->withToken($managerToken)
             ->post('/api/v1/settings/logo', [

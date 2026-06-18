@@ -12,8 +12,8 @@ import {
   type FinalTestResult, type WorkEntry, type Financials, type Attachment,
 } from '../../api/serviceOrders'
 import { listMemberships, type Membership } from '../../api/memberships'
-import { API_BASE } from '../../api/client'
-import { ApiError } from '../../api/client'
+import { API_BASE, ApiError } from '../../api/client'
+import { parseMoneyCents } from '../../utils/masks'
 import ServiceOrderCustomerEquipmentCard from './components/ServiceOrderCustomerEquipmentCard.vue'
 import ServiceOrderDiagnosisCard from './components/ServiceOrderDiagnosisCard.vue'
 import ServiceOrderCompleteExecutionForm from './components/ServiceOrderCompleteExecutionForm.vue'
@@ -297,7 +297,7 @@ async function saveQuote() {
 }
 
 async function savePayment() {
-  const cents = Math.round(parseFloat(paymentAmount.value.replace(',', '.')) * 100)
+  const cents = parseMoneyCents(paymentAmount.value)
   await doAction(() =>
     recordPayment(Number(route.params.id), {
       amount_cents: cents,
@@ -343,7 +343,7 @@ function copyLink(link: string) {
 }
 
 async function saveCharge(type: 'diagnostic_fee' | 'adjustment') {
-  const cents = Math.round(parseFloat(chargeAmount.value.replace(',', '.')) * 100)
+  const cents = parseMoneyCents(chargeAmount.value)
   if (!chargeDesc.value.trim() || isNaN(cents) || cents === 0) {
     actionError.value = 'Preencha a descrição e o valor.'
     return

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { type Membership, resetMemberPassword, updateMemberUser } from '../api/memberships'
 import { ApiError } from '../api/client'
+import { phoneMask, stripDigits } from '../utils/masks'
 
 const props = defineProps<{ member: Membership }>()
 const emit = defineEmits<{ saved: []; close: [] }>()
@@ -18,7 +19,7 @@ const dataErrors = ref<Record<string, string>>({})
 watch(
   () => props.member,
   (m) => {
-    dataForm.value = { name: m.user_name ?? '', email: m.user_email ?? '', phone: m.user_phone ?? '' }
+    dataForm.value = { name: m.user_name ?? '', email: m.user_email ?? '', phone: phoneMask(m.user_phone) }
     dataSuccess.value = ''
     dataErrors.value = {}
   },
@@ -33,7 +34,7 @@ async function saveData() {
     await updateMemberUser(props.member.id, {
       name: dataForm.value.name,
       email: dataForm.value.email,
-      phone: dataForm.value.phone || null,
+      phone: dataForm.value.phone ? stripDigits(dataForm.value.phone) : null,
     })
     dataSuccess.value = 'Dados atualizados com sucesso.'
     emit('saved')
@@ -147,7 +148,7 @@ async function savePassword() {
         </div>
         <div>
           <label class="field-label">Telefone</label>
-          <input v-model="dataForm.phone" type="tel" class="field-input" placeholder="(11) 99999-9999" />
+          <input v-model="dataForm.phone" type="tel" class="field-input" placeholder="(11) 99999-9999" maxlength="16" @input="dataForm.phone = phoneMask(dataForm.phone)" />
           <p v-if="dataErrors.phone" class="mt-1 text-xs text-red-400">{{ dataErrors.phone }}</p>
         </div>
 

@@ -88,7 +88,7 @@ class ServiceOrderNotificationWorkflowTest extends TestCase
             'status' => NotificationDelivery::STATUS_QUEUED,
         ]);
 
-        Queue::assertPushed(SendCriticalServiceOrderNotificationJob::class, 3);
+        Queue::assertPushed(SendCriticalServiceOrderNotificationJob::class, 4);
     }
 
     public function test_expiring_quote_notifications_are_dispatched_once_through_the_scheduled_command(): void

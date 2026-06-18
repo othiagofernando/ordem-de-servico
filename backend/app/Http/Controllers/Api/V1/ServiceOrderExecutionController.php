@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1;
 
+use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
@@ -26,6 +27,7 @@ class ServiceOrderExecutionController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $membership = currentMembership();
         $visible = $this->resolveExecutableServiceOrder($serviceOrder, $visibleServiceOrders);
@@ -62,6 +64,16 @@ class ServiceOrderExecutionController extends Controller
             actorMembership: $membership,
             payload: [
                 'assigned_membership_id' => $visible->assigned_membership_id,
+            ],
+        );
+
+        $fresh = $visible->fresh(['customerContact', 'company']);
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'service_order_in_progress',
+            [
+                'service_order_reference' => $fresh->reference,
+                'status' => $fresh->status,
             ],
         );
 
@@ -160,6 +172,7 @@ class ServiceOrderExecutionController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $membership = currentMembership();
         $visible = $this->resolveExecutableServiceOrder($serviceOrder, $visibleServiceOrders);
@@ -192,6 +205,16 @@ class ServiceOrderExecutionController extends Controller
             payload: [
                 'final_test_results_count' => count($payload['final_test_results']),
                 'status' => $visible->status,
+            ],
+        );
+
+        $fresh = $visible->fresh(['customerContact', 'company']);
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'service_order_completed',
+            [
+                'service_order_reference' => $fresh->reference,
+                'status' => $fresh->status,
             ],
         );
 

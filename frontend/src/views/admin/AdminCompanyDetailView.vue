@@ -7,17 +7,23 @@ import {
   deleteAdminCompany,
   extendAdminCompanySubscription,
   getAdminCompany,
+  impersonateMembership,
   listAdminCompanyAudits,
+  listAdminCompanyMemberships,
   listAdminPlans,
   suspendAdminCompany,
   type AdminAuditEntry,
   type AdminCompany,
+  type AdminMembership,
   type AdminPlan,
   updateAdminCompanySubscription,
 } from '../../api/admin'
+import { useAuthStore } from '../../stores/auth'
+import { documentMask, phoneMask } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 
 const loading = ref(true)
 const actionLoading = ref(false)
@@ -25,6 +31,8 @@ const error = ref('')
 const company = ref<AdminCompany | null>(null)
 const recentAudits = ref<AdminAuditEntry[]>([])
 const plans = ref<AdminPlan[]>([])
+const memberships = ref<AdminMembership[]>([])
+const impersonateLoading = ref<number | null>(null)
 const action = ref<'suspend' | 'activate' | 'delete' | 'subscription' | 'extend' | null>(null)
 const confirmation = ref('')
 const subscriptionForm = ref({
@@ -93,11 +101,36 @@ async function load() {
 
     plans.value = plansResponse.data
     applyCompany(companyResponse.data)
-    recentAudits.value = (await listAdminCompanyAudits(companyId, { limit: 8 })).data
+    const [auditsResponse, membershipsResponse] = await Promise.all([
+      listAdminCompanyAudits(companyId, { limit: 8 }),
+      listAdminCompanyMemberships(companyId),
+    ])
+    recentAudits.value = auditsResponse.data
+    memberships.value = membershipsResponse.data
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Erro ao carregar detalhes da empresa.'
   } finally {
     loading.value = false
+  }
+}
+
+async function startImpersonate(membership: AdminMembership) {
+  if (!company.value) return
+  impersonateLoading.value = membership.id
+  error.value = ''
+  try {
+    const result = await impersonateMembership(company.value.id, membership.id)
+    await auth.startImpersonation(result.access_token, {
+      userName: result.user.name,
+      companyName: result.company.name,
+      companyId: result.company.id,
+    })
+    // auth.company?.slug is populated after loadContext() inside startImpersonation
+    await router.push({ name: 'dashboard', params: { tenantSlug: auth.company?.slug } })
+  } catch (e) {
+    error.value = e instanceof ApiError ? e.message : 'Erro ao iniciar impersonação.'
+  } finally {
+    impersonateLoading.value = null
   }
 }
 
@@ -276,7 +309,7 @@ onMounted(load)
             <dl class="mt-4 grid gap-4 md:grid-cols-2">
               <div>
                 <dt class="text-xs uppercase tracking-widest text-stone-500">Documento</dt>
-                <dd class="mt-1 text-sm text-stone-200">{{ company.document ?? '—' }}</dd>
+                <dd class="mt-1 text-sm text-stone-200">{{ company.document ? documentMask(company.document) : '—' }}</dd>
               </div>
               <div>
                 <dt class="text-xs uppercase tracking-widest text-stone-500">E-mail</dt>
@@ -284,7 +317,7 @@ onMounted(load)
               </div>
               <div>
                 <dt class="text-xs uppercase tracking-widest text-stone-500">Telefone</dt>
-                <dd class="mt-1 text-sm text-stone-200">{{ company.phone ?? '—' }}</dd>
+                <dd class="mt-1 text-sm text-stone-200">{{ company.phone ? phoneMask(company.phone) : '—' }}</dd>
               </div>
               <div>
                 <dt class="text-xs uppercase tracking-widest text-stone-500">Website</dt>
@@ -416,6 +449,43 @@ onMounted(load)
           <p v-else class="mt-4 text-sm text-stone-500">Nenhum evento registrado para esta empresa.</p>
         </section>
       </div>
+
+      <!-- Membros / Impersonação -->
+      <section class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h2 class="text-sm font-semibold uppercase tracking-widest text-stone-400">Membros</h2>
+        <div v-if="memberships.length" class="mt-4 space-y-2">
+          <div
+            v-for="m in memberships"
+            :key="m.id"
+            class="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+          >
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-white">{{ m.user.name }}</p>
+              <p class="truncate text-xs text-stone-500">{{ m.user.email }}</p>
+            </div>
+            <div class="flex shrink-0 items-center gap-3">
+              <span class="rounded-full border border-white/10 px-2.5 py-1 text-xs font-semibold capitalize text-stone-300">
+                {{ m.role }}
+              </span>
+              <span
+                :class="m.status === 'active' ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' : 'border-stone-500/20 bg-stone-500/10 text-stone-400'"
+                class="rounded-full border px-2.5 py-1 text-xs font-semibold"
+              >
+                {{ m.status === 'active' ? 'Ativo' : m.status }}
+              </span>
+              <button
+                type="button"
+                :disabled="impersonateLoading !== null"
+                class="rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-1.5 text-xs font-semibold text-violet-300 transition hover:bg-violet-500/20 disabled:opacity-50"
+                @click="startImpersonate(m)"
+              >
+                {{ impersonateLoading === m.id ? 'Entrando…' : 'Impersonar' }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <p v-else class="mt-4 text-sm text-stone-500">Nenhum membro nesta empresa.</p>
+      </section>
     </template>
 
     <div v-if="action && company" class="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">

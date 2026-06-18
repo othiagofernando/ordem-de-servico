@@ -81,6 +81,7 @@ class ServiceOrderClosureController extends Controller
         ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         RecordBusinessAudit $recordBusinessAudit,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         $visible = $this->resolveClosableServiceOrder($serviceOrder, $visibleServiceOrders);
         $membership = currentMembership();
@@ -187,6 +188,16 @@ class ServiceOrderClosureController extends Controller
             ],
         );
 
+        $fresh = $visible->fresh(['customerContact', 'company']);
+        $queueCriticalServiceOrderNotification->handle(
+            $fresh,
+            'service_order_delivered',
+            [
+                'service_order_reference' => $fresh->reference,
+                'status' => $fresh->status,
+            ],
+        );
+
         return response()->json([
             'data' => $this->serializeServiceOrder($visible->fresh()),
         ]);
@@ -202,12 +213,14 @@ class ServiceOrderClosureController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         return $this->closeTerminal(
             $request,
             $serviceOrder,
             $visibleServiceOrders,
             $recordTimelineEvent,
+            $queueCriticalServiceOrderNotification,
             ServiceOrder::STATUS_CANCELLED,
             'service_order_cancelled',
             'Service order cancelled',
@@ -224,12 +237,14 @@ class ServiceOrderClosureController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
     ): JsonResponse {
         return $this->closeTerminal(
             $request,
             $serviceOrder,
             $visibleServiceOrders,
             $recordTimelineEvent,
+            $queueCriticalServiceOrderNotification,
             ServiceOrder::STATUS_NO_REPAIR,
             'service_order_closed_no_repair',
             'Service order closed as no repair',
@@ -241,6 +256,7 @@ class ServiceOrderClosureController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        QueueCriticalServiceOrderNotification $queueCriticalServiceOrderNotification,
         string $status,
         string $timelineType,
         string $timelineTitle,
@@ -278,6 +294,24 @@ class ServiceOrderClosureController extends Controller
                 'notes' => $visible->terminal_notes,
             ],
         );
+
+        $notificationEvent = match ($status) {
+            ServiceOrder::STATUS_CANCELLED => 'service_order_cancelled',
+            ServiceOrder::STATUS_NO_REPAIR => 'service_order_no_repair',
+            default => null,
+        };
+
+        if ($notificationEvent !== null) {
+            $fresh = $visible->fresh(['customerContact', 'company']);
+            $queueCriticalServiceOrderNotification->handle(
+                $fresh,
+                $notificationEvent,
+                [
+                    'service_order_reference' => $fresh->reference,
+                    'status' => $fresh->status,
+                ],
+            );
+        }
 
         return response()->json([
             'data' => $this->serializeServiceOrder($visible->fresh()),

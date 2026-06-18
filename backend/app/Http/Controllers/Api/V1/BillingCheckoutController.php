@@ -36,11 +36,17 @@ class BillingCheckoutController extends Controller
             'gateway_name' => config('billing.gateway'),
         ])->save();
 
+        $frontendBase = (string) config('app.frontend_url', '');
+        $isPublicUrl = filled($frontendBase) && ! str_contains($frontendBase, 'localhost') && ! str_contains($frontendBase, '127.0.0.1');
+        $frontendCallbackUrl = $isPublicUrl
+            ? rtrim($frontendBase, '/') . '/' . $company->slug . '/configuracoes/plano'
+            : null;
+
         $created = $gateway->createSubscription(
             company: $company,
             plan: $plan,
             dueDate: now()->addDays(3)->toDateString(),
-            callbackUrl: route('api.v1.billing.webhooks.asaas'),
+            callbackUrl: $frontendCallbackUrl ?? '',
         );
 
         $subscription->forceFill([

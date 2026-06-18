@@ -9,6 +9,7 @@ import {
   type PrintableOperationalDocumentPayload,
 } from "../../api/serviceOrders";
 import { useTenantRouting } from "../../composables/useTenantRouting";
+import { documentMask, phoneMask } from "../../utils/masks";
 
 const route = useRoute();
 const { tenantRoute } = useTenantRouting();
@@ -47,9 +48,9 @@ const companyLines = computed(() => {
   if (!company) return [] as string[];
 
   return [
-    company.document ? `Documento: ${company.document}` : null,
+    company.document ? `Documento: ${documentMask(company.document)}` : null,
     company.email ? `E-mail: ${company.email}` : null,
-    company.phone ? `Telefone: ${company.phone}` : null,
+    company.phone ? `Telefone: ${phoneMask(company.phone)}` : null,
   ].filter((line): line is string => line !== null);
 });
 
@@ -64,9 +65,9 @@ const customerRows = computed(() => {
 
   return [
     { label: "Nome", value: customer.name },
-    { label: "Documento", value: customer.document },
+    { label: "Documento", value: customer.document ? documentMask(customer.document) : null },
     { label: "Contato", value: customer.contact_name },
-    { label: "Telefone", value: customer.contact_phone },
+    { label: "Telefone", value: customer.contact_phone ? phoneMask(customer.contact_phone) : null },
   ].filter((row) => row.value && String(row.value).trim() !== "");
 });
 

@@ -4,7 +4,7 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { getCustomer, createCustomer, updateCustomer, type CustomerPayload } from '../../api/customers'
 import { ApiError } from '../../api/client'
 import { useTenantRouting } from '../../composables/useTenantRouting'
-import { phoneMask, documentMask, cepMask } from '../../utils/masks'
+import { phoneMask, documentMask, cepMask, stripDigits } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
@@ -35,12 +35,12 @@ onMounted(async () => {
     customer_type: c.customer_type,
     name: c.name,
     trade_name: c.trade_name ?? '',
-    document: c.document ?? '',
+    document: documentMask(c.document),
     notes: c.notes ?? '',
-    contacts: c.contacts.map((ct) => ({ label: ct.label ?? '', name: ct.name ?? '', email: ct.email ?? '', phone: ct.phone ?? '' })),
+    contacts: c.contacts.map((ct) => ({ label: ct.label ?? '', name: ct.name ?? '', email: ct.email ?? '', phone: phoneMask(ct.phone) })),
     addresses: c.addresses.map((a) => ({
       label: a.label ?? '', recipient: a.recipient ?? '', line_1: a.line_1, line_2: a.line_2 ?? '',
-      district: a.district ?? '', city: a.city ?? '', state: a.state ?? '', postal_code: a.postal_code ?? '',
+      district: a.district ?? '', city: a.city ?? '', state: a.state ?? '', postal_code: cepMask(a.postal_code),
     })),
   }
   loading.value = false
@@ -98,8 +98,10 @@ async function submit() {
     const payload: CustomerPayload = {
       ...form.value,
       trade_name: form.value.trade_name || null,
-      document: form.value.document || null,
+      document: form.value.document ? stripDigits(form.value.document) : null,
       notes: form.value.notes || null,
+      contacts: form.value.contacts!.map((c) => ({ ...c, phone: c.phone ? stripDigits(c.phone) : null })),
+      addresses: form.value.addresses!.map((a) => ({ ...a, postal_code: a.postal_code ? stripDigits(a.postal_code) : null })),
     }
 
     if (isEdit.value) {

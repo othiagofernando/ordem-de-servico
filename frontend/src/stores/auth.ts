@@ -15,9 +15,25 @@ import {
 import type { LoginMultiResult } from '../api/auth'
 import { setStoredTenantSlug } from '../tenant'
 
+export interface ImpersonationMeta {
+  userName: string
+  companyName: string
+  companyId: number
+}
+
+function loadImpersonationMeta(): ImpersonationMeta | null {
+  try {
+    const raw = localStorage.getItem('impersonation')
+    return raw ? (JSON.parse(raw) as ImpersonationMeta) : null
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     token: localStorage.getItem('access_token') as string | null,
+    impersonation: loadImpersonationMeta(),
     context: null as TenantContext | null,
     memberships: [] as BootstrapMembership[],
     permissions: [] as string[],
@@ -35,6 +51,7 @@ export const useAuthStore = defineStore('auth', {
     membershipCount: (state) => state.memberships.length,
     isSuperAdmin: (state) => state.context?.user?.super_admin ?? false,
     subscriptionExpiringSoon: (state) => (state.subscription?.days_until_expiration ?? 999) <= 7,
+    isImpersonating: (state) => state.impersonation !== null,
   },
 
   actions: {
@@ -132,6 +149,49 @@ export const useAuthStore = defineStore('auth', {
         this.permissions = []
         this.subscription = null
         this.pendingSelection = null
+        this.impersonation = null
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('admin_token')
+        localStorage.removeItem('impersonation')
+        setStoredTenantSlug(null)
+      }
+    },
+
+    async startImpersonation(accessToken: string, meta: ImpersonationMeta) {
+      const currentToken = this.token
+      if (currentToken) {
+        localStorage.setItem('admin_token', currentToken)
+      }
+      const metaJson = JSON.stringify(meta)
+      localStorage.setItem('impersonation', metaJson)
+      this.impersonation = meta
+      this.token = accessToken
+      localStorage.setItem('access_token', accessToken)
+      await this.loadContext()
+    },
+
+    async stopImpersonation() {
+      try {
+        await apiPost('/auth/logout')
+      } catch {
+        // ignore
+      }
+
+      const adminToken = localStorage.getItem('admin_token')
+      localStorage.removeItem('admin_token')
+      localStorage.removeItem('impersonation')
+      this.impersonation = null
+
+      if (adminToken) {
+        this.token = adminToken
+        localStorage.setItem('access_token', adminToken)
+        await this.loadContext()
+      } else {
+        this.token = null
+        this.context = null
+        this.memberships = []
+        this.permissions = []
+        this.subscription = null
         localStorage.removeItem('access_token')
         setStoredTenantSlug(null)
       }

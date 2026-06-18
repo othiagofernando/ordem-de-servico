@@ -9,6 +9,7 @@ use App\Domains\Billing\Models\Subscription;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -106,6 +107,27 @@ class Company extends Model
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);
+    }
+
+    protected function document(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? preg_replace('/[^A-Za-z0-9]/', '', $value) : $value,
+        );
+    }
+
+    protected function phone(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? preg_replace('/\D+/', '', $value) : $value,
+        );
+    }
+
+    protected function postalCode(): Attribute
+    {
+        return Attribute::make(
+            set: fn (?string $value) => $value ? preg_replace('/\D+/', '', $value) : $value,
+        );
     }
 
     public function apiTokens(): HasMany

@@ -10,6 +10,7 @@ import {
   type AdminCompany,
   type AdminPlan,
 } from '../../api/admin'
+import { documentMask } from '../../utils/masks'
 
 const route = useRoute()
 
@@ -30,6 +31,23 @@ const form = reactive({
 })
 
 const selectedPlan = computed(() => plans.value.find((plan) => String(plan.id) === form.plan_id) ?? null)
+
+const today = new Date().toISOString().slice(0, 10)
+
+const expiresAtError = computed(() => {
+  if (!form.expires_at) return ''
+  if (form.expires_at < today) return 'A data de validade não pode ser no passado.'
+  if (form.started_at && form.expires_at <= form.started_at) return 'A validade deve ser posterior à data de início.'
+  return ''
+})
+
+const startedAtError = computed(() => {
+  if (!form.started_at || !form.expires_at) return ''
+  if (form.started_at >= form.expires_at) return 'O início deve ser anterior à validade.'
+  return ''
+})
+
+const formHasErrors = computed(() => !!(expiresAtError.value || startedAtError.value))
 
 function fmtDate(value: string | null | undefined) {
   if (!value) return '—'
@@ -158,7 +176,7 @@ onMounted(load)
           <div>
             <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Empresa</p>
             <p class="mt-2 text-lg font-semibold text-white">{{ company.name }}</p>
-            <p class="mt-1 text-sm text-stone-400">{{ company.document || company.email || 'Sem identificador' }}</p>
+            <p class="mt-1 text-sm text-stone-400">{{ company.document ? documentMask(company.document) : (company.email || 'Sem identificador') }}</p>
           </div>
           <div>
             <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Plano atual</p>
@@ -188,11 +206,23 @@ onMounted(load)
             </div>
             <div>
               <label class="mb-1.5 block text-sm text-stone-300">Início</label>
-              <input v-model="form.started_at" type="date" class="input" />
+              <input
+                v-model="form.started_at"
+                type="date"
+                :class="['input', startedAtError ? 'border-red-500/60 focus:border-red-500' : '']"
+              />
+              <p v-if="startedAtError" class="mt-1.5 text-xs text-red-400">{{ startedAtError }}</p>
             </div>
             <div>
               <label class="mb-1.5 block text-sm text-stone-300">Validade *</label>
-              <input v-model="form.expires_at" required type="date" class="input" />
+              <input
+                v-model="form.expires_at"
+                required
+                type="date"
+                :min="today"
+                :class="['input', expiresAtError ? 'border-red-500/60 focus:border-red-500' : '']"
+              />
+              <p v-if="expiresAtError" class="mt-1.5 text-xs text-red-400">{{ expiresAtError }}</p>
             </div>
             <div>
               <label class="mb-1.5 block text-sm text-stone-300">Status</label>
@@ -250,7 +280,7 @@ onMounted(load)
         <div class="flex flex-wrap gap-3">
           <button
             type="submit"
-            :disabled="saving"
+            :disabled="saving || formHasErrors"
             class="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
           >
             {{ saving ? 'Salvando…' : 'Salvar assinatura' }}

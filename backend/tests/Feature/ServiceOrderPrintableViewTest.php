@@ -28,10 +28,10 @@ class ServiceOrderPrintableViewTest extends TestCase
             ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/printable')
             ->assertOk()
             ->assertJsonPath('data.company.name', 'Print Test Company')
-            ->assertJsonPath('data.company.document', '12.345.678/0001-01')
+            ->assertJsonPath('data.company.document', '12345678000101')
             ->assertJsonPath('data.service_order.reference', 'OS-000001')
             ->assertJsonPath('data.service_order.customer.name', 'Cliente Impressao')
-            ->assertJsonPath('data.service_order.customer.contact_phone', '(11) 98888-1111')
+            ->assertJsonPath('data.service_order.customer.contact_phone', '11988881111')
             ->assertJsonPath('data.service_order.equipment.brand', 'Dell')
             ->assertJsonPath('data.service_order.equipment.serial_number', 'PRINT-001-'.$companyId)
             ->assertJsonPath('data.service_order.intake_checklist.0.label', 'Carregador entregue')
@@ -180,7 +180,7 @@ class ServiceOrderPrintableViewTest extends TestCase
             'label' => 'principal',
             'name' => 'Contato Impressao',
             'email' => 'cliente.impressao@example.com',
-            'phone' => '(11) 98888-1111',
+            'phone' => '11988881111',
             'normalized_email' => 'cliente.impressao@example.com',
             'normalized_phone' => '11988881111',
         ]);

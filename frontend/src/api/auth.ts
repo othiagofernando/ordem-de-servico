@@ -69,6 +69,10 @@ export function consumeMagicLink(token: string) {
   return apiPost<LoginSingleResult>('/auth/passwordless/magic-link/consume', { token })
 }
 
+export function recoverAccess(email: string, company_uuid: string) {
+  return apiPost<{ message: string }>('/auth/recover-access', { email, company_uuid })
+}
+
 export interface MembershipInvitation {
   company: { uuid: string; name: string; slug?: string }
   user: { name: string; email: string }
