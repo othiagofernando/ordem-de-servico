@@ -12,9 +12,14 @@ const router = useRouter()
 const sidebarOpen = ref(false)
 const { tenantRoute, tenantLoginRoute } = useTenantRouting()
 
-const accountRoute = computed(() => auth.isSuperAdmin
-  ? { name: 'account.global' as const }
-  : tenantRoute('account'))
+const accountRoute = computed(() => {
+  if (!auth.isAuthenticated) {
+    return { name: 'login' }
+  }
+  return auth.isSuperAdmin
+    ? { name: 'account.global' as const }
+    : tenantRoute('account')
+})
 
 async function logout() {
   await auth.logout()
@@ -25,26 +30,31 @@ async function logout() {
   }
 }
 
-const navLinks = computed(() => auth.isSuperAdmin
-  ? [
-      { to: { name: 'admin' }, label: 'Resumo' },
-      { to: { name: 'admin.alerts' }, label: 'Alertas' },
-      { to: { name: 'admin.companies' }, label: 'Empresas' },
-      { to: { name: 'admin.subscriptions' }, label: 'Assinaturas' },
-      { to: { name: 'admin.billing' }, label: 'Cobranças' },
-      { to: { name: 'admin.plans' }, label: 'Planos' },
-      { to: { name: 'admin.audit' }, label: 'Auditoria' },
-    ]
-  : [
-      { to: tenantRoute('dashboard'), label: 'Dashboard' },
-      { to: tenantRoute('reports'), label: 'Relatórios' },
-      { to: tenantRoute('service-orders'), label: 'Ordens de Serviço' },
-      { to: tenantRoute('customers'), label: 'Clientes' },
-      { to: tenantRoute('equipments'), label: 'Equipamentos' },
-      { to: tenantRoute('members'), label: 'Usuários' },
-      { to: tenantRoute('checklists'), label: 'Checklists' },
-      { to: tenantRoute('settings'), label: 'Configurações' },
-    ])
+const navLinks = computed(() => {
+  if (!auth.isAuthenticated) {
+    return []
+  }
+  return auth.isSuperAdmin
+    ? [
+        { to: { name: 'admin' }, label: 'Resumo' },
+        { to: { name: 'admin.alerts' }, label: 'Alertas' },
+        { to: { name: 'admin.companies' }, label: 'Empresas' },
+        { to: { name: 'admin.subscriptions' }, label: 'Assinaturas' },
+        { to: { name: 'admin.billing' }, label: 'Cobranças' },
+        { to: { name: 'admin.plans' }, label: 'Planos' },
+        { to: { name: 'admin.audit' }, label: 'Auditoria' },
+      ]
+    : [
+        { to: tenantRoute('dashboard'), label: 'Dashboard' },
+        { to: tenantRoute('reports'), label: 'Relatórios' },
+        { to: tenantRoute('service-orders'), label: 'Ordens de Serviço' },
+        { to: tenantRoute('customers'), label: 'Clientes' },
+        { to: tenantRoute('equipments'), label: 'Equipamentos' },
+        { to: tenantRoute('members'), label: 'Usuários' },
+        { to: tenantRoute('checklists'), label: 'Checklists' },
+        { to: tenantRoute('settings'), label: 'Configurações' },
+      ]
+})
 </script>
 
 <template>
