@@ -27,7 +27,9 @@ export function useTenantRouting() {
   }
 
   function tenantLoginRoute() {
-    return tenantSlug.value
+    // Após logout, auth.company é zerado, então sempre retornar para login global
+    // em vez de tentar usar o tenantSlug da URL
+    return auth.isAuthenticated && tenantSlug.value
       ? { name: 'tenant-login', params: { tenantSlug: tenantSlug.value } }
       : { name: 'login' }
   }
