@@ -14,9 +14,11 @@ use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class CompanyOperationalSettingsTest extends TestCase
@@ -45,19 +47,37 @@ class CompanyOperationalSettingsTest extends TestCase
         $this->withToken($managerToken)
             ->getJson('/api/v1/company/settings')
             ->assertOk()
+            ->assertJsonPath('data.profile.name', 'Acme alpha')
+            ->assertJsonPath('data.profile.trade_name', null)
+            ->assertJsonPath('data.profile.logo_url', null)
             ->assertJsonPath('data.branding.brand_name', 'Acme alpha')
             ->assertJsonPath('data.branding.customer_contact_line', null)
             ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
             ->assertJsonPath('data.portal.approved_text', 'Nossa equipe foi notificada e dará início ao serviço em breve.')
             ->assertJsonPath('data.portal.rejected_text', 'Entraremos em contato para mais informações.')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
+            ->assertJsonPath('data.documents.footer_text', null)
+            ->assertJsonPath('data.intake.checklists_enabled', true)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
+            ->assertJsonPath('data.finance.currency', 'BRL')
             ->assertJsonPath('data.communications.notification_footer_text', null)
             ->assertJsonPath('data.notifications.quote_available_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
 
         $this->withToken($managerToken)
             ->putJson('/api/v1/company/settings', [
+                'name' => 'Assistencia Alpha LTDA',
+                'trade_name' => 'Alpha Lab',
+                'document' => '45.723.174/0001-10',
+                'email' => 'comercial@alpha.test',
+                'phone' => '(11) 3222-1000',
+                'address_line_1' => 'Rua das Oficinas, 123',
+                'address_line_2' => 'Sala 4',
+                'district' => 'Centro',
+                'city' => 'Sao Paulo',
+                'state' => 'sp',
+                'postal_code' => '01000-000',
+                'website' => 'https://alpha.test',
                 'brand_name' => 'Laboratorio Alpha',
                 'customer_contact_line' => 'WhatsApp (11) 98888-0000',
                 'service_order_reference_prefix' => 'lab',
@@ -65,6 +85,9 @@ class CompanyOperationalSettingsTest extends TestCase
                 'portal_footer_text' => 'Nosso horario de atendimento e de segunda a sexta.',
                 'portal_approved_text' => 'Recebemos sua aprovação e seguiremos com o reparo.',
                 'portal_rejected_text' => 'Recebemos sua recusa e vamos orientar os próximos passos.',
+                'document_footer_text' => 'Garantia de 90 dias nos serviços.',
+                'intake_checklists_enabled' => false,
+                'currency' => 'usd',
                 'default_quote_validity_days' => 5,
                 'block_delivery_with_outstanding_balance' => false,
                 'notify_quote_available' => false,
@@ -72,6 +95,18 @@ class CompanyOperationalSettingsTest extends TestCase
                 'notification_footer_text' => 'Obrigado por confiar na Laboratorio Alpha.',
             ])
             ->assertOk()
+            ->assertJsonPath('data.profile.name', 'Assistencia Alpha LTDA')
+            ->assertJsonPath('data.profile.trade_name', 'Alpha Lab')
+            ->assertJsonPath('data.profile.document', '45.723.174/0001-10')
+            ->assertJsonPath('data.profile.email', 'comercial@alpha.test')
+            ->assertJsonPath('data.profile.phone', '(11) 3222-1000')
+            ->assertJsonPath('data.profile.website', 'https://alpha.test')
+            ->assertJsonPath('data.profile.address.line_1', 'Rua das Oficinas, 123')
+            ->assertJsonPath('data.profile.address.line_2', 'Sala 4')
+            ->assertJsonPath('data.profile.address.district', 'Centro')
+            ->assertJsonPath('data.profile.address.city', 'Sao Paulo')
+            ->assertJsonPath('data.profile.address.state', 'SP')
+            ->assertJsonPath('data.profile.address.postal_code', '01000-000')
             ->assertJsonPath('data.branding.brand_name', 'Laboratorio Alpha')
             ->assertJsonPath('data.branding.customer_contact_line', 'WhatsApp (11) 98888-0000')
             ->assertJsonPath('data.service_orders.reference_prefix', 'LAB')
@@ -80,7 +115,10 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.portal.approved_text', 'Recebemos sua aprovação e seguiremos com o reparo.')
             ->assertJsonPath('data.portal.rejected_text', 'Recebemos sua recusa e vamos orientar os próximos passos.')
             ->assertJsonPath('data.quotes.default_validity_days', 5)
+            ->assertJsonPath('data.documents.footer_text', 'Garantia de 90 dias nos serviços.')
+            ->assertJsonPath('data.intake.checklists_enabled', false)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', false)
+            ->assertJsonPath('data.finance.currency', 'USD')
             ->assertJsonPath('data.communications.notification_footer_text', 'Obrigado por confiar na Laboratorio Alpha.')
             ->assertJsonPath('data.notifications.quote_available_text', 'Quando quiser, revise este orçamento com calma.')
             ->assertJsonPath('data.notifications.quote_available', false);
@@ -103,6 +141,9 @@ class CompanyOperationalSettingsTest extends TestCase
                 'portal_footer_text',
                 'portal_approved_text',
                 'portal_rejected_text',
+                'document_footer_text',
+                'intake_checklists_enabled',
+                'currency',
                 'default_quote_validity_days',
                 'block_delivery_with_outstanding_balance',
                 'notify_quote_available',
@@ -125,7 +166,10 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.branding.customer_contact_line', null)
             ->assertJsonPath('data.service_orders.reference_prefix', 'OS')
             ->assertJsonPath('data.quotes.default_validity_days', 7)
+            ->assertJsonPath('data.documents.footer_text', null)
+            ->assertJsonPath('data.intake.checklists_enabled', true)
             ->assertJsonPath('data.finance.block_delivery_with_outstanding_balance', true)
+            ->assertJsonPath('data.finance.currency', 'BRL')
             ->assertJsonPath('data.communications.notification_footer_text', null)
             ->assertJsonPath('data.notifications.quote_available_text', null)
             ->assertJsonPath('data.notifications.quote_available', true);
@@ -193,6 +237,52 @@ class CompanyOperationalSettingsTest extends TestCase
             ->assertJsonPath('data.portal.footer_text', 'Nosso horario de atendimento e de segunda a sexta.')
             ->assertJsonPath('data.portal.approved_text', 'Recebemos sua aprovação e seguiremos com o reparo.')
             ->assertJsonPath('data.portal.rejected_text', 'Recebemos sua recusa e vamos orientar os próximos passos.');
+    }
+
+    public function test_company_settings_accept_valid_document_and_logo_upload(): void
+    {
+        Storage::fake('public');
+
+        [
+            'manager_token' => $managerToken,
+        ] = $this->createServiceOrderScenario('logo');
+
+        $this->withToken($managerToken)
+            ->putJson('/api/v1/settings', [
+                'document' => '123.456.789-09',
+            ])
+            ->assertOk()
+            ->assertJsonPath('data.profile.document', '123.456.789-09');
+
+        $upload = $this->withToken($managerToken)
+            ->post('/api/v1/settings/logo', [
+                'logo' => UploadedFile::fake()->image('logo.png', 400, 400),
+            ]);
+
+        $upload->assertCreated()
+            ->assertJsonPath('data.logo_path', fn (string $path) => str_contains($path, 'company-assets/'));
+
+        $logoPath = $upload->json('data.logo_path');
+        Storage::disk('public')->assertExists($logoPath);
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/settings')
+            ->assertOk()
+            ->assertJsonPath('data.profile.logo_url', Storage::disk('public')->url($logoPath));
+    }
+
+    public function test_company_settings_reject_invalid_document(): void
+    {
+        [
+            'manager_token' => $managerToken,
+        ] = $this->createServiceOrderScenario('doc-invalid');
+
+        $this->withToken($managerToken)
+            ->putJson('/api/v1/settings', [
+                'document' => '111.111.111-11',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['document']);
     }
 
     /**

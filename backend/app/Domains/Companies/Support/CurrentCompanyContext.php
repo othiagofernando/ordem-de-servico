@@ -17,7 +17,7 @@ class CurrentCompanyContext
 
     protected ?ApiToken $apiToken = null;
 
-    public function set(Company $company, Membership $membership, User $user, ApiToken $apiToken): void
+    public function set(?Company $company, ?Membership $membership, User $user, ApiToken $apiToken): void
     {
         $this->company = $company;
         $this->membership = $membership;

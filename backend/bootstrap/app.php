@@ -2,6 +2,8 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\AuthorizeMembershipPermission;
+use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EstablishStructuredLogContext;
 use App\Http\Middleware\FlushCurrentCompanyContext;
 use Illuminate\Foundation\Application;
@@ -28,6 +30,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.token' => AuthenticateApiToken::class,
             'permission' => AuthorizeMembershipPermission::class,
+            'super_admin' => EnsureSuperAdmin::class,
+            'subscription.active' => EnsureActiveSubscription::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

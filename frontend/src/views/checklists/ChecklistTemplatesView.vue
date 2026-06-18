@@ -8,7 +8,9 @@ import {
   type ChecklistTemplateItem,
 } from '../../api/checklistTemplates'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
+const { tenantRoute } = useTenantRouting()
 const loading = ref(true)
 const templates = ref<ChecklistTemplate[]>([])
 const error = ref('')
@@ -165,7 +167,7 @@ async function save() {
             </div>
           </div>
           <div class="mt-4 flex flex-wrap gap-2">
-            <RouterLink :to="{ name: 'service-orders.create' }" class="rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-500/10">
+            <RouterLink :to="tenantRoute('service-orders.create')" class="rounded-lg border border-amber-500/30 px-3 py-1.5 text-xs text-amber-300 hover:bg-amber-500/10">
               Abrir nova O.S.
             </RouterLink>
           </div>

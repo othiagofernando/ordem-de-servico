@@ -1,17 +1,19 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { tenantLoginRoute, tenantRoute } = useTenantRouting()
 
 if (!auth.pendingSelection) {
-  router.replace({ name: 'login' })
+  router.replace(tenantLoginRoute())
 }
 
 async function select(uuid: string) {
   await auth.selectCompany(uuid)
-  router.push({ name: 'dashboard' })
+  router.push(tenantRoute('dashboard'))
 }
 </script>
 

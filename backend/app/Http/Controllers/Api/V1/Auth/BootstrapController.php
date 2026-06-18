@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Domains\Billing\Actions\ResolveCurrentSubscription;
+use App\Domains\Billing\Actions\SerializeSubscription;
 use App\Domains\Auth\Actions\ResolveActiveMemberships;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Companies\Support\CurrentCompanyContext;
@@ -20,9 +22,12 @@ class BootstrapController extends Controller
     public function __invoke(
         CurrentCompanyContext $context,
         ResolveActiveMemberships $resolveActiveMemberships,
+        ResolveCurrentSubscription $resolveCurrentSubscription,
+        SerializeSubscription $serializeSubscription,
     ): JsonResponse {
         $user = $context->user();
         $activeMembership = $context->membership();
+        $company = $context->company();
 
         $memberships = $user === null
             ? collect()
@@ -40,6 +45,7 @@ class BootstrapController extends Controller
                     'id' => $context->company()?->getKey(),
                     'uuid' => $context->company()?->uuid,
                     'name' => $context->company()?->name,
+                    'slug' => $context->company()?->slug,
                 ],
                 'membership' => [
                     'id' => $activeMembership?->getKey(),
@@ -50,14 +56,17 @@ class BootstrapController extends Controller
                     'id' => $user?->getKey(),
                     'name' => $user?->name,
                     'email' => $user?->email,
+                    'super_admin' => $user?->super_admin ?? false,
                 ],
             ],
-            'permissions' => $activeMembership?->resolvedPermissions() ?? [],
+            'permissions' => $user?->super_admin ? ['super_admin'] : ($activeMembership?->resolvedPermissions() ?? []),
+            'subscription' => $company ? $serializeSubscription->handle($resolveCurrentSubscription->handle($company)) : null,
             'memberships' => $memberships->map(fn (Membership $membership): array => [
                 'id' => $membership->getKey(),
                 'company_id' => $membership->company_id,
                 'company_uuid' => $membership->company?->uuid,
                 'company_name' => $membership->company?->name,
+                'company_slug' => $membership->company?->slug,
                 'role' => $membership->role,
                 'status' => $membership->status,
                 'is_active_context' => $membership->getKey() === $activeMembership?->getKey(),

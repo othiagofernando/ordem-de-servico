@@ -43,6 +43,13 @@ class LoginController extends Controller
             ], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        if ($user->super_admin) {
+            return $this->superAdminTokenResponse(
+                $issueApiToken->handle($user, null, 'password-login-super-admin'),
+                $user,
+            );
+        }
+
         $memberships = $resolveActiveMemberships->handle($user);
 
         if ($memberships->isEmpty()) {
@@ -76,6 +83,7 @@ class LoginController extends Controller
                     'membership_id' => $membership->getKey(),
                     'company_uuid' => $membership->company?->uuid,
                     'company_name' => $membership->company?->name,
+                    'company_slug' => $membership->company?->slug,
                     'role' => $membership->role,
                 ])
                 ->values()
@@ -95,11 +103,32 @@ class LoginController extends Controller
             'company' => [
                 'uuid' => $membership->company?->uuid,
                 'name' => $membership->company?->name,
+                'slug' => $membership->company?->slug,
             ],
             'membership' => [
                 'id' => $membership->getKey(),
                 'role' => $membership->role,
                 'status' => $membership->status,
+            ],
+        ]);
+    }
+
+    /**
+     * @param  array{plain_text_token: string, api_token: ApiToken}  $issuedToken
+     */
+    protected function superAdminTokenResponse(array $issuedToken, User $user): JsonResponse
+    {
+        return response()->json([
+            'token_type' => 'Bearer',
+            'access_token' => $issuedToken['plain_text_token'],
+            'expires_at' => $issuedToken['api_token']->expires_at?->toIso8601String(),
+            'company' => null,
+            'membership' => null,
+            'user' => [
+                'id' => $user->getKey(),
+                'name' => $user->name,
+                'email' => $user->email,
+                'super_admin' => true,
             ],
         ]);
     }

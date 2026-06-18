@@ -155,6 +155,72 @@ class EquipmentRegistryTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_equipment_index_excludes_other_tenant_records_and_meta_totals(): void
+    {
+        [$token, , $customer] = $this->createEquipmentAccess();
+        [$otherToken, , $otherCustomer] = $this->createEquipmentAccess(email: 'other-meta@example.com', companyName: 'Other Meta Co');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/equipments', [
+                'customer_id' => $customer->getKey(),
+                'category' => 'Notebook',
+                'brand' => 'Dell',
+                'model' => 'Tenant A',
+            ])
+            ->assertCreated();
+
+        $this->withToken($otherToken)
+            ->postJson('/api/v1/equipments', [
+                'customer_id' => $otherCustomer->getKey(),
+                'category' => 'Notebook',
+                'brand' => 'HP',
+                'model' => 'Tenant B',
+            ])
+            ->assertCreated();
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/equipments')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.from', 1)
+            ->assertJsonPath('meta.to', 1);
+
+        $this->assertSame(['Tenant A'], collect($response->json('data'))->pluck('model')->all());
+    }
+
+    public function test_equipment_store_and_update_reject_customer_from_another_tenant_with_422(): void
+    {
+        [$token, , $customer] = $this->createEquipmentAccess();
+        [, , $otherCustomer] = $this->createEquipmentAccess(email: 'other-invalid@example.com', companyName: 'Other Invalid Co');
+
+        $this->withToken($token)
+            ->postJson('/api/v1/equipments', [
+                'customer_id' => $otherCustomer->getKey(),
+                'category' => 'Notebook',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_id']);
+
+        $equipmentId = $this->withToken($token)
+            ->postJson('/api/v1/equipments', [
+                'customer_id' => $customer->getKey(),
+                'category' => 'Notebook',
+                'brand' => 'Dell',
+            ])
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->withToken($token)
+            ->putJson('/api/v1/equipments/'.$equipmentId, [
+                'customer_id' => $otherCustomer->getKey(),
+                'category' => 'Notebook',
+                'brand' => 'Dell',
+            ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_id']);
+    }
+
     /**
      * @return array{string, Membership, Customer}
      */

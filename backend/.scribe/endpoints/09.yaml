@@ -35,8 +35,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 34441971-6316-49cd-b9ea-83dc81a80821
-          access-control-allow-origin: '*'
+          x-correlation-id: 49cc62fd-5832-481d-b197-fa1ac5a998ac
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -142,7 +142,7 @@ endpoints:
         name: 'items[].required'
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -155,7 +155,7 @@ endpoints:
         - key: b
           label: 'n'
           type: g
-          required: true
+          required: false
     fileParameters: []
     responses: []
     responseFields: []
@@ -226,14 +226,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -273,14 +273,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -320,14 +320,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -391,14 +391,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -412,8 +412,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: bbfb4f31-2682-4e6e-bd66-486c1316a4ae
-          access-control-allow-origin: '*'
+          x-correlation-id: a3bded7a-c839-4ffe-9702-125d378ad5c1
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -448,14 +448,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -498,7 +498,7 @@ endpoints:
         name: valid_until
         description: 'Must be a valid date.'
         required: false
-        example: '2026-06-16T21:36:59'
+        example: '2026-06-18T11:24:24'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -544,7 +544,7 @@ endpoints:
           unit_price_cents: 8
       notes: architecto
       currency: ngz
-      valid_until: '2026-06-16T21:36:59'
+      valid_until: '2026-06-18T11:24:24'
     fileParameters: []
     responses: []
     responseFields: []
@@ -580,7 +580,7 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -598,7 +598,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
       quoteRevision_id: 1
     queryParameters: []
     cleanQueryParameters: []
@@ -639,14 +639,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -686,14 +686,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -829,14 +829,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -925,14 +925,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -946,8 +946,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 45712e73-a1d3-41ea-9afa-d4b50cf567c5
-          access-control-allow-origin: '*'
+          x-correlation-id: a6a5f7be-f50c-48cd-b561-091aa4830932
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -982,14 +982,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1029,14 +1029,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1076,14 +1076,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1123,14 +1123,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -1150,7 +1150,7 @@ endpoints:
         name: payment_method
         description: ''
         required: true
-        example: other
+        example: credit_card
         type: string
         enumValues:
           - cash
@@ -1186,7 +1186,7 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       amount_cents: 16
-      payment_method: other
+      payment_method: credit_card
       currency: ngz
       notes: architecto
     fileParameters: []
@@ -1224,14 +1224,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1271,14 +1271,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -1366,14 +1366,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -1390,6 +1390,228 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       assigned_membership_id: 16
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/service-orders/{serviceOrder_id}'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Move a cancelled or no-repair service order to the trash (soft delete) after password confirmation.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrder_id:
+        custom: []
+        name: serviceOrder_id
+        description: 'The ID of the serviceOrder.'
+        required: true
+        example: 2
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrder_id: 2
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      password:
+        custom: []
+        name: password
+        description: ''
+        required: true
+        example: '|]|{+-'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      password: '|]|{+-'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/service-orders/trash
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'List soft-deleted (trashed) service orders for the current company.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 2a57df36-2fd4-449a-9b03-0ff725ee603b
+          access-control-allow-origin: 'http://localhost:5173'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - POST
+    uri: 'api/v1/service-orders/{serviceOrderId}/restore'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Restore a trashed service order after password confirmation.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrderId:
+        custom: []
+        name: serviceOrderId
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrderId: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      password:
+        custom: []
+        name: password
+        description: ''
+        required: true
+        example: '|]|{+-'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      password: '|]|{+-'
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - DELETE
+    uri: 'api/v1/service-orders/{serviceOrderId}/force'
+    metadata:
+      custom: []
+      groupName: 'Service Orders'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: 'Permanently and irreversibly delete a trashed service order and all its data.'
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters:
+      serviceOrderId:
+        custom: []
+        name: serviceOrderId
+        description: ''
+        required: true
+        example: architecto
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanUrlParameters:
+      serviceOrderId: architecto
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      password:
+        custom: []
+        name: password
+        description: ''
+        required: true
+        example: '|]|{+-'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      password: '|]|{+-'
     fileParameters: []
     responses: []
     responseFields: []
@@ -1425,14 +1647,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1472,14 +1694,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1519,14 +1741,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -1578,14 +1800,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -1651,14 +1873,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1672,8 +1894,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 74b052ee-0a79-4c96-8d79-1fd7946f036b
-          access-control-allow-origin: '*'
+          x-correlation-id: 8381cb05-8a64-426e-b4db-298813b73363
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -1708,14 +1930,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1729,8 +1951,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 928a9c8b-6d50-4796-8283-fd1d9ff3b155
-          access-control-allow-origin: '*'
+          x-correlation-id: f99082cb-7e87-4f70-aae1-6b1c1ad2c022
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -1765,14 +1987,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1786,8 +2008,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: ddc03938-7118-42d2-81b9-6462925dd4ea
-          access-control-allow-origin: '*'
+          x-correlation-id: 999e7ab8-67bf-48ca-a47a-a4b97529257b
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -1822,7 +2044,7 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -1840,7 +2062,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
       payment_id: 1
     queryParameters: []
     cleanQueryParameters: []
@@ -1855,8 +2077,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 911a604b-08f6-48fe-bdd1-1d238028a995
-          access-control-allow-origin: '*'
+          x-correlation-id: acbe4fdf-269c-4075-8b35-2f45460446f0
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -1891,14 +2113,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -1912,8 +2134,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: f4b008ae-db7c-44f9-871d-4117ceee7c5a
-          access-control-allow-origin: '*'
+          x-correlation-id: 590ce691-9295-40e8-ac95-44dadf1fa2d0
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -1957,8 +2179,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: e00a3ee6-d1a1-4d40-829b-e81631238b16
-          access-control-allow-origin: '*'
+          x-correlation-id: 13089812-353a-46da-823a-ed92630d1b6d
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2002,8 +2224,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: acf67e24-823e-40ff-a62d-2671d4573312
-          access-control-allow-origin: '*'
+          x-correlation-id: d96c6543-94a1-4413-86e1-600b4847068c
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2064,7 +2286,7 @@ endpoints:
         name: received_from
         description: 'Must be a valid date.'
         required: false
-        example: '2026-06-16T21:36:59'
+        example: '2026-06-18T11:24:24'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -2075,7 +2297,7 @@ endpoints:
         name: received_to
         description: 'Must be a valid date.'
         required: false
-        example: '2026-06-16T21:36:59'
+        example: '2026-06-18T11:24:24'
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -2083,8 +2305,8 @@ endpoints:
         deprecated: false
     cleanBodyParameters:
       payment_method: b
-      received_from: '2026-06-16T21:36:59'
-      received_to: '2026-06-16T21:36:59'
+      received_from: '2026-06-18T11:24:24'
+      received_to: '2026-06-18T11:24:24'
     fileParameters: []
     responses:
       -
@@ -2094,8 +2316,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 8f9edf20-0cdf-4f6c-abe1-3d81f35018c5
-          access-control-allow-origin: '*'
+          x-correlation-id: 56eec23d-fe3d-4e04-b896-2ca2aa8ef7c3
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2130,14 +2352,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -2151,8 +2373,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 778a4069-2292-434a-aaac-9209bc9ffe33
-          access-control-allow-origin: '*'
+          x-correlation-id: 0434a0b9-0700-4c44-a70f-f78b83886a42
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2187,14 +2409,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
@@ -2270,7 +2492,7 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -2288,7 +2510,7 @@ endpoints:
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
       attachment_id: 16
     queryParameters: []
     cleanQueryParameters: []
@@ -2306,8 +2528,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: fb9d3152-f9e9-44c9-a1e4-191425952256
-          access-control-allow-origin: '*'
+          x-correlation-id: 20cfbf0e-0e05-47f4-965b-4ce616e2d91e
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2351,8 +2573,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 404110d8-9302-4256-8d19-72fabfbcf5c6
-          access-control-allow-origin: '*'
+          x-correlation-id: fe9ceec4-a7b3-4f0c-adf2-0afddea961e5
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -2387,14 +2609,14 @@ endpoints:
         name: serviceOrder_id
         description: 'The ID of the serviceOrder.'
         required: true
-        example: 1
+        example: 2
         type: integer
         enumValues: []
         exampleWasSpecified: false
         nullable: false
         deprecated: false
     cleanUrlParameters:
-      serviceOrder_id: 1
+      serviceOrder_id: 2
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters: []
@@ -2408,8 +2630,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 1173dedc-4ef9-46ca-ac46-4781ba263245
-          access-control-allow-origin: '*'
+          x-correlation-id: 86606dad-7b0c-4430-9be3-7860ffec185f
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:

@@ -174,6 +174,38 @@ class CustomerRegistryTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_customer_index_excludes_other_tenant_records_and_meta_totals(): void
+    {
+        [$token] = $this->createAttendantAccess();
+        [$otherToken] = $this->createAttendantAccess('other3@example.com', 'Other 3');
+
+        $this->withToken($token)->postJson('/api/v1/customers', [
+            'customer_type' => 'pf',
+            'name' => 'Cliente Tenant A',
+            'contacts' => [
+                ['email' => 'a@example.com'],
+            ],
+        ])->assertCreated();
+
+        $this->withToken($otherToken)->postJson('/api/v1/customers', [
+            'customer_type' => 'pf',
+            'name' => 'Cliente Tenant B',
+            'contacts' => [
+                ['email' => 'b@example.com'],
+            ],
+        ])->assertCreated();
+
+        $response = $this->withToken($token)
+            ->getJson('/api/v1/customers')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.from', 1)
+            ->assertJsonPath('meta.to', 1);
+
+        $this->assertSame(['Cliente Tenant A'], collect($response->json('data'))->pluck('name')->all());
+    }
+
     /**
      * @return array{string, Membership}
      */

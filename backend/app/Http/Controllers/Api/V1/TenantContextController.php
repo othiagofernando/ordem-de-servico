@@ -22,6 +22,7 @@ class TenantContextController extends Controller
                 'id' => $context->company()?->getKey(),
                 'uuid' => $context->company()?->uuid,
                 'name' => $context->company()?->name,
+                'slug' => $context->company()?->slug,
             ],
             'membership' => [
                 'id' => $context->membership()?->getKey(),
@@ -32,6 +33,7 @@ class TenantContextController extends Controller
                 'id' => $context->user()?->getKey(),
                 'name' => $context->user()?->name,
                 'email' => $context->user()?->email,
+                'super_admin' => $context->user()?->super_admin ?? false,
             ],
         ]);
     }

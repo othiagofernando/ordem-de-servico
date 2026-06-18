@@ -8,8 +8,10 @@ import {
   getPrintablePaymentReceipt,
   type PrintableOperationalDocumentPayload,
 } from "../../api/serviceOrders";
+import { useTenantRouting } from "../../composables/useTenantRouting";
 
 const route = useRoute();
+const { tenantRoute } = useTenantRouting();
 
 const payload = ref<PrintableOperationalDocumentPayload | null>(null);
 const loading = ref(true);
@@ -137,7 +139,7 @@ onMounted(loadPayload);
   <div class="min-h-screen bg-stone-100 text-stone-900">
     <div class="mx-auto flex max-w-[210mm] items-center justify-between gap-3 px-4 py-4 print:hidden">
       <RouterLink
-        :to="{ name: 'service-orders.detail', params: { id: route.params.id } }"
+        :to="tenantRoute('service-orders.detail', { params: { id: route.params.id } })"
         class="text-sm text-stone-600 hover:text-stone-900"
       >
         ← Voltar para a O.S.

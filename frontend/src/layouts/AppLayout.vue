@@ -1,30 +1,50 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter, RouterLink } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { useThemeStore } from '../stores/theme'
 import NavIcon from '../components/NavIcon.vue'
+import { useTenantRouting } from '../composables/useTenantRouting'
 
 const auth = useAuthStore()
 const theme = useThemeStore()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const { tenantRoute, tenantLoginRoute } = useTenantRouting()
+
+const accountRoute = computed(() => auth.isSuperAdmin
+  ? { name: 'account.global' as const }
+  : tenantRoute('account'))
 
 async function logout() {
   await auth.logout()
-  router.push({ name: 'login' })
+  try {
+    await router.push(tenantLoginRoute() || { name: 'login' })
+  } catch {
+    await router.push({ name: 'login' })
+  }
 }
 
-const navLinks = [
-  { name: 'dashboard', label: 'Dashboard' },
-  { name: 'reports', label: 'Relatórios' },
-  { name: 'service-orders', label: 'Ordens de Serviço' },
-  { name: 'customers', label: 'Clientes' },
-  { name: 'equipments', label: 'Equipamentos' },
-  { name: 'members', label: 'Usuários' },
-  { name: 'checklists', label: 'Checklists' },
-  { name: 'settings', label: 'Configurações' },
-]
+const navLinks = computed(() => auth.isSuperAdmin
+  ? [
+      { to: { name: 'admin' }, label: 'Resumo' },
+      { to: { name: 'admin.alerts' }, label: 'Alertas' },
+      { to: { name: 'admin.companies' }, label: 'Empresas' },
+      { to: { name: 'admin.subscriptions' }, label: 'Assinaturas' },
+      { to: { name: 'admin.billing' }, label: 'Cobranças' },
+      { to: { name: 'admin.plans' }, label: 'Planos' },
+      { to: { name: 'admin.audit' }, label: 'Auditoria' },
+    ]
+  : [
+      { to: tenantRoute('dashboard'), label: 'Dashboard' },
+      { to: tenantRoute('reports'), label: 'Relatórios' },
+      { to: tenantRoute('service-orders'), label: 'Ordens de Serviço' },
+      { to: tenantRoute('customers'), label: 'Clientes' },
+      { to: tenantRoute('equipments'), label: 'Equipamentos' },
+      { to: tenantRoute('members'), label: 'Usuários' },
+      { to: tenantRoute('checklists'), label: 'Checklists' },
+      { to: tenantRoute('settings'), label: 'Configurações' },
+    ])
 </script>
 
 <template>
@@ -47,13 +67,13 @@ const navLinks = [
       <nav class="flex-1 space-y-0.5 px-2 py-3">
         <RouterLink
           v-for="link in navLinks"
-          :key="link.name"
-          :to="{ name: link.name }"
+          :key="link.label"
+          :to="link.to"
           class="nav-link"
           active-class="nav-link-active"
           @click="sidebarOpen = false"
         >
-          <NavIcon :name="link.name" />
+          <NavIcon :name="String(link.to.name)" />
           {{ link.label }}
         </RouterLink>
       </nav>
@@ -61,7 +81,7 @@ const navLinks = [
       <!-- Rodapé: conta + logout -->
       <div class="sidebar-border-t space-y-1 p-3">
         <RouterLink
-          :to="{ name: 'account' }"
+          :to="accountRoute"
           class="nav-link !gap-2.5"
           active-class="nav-link-active"
           @click="sidebarOpen = false"
@@ -74,7 +94,9 @@ const navLinks = [
             <p class="text-[11px] capitalize" style="color: var(--c-text-muted)">{{ auth.role }}</p>
           </div>
         </RouterLink>
-        <div class="truncate px-3 text-[11px]" style="color: var(--c-text-dim)">{{ auth.company?.name }}</div>
+        <div class="truncate px-3 text-[11px]" style="color: var(--c-text-dim)">
+          {{ auth.isSuperAdmin ? 'Escopo global' : auth.company?.name }}
+        </div>
         <button
           class="nav-link w-full text-left hover:!text-red-400"
           @click="logout"
@@ -124,13 +146,21 @@ const navLinks = [
           </svg>
         </button>
 
-        <RouterLink :to="{ name: 'account' }" class="header-account-link">
+        <RouterLink :to="accountRoute" class="header-account-link">
           <span>{{ auth.user?.name }}</span>
-          <span class="role-badge capitalize">{{ auth.role }}</span>
+          <span class="role-badge capitalize">{{ auth.isSuperAdmin ? 'super_admin' : auth.role }}</span>
         </RouterLink>
       </header>
 
       <main class="flex-1 p-6">
+        <div
+          v-if="!auth.isSuperAdmin && auth.subscription && auth.subscription.days_until_expiration <= 7"
+          class="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+        >
+          <strong class="font-semibold">Assinatura perto do vencimento.</strong>
+          Vence em {{ auth.subscription.days_until_expiration }} dia(s).
+          <span v-if="auth.subscription.plan.name">Plano atual: {{ auth.subscription.plan.name }}.</span>
+        </div>
         <RouterView />
       </main>
     </div>

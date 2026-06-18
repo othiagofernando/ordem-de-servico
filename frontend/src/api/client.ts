@@ -1,3 +1,5 @@
+import { extractTenantSlug, getStoredTenantSlug } from '../tenant'
+
 const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://ordem-de-servico.test').replace(/\/$/, '')
 
 export const API_BASE = `${apiBase}/api/v1`
@@ -17,6 +19,10 @@ function getToken(): string | null {
   return localStorage.getItem('access_token')
 }
 
+function getTenantSlug(): string | null {
+  return extractTenantSlug() ?? getStoredTenantSlug()
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {},
@@ -31,6 +37,11 @@ export async function apiFetch<T>(
 
   if (token) {
     headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const tenantSlug = getTenantSlug()
+  if (tenantSlug) {
+    headers['X-Tenant-Slug'] = tenantSlug
   }
 
   const res = await fetch(`${API_BASE}${path}`, { ...options, headers })
@@ -53,6 +64,36 @@ export function apiPost<T>(path: string, body?: unknown) {
   return apiFetch<T>(path, { method: 'POST', body: body ? JSON.stringify(body) : undefined })
 }
 
+export async function apiPostForm<T>(path: string, formData: FormData): Promise<T> {
+  const token = getToken()
+
+  const headers: Record<string, string> = {
+    Accept: 'application/json',
+  }
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  const tenantSlug = getTenantSlug()
+  if (tenantSlug) {
+    headers['X-Tenant-Slug'] = tenantSlug
+  }
+
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    body: formData,
+    headers,
+  })
+
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({}))
+    throw new ApiError(res.status, data, (data as { message?: string }).message ?? `HTTP ${res.status}`)
+  }
+
+  return res.json() as Promise<T>
+}
+
 export function apiPut<T>(path: string, body?: unknown) {
   return apiFetch<T>(path, { method: 'PUT', body: body ? JSON.stringify(body) : undefined })
 }
@@ -71,6 +112,7 @@ export async function apiDownload(path: string, filename: string, accept = 'text
     headers: {
       Accept: accept,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(getTenantSlug() ? { 'X-Tenant-Slug': getTenantSlug() as string } : {}),
     },
   })
 

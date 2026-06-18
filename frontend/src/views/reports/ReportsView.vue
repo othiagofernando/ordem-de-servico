@@ -14,7 +14,9 @@ import {
   type ServiceOrderQueue,
   type ServiceOrderReportResponse,
 } from '../../api/serviceOrders'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
+const { tenantRoute } = useTenantRouting()
 const activeTab = ref<'service_orders' | 'financial'>('service_orders')
 const loading = ref(false)
 const exporting = ref(false)
@@ -370,7 +372,7 @@ onMounted(loadActiveTab)
                   <td class="px-4 py-3 td-data">{{ row.assigned_membership_name ?? '—' }}</td>
                   <td class="px-4 py-3 td-meta">{{ formatDate(row.opened_at) }}</td>
                   <td class="px-4 py-3 text-right">
-                    <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                    <RouterLink :to="tenantRoute('service-orders.detail', { params: { id: row.id } })" class="text-xs text-amber-300 hover:text-amber-200">
                       Abrir
                     </RouterLink>
                   </td>
@@ -499,7 +501,7 @@ onMounted(loadActiveTab)
                   <td class="px-4 py-3 text-amber-300">{{ formatMoney(row.outstanding_balance_cents) }}</td>
                   <td class="px-4 py-3 td-meta">{{ formatDate(row.last_payment_at) }}</td>
                   <td class="px-4 py-3 text-right">
-                    <RouterLink :to="{ name: 'service-orders.detail', params: { id: row.service_order_id } }" class="text-xs text-amber-300 hover:text-amber-200">
+                    <RouterLink :to="tenantRoute('service-orders.detail', { params: { id: row.service_order_id } })" class="text-xs text-amber-300 hover:text-amber-200">
                       Abrir
                     </RouterLink>
                   </td>

@@ -2,12 +2,17 @@
 
 namespace App\Domains\ServiceOrders\Actions;
 
+use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\ServiceOrders\Models\QuoteRevision;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Domains\ServiceOrders\Models\ServiceOrderPayment;
 
 class BuildOperationalDocumentPayload
 {
+    public function __construct(
+        protected ResolveCompanyOperationalSettings $resolveCompanyOperationalSettings,
+    ) {}
+
     /**
      * @return array<string, mixed>
      */
@@ -96,11 +101,28 @@ class BuildOperationalDocumentPayload
      */
     protected function serializeCompany(ServiceOrder $serviceOrder): array
     {
+        $company = $serviceOrder->company;
+        $settings = $company ? $this->resolveCompanyOperationalSettings->handle($company) : null;
+
         return [
-            'name' => $serviceOrder->company?->name,
-            'document' => $serviceOrder->company?->document,
-            'email' => $serviceOrder->company?->email,
-            'phone' => $serviceOrder->company?->phone,
+            'name' => $company?->name,
+            'trade_name' => $company?->trade_name,
+            'brand_name' => $company && $settings ? $settings->brandName($company) : $company?->name,
+            'document' => $company?->document,
+            'email' => $company?->email,
+            'phone' => $company?->phone,
+            'website' => $company?->website,
+            'address' => [
+                'line_1' => $company?->address_line_1,
+                'line_2' => $company?->address_line_2,
+                'district' => $company?->district,
+                'city' => $company?->city,
+                'state' => $company?->state,
+                'postal_code' => $company?->postal_code,
+            ],
+            'logo_url' => $company?->logo_path ? \Storage::disk('public')->url($company->logo_path) : null,
+            'document_footer_text' => $settings?->document_footer_text,
+            'currency' => $settings?->currency ?? 'BRL',
         ];
     }
 

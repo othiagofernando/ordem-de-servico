@@ -1,6 +1,9 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
 import type { ServiceOrder } from '../../../api/serviceOrders'
+import { useTenantRouting } from '../../../composables/useTenantRouting'
+
+const { tenantRoute } = useTenantRouting()
 
 defineProps<{
   serviceOrder: ServiceOrder
@@ -15,7 +18,7 @@ defineProps<{
         <dt class="text-sm text-stone-500">OS de Origem</dt>
         <dd>
           <RouterLink
-            :to="{ name: 'service-orders.detail', params: { id: serviceOrder.warranty_origin_service_order_id } }"
+            :to="tenantRoute('service-orders.detail', { params: { id: serviceOrder.warranty_origin_service_order_id } })"
             class="text-sm text-amber-400 hover:text-amber-300"
           >
             Ver OS original

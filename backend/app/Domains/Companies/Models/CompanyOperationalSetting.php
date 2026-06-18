@@ -15,6 +15,9 @@ use Illuminate\Database\Eloquent\Model;
     'portal_footer_text',
     'portal_approved_text',
     'portal_rejected_text',
+    'document_footer_text',
+    'intake_checklists_enabled',
+    'currency',
     'default_quote_validity_days',
     'block_delivery_with_outstanding_balance',
     'notify_quote_available',
@@ -52,6 +55,9 @@ class CompanyOperationalSetting extends Model
             'portal_footer_text' => null,
             'portal_approved_text' => self::DEFAULT_PORTAL_APPROVED_TEXT,
             'portal_rejected_text' => self::DEFAULT_PORTAL_REJECTED_TEXT,
+            'document_footer_text' => null,
+            'intake_checklists_enabled' => true,
+            'currency' => 'BRL',
             'default_quote_validity_days' => self::DEFAULT_QUOTE_VALIDITY_DAYS,
             'block_delivery_with_outstanding_balance' => true,
             'notify_quote_available' => true,
@@ -70,6 +76,7 @@ class CompanyOperationalSetting extends Model
     {
         return [
             'default_quote_validity_days' => 'integer',
+            'intake_checklists_enabled' => 'bool',
             'block_delivery_with_outstanding_balance' => 'bool',
             'notify_quote_available' => 'bool',
             'notify_quote_expiring' => 'bool',

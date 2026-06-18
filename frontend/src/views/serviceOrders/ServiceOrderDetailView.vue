@@ -26,9 +26,11 @@ import ServiceOrderQuoteForm from './components/ServiceOrderQuoteForm.vue'
 import { useServiceOrderDerivedState } from './composables/useServiceOrderDerivedState'
 import { useServiceOrderFormatting } from './composables/useServiceOrderFormatting'
 import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 const os = ref<ServiceOrder | null>(null)
 const timeline = ref<TimelineEvent[]>([])
 const quotes = ref<QuoteRevision[]>([])
@@ -378,7 +380,7 @@ async function doTrashServiceOrder(password: string) {
   deleteLoading.value = true
   try {
     await trashServiceOrder(Number(route.params.id), password)
-    router.push({ name: 'service-orders' })
+    router.push(tenantRoute('service-orders'))
   } catch (e) {
     if (e instanceof ApiError) {
       const errData = e.data as { message?: string; errors?: Record<string, string[]> }
@@ -526,7 +528,7 @@ async function downloadAttachment(attachmentId: number) {
 
 <template>
   <div class="space-y-6">
-    <RouterLink :to="{ name: 'service-orders' }" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
+    <RouterLink :to="tenantRoute('service-orders')" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
 
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
@@ -1153,7 +1155,7 @@ async function downloadAttachment(attachmentId: number) {
                   <span class="text-stone-400">{{ paymentMethodLabels[p.payment_method] ?? p.payment_method }} — {{ fmt(p.received_at) }}</span>
                   <div class="flex items-center gap-3">
                     <a
-                      :href="router.resolve({ name: 'service-orders.documents.receipt', params: { id: route.params.id, paymentId: p.id } }).href"
+                      :href="router.resolve(tenantRoute('service-orders.documents.receipt', { params: { id: route.params.id, paymentId: p.id } })).href"
                       target="_blank"
                       rel="noopener noreferrer"
                       class="text-xs text-amber-400 hover:text-amber-300"

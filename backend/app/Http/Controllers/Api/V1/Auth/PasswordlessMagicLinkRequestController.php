@@ -7,6 +7,8 @@ use App\Domains\Auth\Mail\MagicLinkMail;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\AuthRateLimiter;
+use App\Domains\Companies\Models\Company;
+use App\Domains\Companies\Support\FrontendTenantUrl;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -26,6 +28,7 @@ class PasswordlessMagicLinkRequestController extends Controller
         Request $request,
         CreateAuthChallenge $createAuthChallenge,
         AuthRateLimiter $rateLimiter,
+        FrontendTenantUrl $frontendTenantUrl,
     ): JsonResponse {
         $data = $request->validate([
             'email' => ['required', 'email'],
@@ -43,7 +46,11 @@ class PasswordlessMagicLinkRequestController extends Controller
             ->with(['user', 'company'])
             ->where('status', Membership::STATUS_ACTIVE)
             ->whereHas('user', fn ($query) => $query->where('email', $data['email']))
-            ->whereHas('company', fn ($query) => $query->where('uuid', $data['company_uuid']))
+            ->whereHas('company', fn ($query) => $query
+                ->where('uuid', $data['company_uuid'])
+                ->whereNull('deleted_at')
+                ->where('is_active', true)
+                ->where('status', Company::STATUS_ACTIVE))
             ->first();
 
         if ($membership === null || $membership->user === null || $membership->company === null) {
@@ -65,9 +72,7 @@ class PasswordlessMagicLinkRequestController extends Controller
             ttlMinutes: 10,
         );
 
-        $magicLinkUrl = rtrim(env('FRONTEND_URL', config('app.url')), '/')
-            . '/auth/magic/'
-            . $challenge['plain_text_token'];
+        $magicLinkUrl = $frontendTenantUrl->magicLink($membership->company, $challenge['plain_text_token']);
 
         Mail::to($membership->user->email)->send(
             new MagicLinkMail($magicLinkUrl, $membership->company->name),

@@ -35,8 +35,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 561876ca-7b56-4748-a808-154912528a20
-          access-control-allow-origin: '*'
+          x-correlation-id: 98eec0d5-6f0f-4c6b-8a97-f5795faef96f
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -127,8 +127,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: c8e2588b-7be9-4ae1-ae15-3a2765d40412
-          access-control-allow-origin: '*'
+          x-correlation-id: bbee7196-d986-4ecb-97d6-007c196ec45a
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:

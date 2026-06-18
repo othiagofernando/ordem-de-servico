@@ -38,8 +38,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 251cc9d7-d56b-45a8-8694-24b32094e47c
-          access-control-allow-origin: '*'
+          x-correlation-id: 1b93fdf6-07d3-4446-9c24-368f26886a5c
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:

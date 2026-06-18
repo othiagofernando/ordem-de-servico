@@ -54,6 +54,7 @@ class MembershipInvitationShowController extends Controller
                 'company' => [
                     'uuid' => $challenge->company->uuid,
                     'name' => $challenge->company->name,
+                    'slug' => $challenge->company->slug,
                 ],
                 'user' => [
                     'name' => $challenge->user->name,

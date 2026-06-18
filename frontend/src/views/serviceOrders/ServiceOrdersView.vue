@@ -5,7 +5,9 @@ import { listServiceOrders, type ServiceOrder, type ServiceOrderQueue, type Pagi
 import { useSortable } from '../../composables/useSortable'
 import ThSort from '../../components/ThSort.vue'
 import AppPagination from '../../components/AppPagination.vue'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
+const { tenantRoute } = useTenantRouting()
 const orders = ref<ServiceOrder[]>([])
 const loading = ref(true)
 const q = ref('')
@@ -79,7 +81,7 @@ const { sorted: sortedOrders, toggleSort, sortState } = useSortable(orders, {
       <h1 class="text-2xl font-semibold text-white">Ordens de Serviço</h1>
       <div class="flex items-center gap-2">
         <RouterLink
-          :to="{ name: 'service-orders.trash' }"
+          :to="tenantRoute('service-orders.trash')"
           class="btn-ghost btn-ghost-danger"
         >
           <svg viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4 shrink-0">
@@ -88,7 +90,7 @@ const { sorted: sortedOrders, toggleSort, sortState } = useSortable(orders, {
           Lixeira
         </RouterLink>
         <RouterLink
-          :to="{ name: 'service-orders.create' }"
+          :to="tenantRoute('service-orders.create')"
           class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
         >
           + Nova OS
@@ -160,7 +162,7 @@ const { sorted: sortedOrders, toggleSort, sortState } = useSortable(orders, {
               <td class="px-5 py-3.5 text-sm td-meta">{{ formatDate(os.opened_at) }}</td>
               <td class="px-5 py-3.5 text-right">
                 <RouterLink
-                  :to="{ name: 'service-orders.detail', params: { id: os.id } }"
+                  :to="tenantRoute('service-orders.detail', { params: { id: os.id } })"
                   class="btn-row-action"
                 >
                   <svg viewBox="0 0 20 20" fill="currentColor" class="h-3.5 w-3.5">

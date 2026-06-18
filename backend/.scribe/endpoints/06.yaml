@@ -35,8 +35,8 @@ endpoints:
         headers:
           cache-control: 'no-cache, private'
           content-type: application/json
-          x-correlation-id: 041348dd-2092-4a10-9b6c-bfc14cb7f6fd
-          access-control-allow-origin: '*'
+          x-correlation-id: 711356ac-844c-4828-9afb-44bc6e122c8e
+          access-control-allow-origin: 'http://localhost:5173'
         description: null
     responseFields: []
     auth:
@@ -70,12 +70,155 @@ endpoints:
     queryParameters: []
     cleanQueryParameters: []
     bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      trade_name:
+        custom: []
+        name: trade_name
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      slug:
+        custom: []
+        name: slug
+        description: 'Must match the regex /^[a-z0-9-]+$/. Must be at least 3 characters. Must not be greater than 64 characters.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      document:
+        custom: []
+        name: document
+        description: 'Must not be greater than 32 characters.'
+        required: false
+        example: z
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'Must be a valid email address. Must not be greater than 255 characters.'
+        required: false
+        example: rempel.chadrick@example.org
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Must not be greater than 30 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      address_line_1:
+        custom: []
+        name: address_line_1
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: j
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      address_line_2:
+        custom: []
+        name: address_line_2
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      district:
+        custom: []
+        name: district
+        description: 'Must not be greater than 150 characters.'
+        required: false
+        example: i
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      city:
+        custom: []
+        name: city
+        description: 'Must not be greater than 150 characters.'
+        required: false
+        example: k
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      state:
+        custom: []
+        name: state
+        description: 'Must be 2 characters.'
+        required: false
+        example: hw
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      postal_code:
+        custom: []
+        name: postal_code
+        description: 'Must not be greater than 20 characters.'
+        required: false
+        example: aykcmyuwpwlvqwrs
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      website:
+        custom: []
+        name: website
+        description: 'Must be a valid URL. Must not be greater than 255 characters.'
+        required: false
+        example: i
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
       brand_name:
         custom: []
         name: brand_name
         description: 'Must not be greater than 120 characters.'
         required: false
-        example: b
+        example: t
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -86,7 +229,7 @@ endpoints:
         name: customer_contact_line
         description: 'Must not be greater than 160 characters.'
         required: false
-        example: 'n'
+        example: c
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -97,7 +240,7 @@ endpoints:
         name: service_order_reference_prefix
         description: 'Must match the regex /^[A-Za-z0-9-]+$/. Must not be greater than 20 characters.'
         required: false
-        example: gzmiyvdljnikhway
+        example: pscqldzsnrwtujwv
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -108,7 +251,7 @@ endpoints:
         name: portal_intro_text
         description: 'Must not be greater than 2000 characters.'
         required: false
-        example: k
+        example: l
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -119,7 +262,7 @@ endpoints:
         name: portal_footer_text
         description: 'Must not be greater than 500 characters.'
         required: false
-        example: c
+        example: x
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -130,7 +273,7 @@ endpoints:
         name: portal_approved_text
         description: 'Must not be greater than 255 characters.'
         required: false
-        example: m
+        example: j
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -141,18 +284,51 @@ endpoints:
         name: portal_rejected_text
         description: 'Must not be greater than 255 characters.'
         required: false
-        example: 'y'
+        example: k
         type: string
         enumValues: []
         exampleWasSpecified: false
         nullable: true
+        deprecated: false
+      document_footer_text:
+        custom: []
+        name: document_footer_text
+        description: 'Must not be greater than 1000 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      intake_checklists_enabled:
+        custom: []
+        name: intake_checklists_enabled
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      currency:
+        custom: []
+        name: currency
+        description: 'Must be 3 characters.'
+        required: false
+        example: qpp
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
         deprecated: false
       default_quote_validity_days:
         custom: []
         name: default_quote_validity_days
         description: 'Must be at least 1. Must not be greater than 30.'
         required: false
-        example: 6
+        example: 14
         type: integer
         enumValues: []
         exampleWasSpecified: false
@@ -163,7 +339,7 @@ endpoints:
         name: block_delivery_with_outstanding_balance
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -174,7 +350,7 @@ endpoints:
         name: notify_quote_available
         description: ''
         required: false
-        example: true
+        example: false
         type: boolean
         enumValues: []
         exampleWasSpecified: false
@@ -185,7 +361,7 @@ endpoints:
         name: notify_quote_available_text
         description: 'Must not be greater than 255 characters.'
         required: false
-        example: w
+        example: q
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -207,7 +383,7 @@ endpoints:
         name: notify_quote_expiring_text
         description: 'Must not be greater than 255 characters.'
         required: false
-        example: p
+        example: b
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -229,7 +405,519 @@ endpoints:
         name: notify_ready_for_pickup_text
         description: 'Must not be greater than 255 characters.'
         required: false
+        example: e
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      notify_payment_receipt:
+        custom: []
+        name: notify_payment_receipt
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notify_payment_receipt_text:
+        custom: []
+        name: notify_payment_receipt_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
         example: w
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      notification_footer_text:
+        custom: []
+        name: notification_footer_text
+        description: 'Must not be greater than 500 characters.'
+        required: false
+        example: t
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      passwordless_code_enabled:
+        custom: []
+        name: passwordless_code_enabled
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      magic_link_enabled:
+        custom: []
+        name: magic_link_enabled
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+    cleanBodyParameters:
+      name: b
+      trade_name: 'n'
+      slug: g
+      document: z
+      email: rempel.chadrick@example.org
+      phone: l
+      address_line_1: j
+      address_line_2: 'n'
+      district: i
+      city: k
+      state: hw
+      postal_code: aykcmyuwpwlvqwrs
+      website: i
+      brand_name: t
+      customer_contact_line: c
+      service_order_reference_prefix: pscqldzsnrwtujwv
+      portal_intro_text: l
+      portal_footer_text: x
+      portal_approved_text: j
+      portal_rejected_text: k
+      document_footer_text: l
+      intake_checklists_enabled: true
+      currency: qpp
+      default_quote_validity_days: 14
+      block_delivery_with_outstanding_balance: false
+      notify_quote_available: false
+      notify_quote_available_text: q
+      notify_quote_expiring: false
+      notify_quote_expiring_text: b
+      notify_ready_for_pickup: false
+      notify_ready_for_pickup_text: e
+      notify_payment_receipt: true
+      notify_payment_receipt_text: w
+      notification_footer_text: t
+      passwordless_code_enabled: true
+      magic_link_enabled: false
+    fileParameters: []
+    responses: []
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - GET
+    uri: api/v1/settings
+    metadata:
+      custom: []
+      groupName: 'Company Settings'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: "View the active company's operational settings."
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters: []
+    cleanBodyParameters: []
+    fileParameters: []
+    responses:
+      -
+        custom: []
+        status: 401
+        content: '{"message":"Invalid or expired API token."}'
+        headers:
+          cache-control: 'no-cache, private'
+          content-type: application/json
+          x-correlation-id: 2d5afcd1-b267-48e3-aafd-2409849ac36f
+          access-control-allow-origin: 'http://localhost:5173'
+        description: null
+    responseFields: []
+    auth:
+      - headers
+      - Authorization
+      - 'Bearer 6g43cv8PD1aE5beadkZfhV6'
+    controller: null
+    method: null
+    route: null
+  -
+    custom: []
+    httpMethods:
+      - PUT
+    uri: api/v1/settings
+    metadata:
+      custom: []
+      groupName: 'Company Settings'
+      groupDescription: ''
+      subgroup: ''
+      subgroupDescription: ''
+      title: "Update the active company's operational settings."
+      description: ''
+      authenticated: true
+      deprecated: false
+    headers:
+      Authorization: 'Bearer {YOUR_AUTH_KEY}'
+      Content-Type: application/json
+      Accept: application/json
+    urlParameters: []
+    cleanUrlParameters: []
+    queryParameters: []
+    cleanQueryParameters: []
+    bodyParameters:
+      name:
+        custom: []
+        name: name
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      trade_name:
+        custom: []
+        name: trade_name
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      slug:
+        custom: []
+        name: slug
+        description: 'Must match the regex /^[a-z0-9-]+$/. Must be at least 3 characters. Must not be greater than 64 characters.'
+        required: false
+        example: g
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      document:
+        custom: []
+        name: document
+        description: 'Must not be greater than 32 characters.'
+        required: false
+        example: z
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      email:
+        custom: []
+        name: email
+        description: 'Must be a valid email address. Must not be greater than 255 characters.'
+        required: false
+        example: rempel.chadrick@example.org
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      phone:
+        custom: []
+        name: phone
+        description: 'Must not be greater than 30 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      address_line_1:
+        custom: []
+        name: address_line_1
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: j
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      address_line_2:
+        custom: []
+        name: address_line_2
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: 'n'
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      district:
+        custom: []
+        name: district
+        description: 'Must not be greater than 150 characters.'
+        required: false
+        example: i
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      city:
+        custom: []
+        name: city
+        description: 'Must not be greater than 150 characters.'
+        required: false
+        example: k
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      state:
+        custom: []
+        name: state
+        description: 'Must be 2 characters.'
+        required: false
+        example: hw
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      postal_code:
+        custom: []
+        name: postal_code
+        description: 'Must not be greater than 20 characters.'
+        required: false
+        example: aykcmyuwpwlvqwrs
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      website:
+        custom: []
+        name: website
+        description: 'Must be a valid URL. Must not be greater than 255 characters.'
+        required: false
+        example: i
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      brand_name:
+        custom: []
+        name: brand_name
+        description: 'Must not be greater than 120 characters.'
+        required: false
+        example: t
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      customer_contact_line:
+        custom: []
+        name: customer_contact_line
+        description: 'Must not be greater than 160 characters.'
+        required: false
+        example: c
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      service_order_reference_prefix:
+        custom: []
+        name: service_order_reference_prefix
+        description: 'Must match the regex /^[A-Za-z0-9-]+$/. Must not be greater than 20 characters.'
+        required: false
+        example: pscqldzsnrwtujwv
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_intro_text:
+        custom: []
+        name: portal_intro_text
+        description: 'Must not be greater than 2000 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_footer_text:
+        custom: []
+        name: portal_footer_text
+        description: 'Must not be greater than 500 characters.'
+        required: false
+        example: x
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_approved_text:
+        custom: []
+        name: portal_approved_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: j
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      portal_rejected_text:
+        custom: []
+        name: portal_rejected_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: k
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      document_footer_text:
+        custom: []
+        name: document_footer_text
+        description: 'Must not be greater than 1000 characters.'
+        required: false
+        example: l
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      intake_checklists_enabled:
+        custom: []
+        name: intake_checklists_enabled
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      currency:
+        custom: []
+        name: currency
+        description: 'Must be 3 characters.'
+        required: false
+        example: qpp
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      default_quote_validity_days:
+        custom: []
+        name: default_quote_validity_days
+        description: 'Must be at least 1. Must not be greater than 30.'
+        required: false
+        example: 14
+        type: integer
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      block_delivery_with_outstanding_balance:
+        custom: []
+        name: block_delivery_with_outstanding_balance
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notify_quote_available:
+        custom: []
+        name: notify_quote_available
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notify_quote_available_text:
+        custom: []
+        name: notify_quote_available_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: q
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      notify_quote_expiring:
+        custom: []
+        name: notify_quote_expiring
+        description: ''
+        required: false
+        example: false
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notify_quote_expiring_text:
+        custom: []
+        name: notify_quote_expiring_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: b
+        type: string
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: true
+        deprecated: false
+      notify_ready_for_pickup:
+        custom: []
+        name: notify_ready_for_pickup
+        description: ''
+        required: false
+        example: true
+        type: boolean
+        enumValues: []
+        exampleWasSpecified: false
+        nullable: false
+        deprecated: false
+      notify_ready_for_pickup_text:
+        custom: []
+        name: notify_ready_for_pickup_text
+        description: 'Must not be greater than 255 characters.'
+        required: false
+        example: e
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -251,7 +939,7 @@ endpoints:
         name: notify_payment_receipt_text
         description: 'Must not be greater than 255 characters.'
         required: false
-        example: l
+        example: w
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -262,7 +950,7 @@ endpoints:
         name: notification_footer_text
         description: 'Must not be greater than 500 characters.'
         required: false
-        example: v
+        example: t
         type: string
         enumValues: []
         exampleWasSpecified: false
@@ -291,24 +979,40 @@ endpoints:
         nullable: false
         deprecated: false
     cleanBodyParameters:
-      brand_name: b
-      customer_contact_line: 'n'
-      service_order_reference_prefix: gzmiyvdljnikhway
-      portal_intro_text: k
-      portal_footer_text: c
-      portal_approved_text: m
-      portal_rejected_text: 'y'
-      default_quote_validity_days: 6
+      name: b
+      trade_name: 'n'
+      slug: g
+      document: z
+      email: rempel.chadrick@example.org
+      phone: l
+      address_line_1: j
+      address_line_2: 'n'
+      district: i
+      city: k
+      state: hw
+      postal_code: aykcmyuwpwlvqwrs
+      website: i
+      brand_name: t
+      customer_contact_line: c
+      service_order_reference_prefix: pscqldzsnrwtujwv
+      portal_intro_text: l
+      portal_footer_text: x
+      portal_approved_text: j
+      portal_rejected_text: k
+      document_footer_text: l
+      intake_checklists_enabled: true
+      currency: qpp
+      default_quote_validity_days: 14
       block_delivery_with_outstanding_balance: true
-      notify_quote_available: true
-      notify_quote_available_text: w
+      notify_quote_available: false
+      notify_quote_available_text: q
       notify_quote_expiring: false
-      notify_quote_expiring_text: p
-      notify_ready_for_pickup: false
-      notify_ready_for_pickup_text: w
+      notify_quote_expiring_text: b
+      notify_ready_for_pickup: true
+      notify_ready_for_pickup_text: e
       notify_payment_receipt: false
-      notify_payment_receipt_text: l
-      notification_footer_text: v
+      notify_payment_receipt_text: w
+      notification_footer_text: t
       passwordless_code_enabled: false
       magic_link_enabled: false
     fileParameters: []

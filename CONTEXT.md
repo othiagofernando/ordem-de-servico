@@ -1,3 +1,17 @@
+# Language
+
+All communication with the user must be in Brazilian Portuguese.
+
+This includes:
+
+- questions
+- analysis
+- planning
+- issue discussions
+- implementation summaries
+
+Source code, commits and technical identifiers may remain in English.
+
 # Ordem de Servico Context
 
 ## Objective

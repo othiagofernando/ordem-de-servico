@@ -86,6 +86,7 @@ class MembershipInvitationAcceptController extends Controller
             'company' => [
                 'uuid' => $challenge->company->uuid,
                 'name' => $challenge->company->name,
+                'slug' => $challenge->company->slug,
             ],
             'membership' => [
                 'id' => $membership->getKey(),

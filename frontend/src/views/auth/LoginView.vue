@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 import {
   lookupPasswordlessCompanies,
   requestPasswordlessCode,
@@ -12,6 +13,7 @@ import { ApiError } from '../../api/client'
 
 const auth = useAuthStore()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 
 type Method = 'password' | 'code' | 'magic'
 type Step = 'email' | 'company_select' | 'code_entry' | 'link_sent'
@@ -42,7 +44,7 @@ async function submitPassword() {
   error.value = ''
   try {
     const result = await auth.login(email.value, password.value)
-    router.push({ name: result === 'select_company' ? 'select-company' : 'dashboard' })
+    router.push(result === 'select_company' ? { name: 'select-company' } : (auth.isSuperAdmin ? { name: 'admin' } : tenantRoute('dashboard')))
   } catch (e) {
     error.value = e instanceof ApiError && (e.status === 401 || e.status === 422)
       ? 'E-mail ou senha inválidos.'
@@ -108,7 +110,7 @@ async function verifyCode() {
   error.value = ''
   try {
     await auth.loginWithCode(email.value, selectedCompany.value!.uuid, codeInput.value.trim())
-    router.push({ name: 'dashboard' })
+    router.push(auth.isSuperAdmin ? { name: 'admin' } : tenantRoute('dashboard'))
   } catch (e) {
     error.value = e instanceof ApiError && e.status === 422
       ? 'Código inválido, expirado ou já utilizado.'
@@ -172,6 +174,13 @@ function backToEmail() {
           >
             {{ auth.loading ? 'Entrando…' : 'Entrar' }}
           </button>
+
+          <p class="text-center text-sm text-stone-400">
+            Ainda não tem conta?
+            <RouterLink :to="{ name: 'register' }" class="font-medium text-amber-300 hover:text-amber-200">
+              Criar conta
+            </RouterLink>
+          </p>
         </form>
 
         <!-- ═══ CÓDIGO OTP e MAGIC LINK (fluxo compartilhado) ═══ -->

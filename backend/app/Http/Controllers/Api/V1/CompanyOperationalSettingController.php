@@ -6,9 +6,13 @@ use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
 use App\Domains\Companies\Models\CompanyOperationalSetting;
 use App\Domains\Companies\Models\CompanySettingAudit;
 use App\Domains\Companies\Support\CurrentCompanyContext;
+use App\Domains\Companies\Support\FrontendTenantUrl;
 use App\Http\Controllers\Controller;
+use App\Rules\BrazilianDocument;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
 
 class CompanyOperationalSettingController extends Controller
@@ -50,6 +54,28 @@ class CompanyOperationalSettingController extends Controller
         abort_if($membership === null, Response::HTTP_FORBIDDEN, 'Missing active membership context.');
 
         $payload = $request->validate([
+            'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'trade_name' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'slug' => [
+                'sometimes',
+                'required',
+                'string',
+                'min:3',
+                'max:64',
+                'regex:/^[a-z0-9-]+$/',
+                Rule::notIn(['admin', 'api', 'www', 'portal', 'login', 'cadastro']),
+                Rule::unique('companies', 'slug')->ignore($company->getKey()),
+            ],
+            'document' => ['sometimes', 'nullable', 'string', 'max:32', new BrazilianDocument()],
+            'email' => ['sometimes', 'nullable', 'email', 'max:255'],
+            'phone' => ['sometimes', 'nullable', 'string', 'max:30'],
+            'address_line_1' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'address_line_2' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'district' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'city' => ['sometimes', 'nullable', 'string', 'max:150'],
+            'state' => ['sometimes', 'nullable', 'string', 'size:2'],
+            'postal_code' => ['sometimes', 'nullable', 'string', 'max:20'],
+            'website' => ['sometimes', 'nullable', 'url', 'max:255'],
             'brand_name' => ['sometimes', 'nullable', 'string', 'max:120'],
             'customer_contact_line' => ['sometimes', 'nullable', 'string', 'max:160'],
             'service_order_reference_prefix' => ['sometimes', 'nullable', 'string', 'max:20', 'regex:/^[A-Za-z0-9-]+$/'],
@@ -57,6 +83,9 @@ class CompanyOperationalSettingController extends Controller
             'portal_footer_text' => ['sometimes', 'nullable', 'string', 'max:500'],
             'portal_approved_text' => ['sometimes', 'nullable', 'string', 'max:255'],
             'portal_rejected_text' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'document_footer_text' => ['sometimes', 'nullable', 'string', 'max:1000'],
+            'intake_checklists_enabled' => ['sometimes', 'boolean'],
+            'currency' => ['sometimes', 'string', 'size:3'],
             'default_quote_validity_days' => ['sometimes', 'integer', 'min:1', 'max:30'],
             'block_delivery_with_outstanding_balance' => ['sometimes', 'boolean'],
             'notify_quote_available' => ['sometimes', 'boolean'],
@@ -73,13 +102,41 @@ class CompanyOperationalSettingController extends Controller
         ]);
 
         $authKeys = ['passwordless_code_enabled', 'magic_link_enabled'];
+        $companyKeys = [
+            'name',
+            'trade_name',
+            'slug',
+            'document',
+            'email',
+            'phone',
+            'address_line_1',
+            'address_line_2',
+            'district',
+            'city',
+            'state',
+            'postal_code',
+            'website',
+        ];
         $authPayload = collect($payload)->only($authKeys)->all();
-        $settingsPayload = collect($payload)->except($authKeys)->all();
+        $companyPayload = collect($payload)->only($companyKeys)->all();
+        $settingsPayload = collect($payload)->except([...$authKeys, ...$companyKeys])->all();
 
         if (array_key_exists('service_order_reference_prefix', $settingsPayload)) {
             $settingsPayload['service_order_reference_prefix'] = filled($settingsPayload['service_order_reference_prefix'] ?? null)
                 ? str($settingsPayload['service_order_reference_prefix'])->trim()->upper()->value()
                 : null;
+        }
+
+        if (array_key_exists('state', $companyPayload) && filled($companyPayload['state'] ?? null)) {
+            $companyPayload['state'] = str($companyPayload['state'])->upper()->value();
+        }
+
+        if (array_key_exists('currency', $settingsPayload) && filled($settingsPayload['currency'] ?? null)) {
+            $settingsPayload['currency'] = str($settingsPayload['currency'])->upper()->value();
+        }
+
+        if ($companyPayload !== []) {
+            $company->update($companyPayload);
         }
 
         if ($authPayload !== []) {
@@ -128,6 +185,25 @@ class CompanyOperationalSettingController extends Controller
     {
         return [
             'company_id' => $company->getKey(),
+            'profile' => [
+                'name' => $company->name,
+                'slug' => $company->slug,
+                'trade_name' => $company->trade_name,
+                'document' => $company->document,
+                'email' => $company->email,
+                'phone' => $company->phone,
+                'website' => $company->website,
+                'tenant_url' => app(FrontendTenantUrl::class)->base($company),
+                'address' => [
+                    'line_1' => $company->address_line_1,
+                    'line_2' => $company->address_line_2,
+                    'district' => $company->district,
+                    'city' => $company->city,
+                    'state' => $company->state,
+                    'postal_code' => $company->postal_code,
+                ],
+                'logo_url' => $company->logo_path ? Storage::disk('public')->url($company->logo_path) : null,
+            ],
             'branding' => [
                 'brand_name' => $settings->brandName($company),
                 'customer_contact_line' => $settings->customer_contact_line,
@@ -144,8 +220,15 @@ class CompanyOperationalSettingController extends Controller
             'quotes' => [
                 'default_validity_days' => $settings->default_quote_validity_days,
             ],
+            'documents' => [
+                'footer_text' => $settings->document_footer_text,
+            ],
+            'intake' => [
+                'checklists_enabled' => $settings->intake_checklists_enabled,
+            ],
             'finance' => [
                 'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
+                'currency' => $settings->currency,
             ],
             'communications' => [
                 'notification_footer_text' => $settings->notification_footer_text,
@@ -180,6 +263,9 @@ class CompanyOperationalSettingController extends Controller
             'portal_footer_text' => $settings->portal_footer_text,
             'portal_approved_text' => $settings->portal_approved_text,
             'portal_rejected_text' => $settings->portal_rejected_text,
+            'document_footer_text' => $settings->document_footer_text,
+            'intake_checklists_enabled' => $settings->intake_checklists_enabled,
+            'currency' => $settings->currency,
             'default_quote_validity_days' => $settings->default_quote_validity_days,
             'block_delivery_with_outstanding_balance' => $settings->block_delivery_with_outstanding_balance,
             'notify_quote_available' => $settings->notify_quote_available,

@@ -1,7 +1,26 @@
-import { apiGet, apiPut } from './client'
+import { apiGet, apiPostForm, apiPut } from './client'
 
 export interface CompanySettings {
   company_id: number
+  profile: {
+    name: string
+    slug: string
+    trade_name: string | null
+    document: string | null
+    email: string | null
+    phone: string | null
+    website: string | null
+    tenant_url: string | null
+    logo_url: string | null
+    address: {
+      line_1: string | null
+      line_2: string | null
+      district: string | null
+      city: string | null
+      state: string | null
+      postal_code: string | null
+    }
+  }
   branding: { brand_name: string; customer_contact_line: string | null }
   service_orders: { reference_prefix: string }
   portal: {
@@ -11,7 +30,9 @@ export interface CompanySettings {
     rejected_text: string
   }
   quotes: { default_validity_days: number }
-  finance: { block_delivery_with_outstanding_balance: boolean }
+  documents: { footer_text: string | null }
+  intake: { checklists_enabled: boolean }
+  finance: { block_delivery_with_outstanding_balance: boolean; currency: string }
   communications: { notification_footer_text: string | null }
   notifications: {
     quote_available: boolean
@@ -30,6 +51,19 @@ export interface CompanySettings {
 }
 
 export interface SettingsPayload {
+  name?: string
+  slug?: string
+  trade_name?: string | null
+  document?: string | null
+  email?: string | null
+  phone?: string | null
+  address_line_1?: string | null
+  address_line_2?: string | null
+  district?: string | null
+  city?: string | null
+  state?: string | null
+  postal_code?: string | null
+  website?: string | null
   brand_name?: string | null
   customer_contact_line?: string | null
   service_order_reference_prefix?: string | null
@@ -37,6 +71,9 @@ export interface SettingsPayload {
   portal_footer_text?: string | null
   portal_approved_text?: string | null
   portal_rejected_text?: string | null
+  document_footer_text?: string | null
+  intake_checklists_enabled?: boolean
+  currency?: string
   default_quote_validity_days?: number
   block_delivery_with_outstanding_balance?: boolean
   notify_quote_available?: boolean
@@ -53,9 +90,16 @@ export interface SettingsPayload {
 }
 
 export function getSettings() {
-  return apiGet<{ data: CompanySettings }>('/company/settings')
+  return apiGet<{ data: CompanySettings }>('/settings')
 }
 
 export function updateSettings(payload: SettingsPayload) {
-  return apiPut<{ data: CompanySettings }>('/company/settings', payload)
+  return apiPut<{ data: CompanySettings }>('/settings', payload)
+}
+
+export function uploadCompanyLogo(file: File) {
+  const formData = new FormData()
+  formData.append('logo', file)
+
+  return apiPostForm<{ data: { logo_url: string; logo_path: string } }>('/settings/logo', formData)
 }

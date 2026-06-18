@@ -208,20 +208,59 @@ class OperationalReportsTest extends TestCase
             ->assertJsonPath('message', 'This membership cannot view financial reports.');
     }
 
+    public function test_reports_and_service_order_index_exclude_other_tenant_data_from_rows_and_aggregates(): void
+    {
+        [
+            'manager_token' => $managerToken,
+            'search_order' => $searchOrder,
+        ] = $this->seedOperationalReportScenario();
+        [
+            'manager_token' => $otherManagerToken,
+        ] = $this->seedOperationalReportScenario('other');
+
+        $this->withToken($otherManagerToken)
+            ->getJson('/api/v1/service-orders/'.$searchOrder->getKey())
+            ->assertNotFound();
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonCount(5, 'data');
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/overview')
+            ->assertOk()
+            ->assertJsonPath('data.totals.service_orders', 5)
+            ->assertJsonPath('data.received_amounts.total_received_cents', 35000);
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/service-orders')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonCount(5, 'data');
+
+        $this->withToken($managerToken)
+            ->getJson('/api/v1/service-orders/reports/financial')
+            ->assertOk()
+            ->assertJsonPath('meta.total', 5)
+            ->assertJsonPath('meta.totals.total_paid_cents', 35000);
+    }
+
     /**
      * @return array<string, mixed>
      */
-    protected function seedOperationalReportScenario(): array
+    protected function seedOperationalReportScenario(string $suffix = 'default'): array
     {
         $company = Company::query()->create([
-            'name' => 'Acme Reports',
-            'email' => 'reports@example.com',
+            'name' => 'Acme Reports '.$suffix,
+            'email' => 'reports.'.$suffix.'@example.com',
             'is_active' => true,
         ]);
 
         $managerUser = User::query()->create([
             'name' => 'Manager Reports',
-            'email' => 'manager.reports@example.com',
+            'email' => 'manager.reports.'.$suffix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -234,7 +273,7 @@ class OperationalReportsTest extends TestCase
 
         $techAlphaUser = User::query()->create([
             'name' => 'Tech Alpha',
-            'email' => 'tech.alpha@example.com',
+            'email' => 'tech.alpha.'.$suffix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -247,7 +286,7 @@ class OperationalReportsTest extends TestCase
 
         $techBetaUser = User::query()->create([
             'name' => 'Tech Beta',
-            'email' => 'tech.beta@example.com',
+            'email' => 'tech.beta.'.$suffix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 

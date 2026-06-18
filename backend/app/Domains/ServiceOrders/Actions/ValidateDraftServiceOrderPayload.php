@@ -7,7 +7,7 @@ use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
 use App\Domains\ServiceOrders\Models\IntakeChecklistTemplate;
 use Illuminate\Http\Request;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Validation\ValidationException;
 
 class ValidateDraftServiceOrderPayload
 {
@@ -34,34 +34,68 @@ class ValidateDraftServiceOrderPayload
         $customer = null;
 
         if (($payload['customer_id'] ?? null) !== null) {
-            $customer = Customer::query()->findOrFail($payload['customer_id']);
-            abort_unless($customer->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
+            $customer = Customer::query()->withoutGlobalScopes()->findOrFail($payload['customer_id']);
+            $this->ensureBelongsToCurrentCompany(
+                $customer->company_id === currentCompany()?->getKey(),
+                'customer_id',
+                'The selected customer is invalid for the active company.',
+            );
         }
 
         if (($payload['customer_contact_id'] ?? null) !== null) {
-            $contact = CustomerContact::query()->findOrFail($payload['customer_contact_id']);
-            abort_unless($contact->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
-            abort_unless($customer !== null && $contact->customer_id === $customer->getKey(), Response::HTTP_UNPROCESSABLE_ENTITY);
+            $contact = CustomerContact::query()->withoutGlobalScopes()->findOrFail($payload['customer_contact_id']);
+            $this->ensureBelongsToCurrentCompany(
+                $contact->company_id === currentCompany()?->getKey(),
+                'customer_contact_id',
+                'The selected customer contact is invalid for the active company.',
+            );
+            $this->ensureBelongsToCurrentCompany(
+                $customer !== null && $contact->customer_id === $customer->getKey(),
+                'customer_contact_id',
+                'The selected customer contact does not belong to the selected customer.',
+            );
         }
 
         if (($payload['equipment_id'] ?? null) !== null) {
-            $equipment = Equipment::query()->findOrFail($payload['equipment_id']);
-            abort_unless($equipment->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
-            abort_unless($customer !== null && $equipment->customer_id === $customer->getKey(), Response::HTTP_UNPROCESSABLE_ENTITY);
+            $equipment = Equipment::query()->withoutGlobalScopes()->findOrFail($payload['equipment_id']);
+            $this->ensureBelongsToCurrentCompany(
+                $equipment->company_id === currentCompany()?->getKey(),
+                'equipment_id',
+                'The selected equipment is invalid for the active company.',
+            );
+            $this->ensureBelongsToCurrentCompany(
+                $customer !== null && $equipment->customer_id === $customer->getKey(),
+                'equipment_id',
+                'The selected equipment does not belong to the selected customer.',
+            );
         }
 
         if (($payload['intake_checklist_template_id'] ?? null) !== null) {
-            $template = IntakeChecklistTemplate::query()->findOrFail($payload['intake_checklist_template_id']);
-            abort_unless($template->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
+            $template = IntakeChecklistTemplate::query()->withoutGlobalScopes()->findOrFail($payload['intake_checklist_template_id']);
+            $this->ensureBelongsToCurrentCompany(
+                $template->company_id === currentCompany()?->getKey(),
+                'intake_checklist_template_id',
+                'The selected checklist template is invalid for the active company.',
+            );
 
             if (($payload['equipment_id'] ?? null) !== null) {
-                abort_unless(
+                $this->ensureBelongsToCurrentCompany(
                     isset($equipment) && $template->category === $equipment->category,
-                    Response::HTTP_UNPROCESSABLE_ENTITY,
+                    'intake_checklist_template_id',
+                    'The selected checklist template is incompatible with the selected equipment.',
                 );
             }
         }
 
         return $payload;
+    }
+
+    protected function ensureBelongsToCurrentCompany(bool $condition, string $field, string $message): void
+    {
+        if ($condition) {
+            return;
+        }
+
+        throw ValidationException::withMessages([$field => $message]);
     }
 }

@@ -44,7 +44,11 @@ class PasswordlessCodeRequestController extends Controller
             ->with(['user', 'company'])
             ->where('status', Membership::STATUS_ACTIVE)
             ->whereHas('user', fn ($query) => $query->where('email', $data['email']))
-            ->whereHas('company', fn ($query) => $query->where('uuid', $data['company_uuid']))
+            ->whereHas('company', fn ($query) => $query
+                ->where('uuid', $data['company_uuid'])
+                ->whereNull('deleted_at')
+                ->where('is_active', true)
+                ->where('status', Company::STATUS_ACTIVE))
             ->first();
 
         if ($membership === null || $membership->user === null || $membership->company === null) {

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
+use App\Domains\Billing\Actions\ResolveCurrentSubscription;
+use App\Domains\Billing\Actions\SerializeSubscription;
 use App\Domains\ServiceOrders\Actions\CreateDraftServiceOrder;
 use App\Domains\ServiceOrders\Actions\OpenDraftServiceOrder;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderDiagnosis;
@@ -41,8 +43,11 @@ class ServiceOrderController extends Controller
         ValidateDraftServiceOrderPayload $validateDraftServiceOrderPayload,
         CreateDraftServiceOrder $createDraftServiceOrder,
         SerializeServiceOrder $serializeServiceOrder,
+        ResolveCurrentSubscription $resolveCurrentSubscription,
+        SerializeSubscription $serializeSubscription,
     ): JsonResponse
     {
+        $this->ensurePlanAllowsNewServiceOrder($resolveCurrentSubscription, $serializeSubscription);
         $payload = $validateDraftServiceOrderPayload->handle($request, true);
         $serviceOrder = $createDraftServiceOrder->handle($payload, $reserveDraftReference);
 
@@ -795,6 +800,38 @@ class ServiceOrderController extends Controller
 
         if ($validator->fails()) {
             throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+    }
+
+    protected function ensurePlanAllowsNewServiceOrder(
+        ResolveCurrentSubscription $resolveCurrentSubscription,
+        SerializeSubscription $serializeSubscription,
+    ): void {
+        $company = currentCompany();
+
+        abort_if($company === null, Response::HTTP_FORBIDDEN, 'Missing active company context.');
+
+        $subscription = $resolveCurrentSubscription->handle($company);
+
+        abort_if($subscription === null, Response::HTTP_PAYMENT_REQUIRED, 'A empresa não possui assinatura ativa configurada.');
+
+        $limit = $subscription->plan?->max_service_orders_per_month;
+
+        if ($limit === null) {
+            return;
+        }
+
+        $count = ServiceOrder::query()
+            ->withoutGlobalScopes()
+            ->where('company_id', $company->getKey())
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+
+        if ($count >= $limit) {
+            abort(response()->json([
+                'message' => 'O limite mensal de ordens de serviço do plano foi atingido.',
+                'subscription' => $serializeSubscription->handle($subscription),
+            ], Response::HTTP_PAYMENT_REQUIRED));
         }
     }
 

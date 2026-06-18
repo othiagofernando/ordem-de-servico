@@ -265,8 +265,8 @@ async function lookupCep(cep: string) {
               <label class="mb-1.5 block text-sm text-stone-300">Telefone</label>
               <input
                 v-model="form.phone"
-                maxlength="14"
-                placeholder="(48) 3524 0388"
+                maxlength="15"
+                placeholder="(48) 9 8828 0387"
                 class="input"
                 @input="form.phone = phoneMask(form.phone)"
               />

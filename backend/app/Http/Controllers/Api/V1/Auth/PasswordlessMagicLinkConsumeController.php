@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Auth;
 use App\Domains\Auth\Actions\IssueApiToken;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
+use App\Domains\Companies\Models\Company;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,10 @@ class PasswordlessMagicLinkConsumeController extends Controller
             ->where('user_id', $challenge->user_id)
             ->where('company_id', $challenge->company_id)
             ->where('status', Membership::STATUS_ACTIVE)
+            ->whereHas('company', fn ($query) => $query
+                ->whereNull('deleted_at')
+                ->where('is_active', true)
+                ->where('status', Company::STATUS_ACTIVE))
             ->first();
 
         if ($membership === null) {
@@ -70,6 +75,7 @@ class PasswordlessMagicLinkConsumeController extends Controller
             'company' => [
                 'uuid' => $membership->company?->uuid,
                 'name' => $membership->company?->name,
+                'slug' => $membership->company?->slug,
             ],
         ]);
     }

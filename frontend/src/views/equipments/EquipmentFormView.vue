@@ -4,9 +4,11 @@ import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { getEquipment, createEquipment, updateEquipment, type EquipmentPayload } from '../../api/equipments'
 import { listCustomers, type Customer } from '../../api/customers'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 const saving = ref(false)
 const loading = ref(false)
 const error = ref('')
@@ -64,10 +66,10 @@ async function submit() {
 
     if (isEdit.value) {
       await updateEquipment(Number(route.params.id), payload)
-      router.push({ name: 'equipments.detail', params: { id: route.params.id } })
+      router.push(tenantRoute('equipments.detail', { params: { id: route.params.id } }))
     } else {
       const res = await createEquipment(payload)
-      router.push({ name: 'equipments.detail', params: { id: res.data.id } })
+      router.push(tenantRoute('equipments.detail', { params: { id: res.data.id } }))
     }
   } catch (e) {
     if (e instanceof ApiError) {
@@ -85,7 +87,7 @@ async function submit() {
 
 <template>
   <div class="space-y-6">
-    <RouterLink :to="{ name: isEdit ? 'equipments.detail' : 'equipments' }" :params="isEdit ? { id: route.params.id } : undefined" class="text-stone-500 hover:text-stone-200">
+    <RouterLink :to="isEdit ? tenantRoute('equipments.detail', { params: { id: route.params.id } }) : tenantRoute('equipments')" class="text-stone-500 hover:text-stone-200">
       ← {{ isEdit ? 'Equipamento' : 'Equipamentos' }}
     </RouterLink>
     <h1 class="text-2xl font-semibold text-white">{{ isEdit ? 'Editar Equipamento' : 'Novo Equipamento' }}</h1>
@@ -138,7 +140,7 @@ async function submit() {
           {{ saving ? 'Salvando…' : 'Salvar' }}
         </button>
         <RouterLink
-          :to="isEdit ? { name: 'equipments.detail', params: { id: route.params.id } } : { name: 'equipments' }"
+          :to="isEdit ? tenantRoute('equipments.detail', { params: { id: route.params.id } }) : tenantRoute('equipments')"
           class="rounded-xl border border-white/10 px-6 py-2.5 text-sm text-stone-400 transition hover:text-stone-200"
         >
           Cancelar

@@ -3,10 +3,12 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '../../stores/auth'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
+const { tenantLoginRoute, tenantRoute } = useTenantRouting()
 
 const status = ref<'loading' | 'success' | 'error'>('loading')
 const errorMessage = ref('')
@@ -21,7 +23,7 @@ onMounted(async () => {
   try {
     await auth.loginWithMagicLink(token)
     status.value = 'success'
-    setTimeout(() => router.push({ name: 'dashboard' }), 1200)
+    setTimeout(() => router.push(auth.isSuperAdmin ? { name: 'admin' } : tenantRoute('dashboard')), 1200)
   } catch (e) {
     status.value = 'error'
     if (e instanceof ApiError) {
@@ -65,7 +67,7 @@ onMounted(async () => {
         <p class="text-base font-semibold text-white">Link inválido</p>
         <p class="mt-2 text-sm text-stone-400">{{ errorMessage }}</p>
         <RouterLink
-          :to="{ name: 'login' }"
+          :to="tenantLoginRoute()"
           class="mt-6 inline-block rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-stone-950 hover:bg-amber-400"
         >
           Voltar ao login

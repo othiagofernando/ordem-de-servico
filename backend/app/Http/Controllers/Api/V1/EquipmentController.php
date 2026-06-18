@@ -9,6 +9,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
 class EquipmentController extends Controller
@@ -175,8 +176,13 @@ class EquipmentController extends Controller
 
     protected function resolveCustomer(int $customerId): Customer
     {
-        $customer = Customer::query()->findOrFail($customerId);
-        abort_unless($customer->company_id === currentCompany()?->getKey(), Response::HTTP_NOT_FOUND);
+        $customer = Customer::query()->withoutGlobalScopes()->findOrFail($customerId);
+
+        if ($customer->company_id !== currentCompany()?->getKey()) {
+            throw ValidationException::withMessages([
+                'customer_id' => 'The selected customer is invalid for the active company.',
+            ]);
+        }
 
         return $customer;
     }

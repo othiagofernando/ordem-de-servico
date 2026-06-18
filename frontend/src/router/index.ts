@@ -127,8 +127,12 @@ const router = createRouter({
     {
       path: '/',
       redirect: () => {
-        const slug = getStoredTenantSlug()
-        return slug ? `/${slug}/dashboard` : '/login'
+        try {
+          const slug = getStoredTenantSlug()
+          return slug ? `/${slug}/dashboard` : '/login'
+        } catch {
+          return '/login'
+        }
       },
     },
     {

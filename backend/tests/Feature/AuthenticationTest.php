@@ -7,6 +7,7 @@ use App\Domains\Auth\Models\Membership;
 use App\Domains\Companies\Models\Company;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
@@ -103,6 +104,58 @@ class AuthenticationTest extends TestCase
             ->assertJsonPath('membership.role', 'manager');
     }
 
+    public function test_super_admin_login_issues_a_token_without_company_context(): void
+    {
+        User::query()->create([
+            'name' => 'Root',
+            'email' => 'root@example.com',
+            'password' => Hash::make('secret-pass'),
+            'super_admin' => true,
+        ]);
+
+        $response = $this->postJson('/api/v1/auth/login', [
+            'email' => 'root@example.com',
+            'password' => 'secret-pass',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('company', null)
+            ->assertJsonPath('membership', null)
+            ->assertJsonPath('user.super_admin', true);
+
+        $token = $response->json('access_token');
+
+        $this->withToken($token)
+            ->getJson('/api/v1/auth/bootstrap')
+            ->assertOk()
+            ->assertJsonPath('context.company.id', null)
+            ->assertJsonPath('context.membership.id', null)
+            ->assertJsonPath('context.user.super_admin', true)
+            ->assertJsonPath('permissions.0', 'super_admin');
+
+        $this->assertDatabaseHas('api_tokens', [
+            'user_id' => User::query()->where('email', 'root@example.com')->value('id'),
+            'company_id' => null,
+        ]);
+    }
+
+    public function test_suspended_company_cannot_authenticate_even_with_active_membership(): void
+    {
+        [$company] = $this->createMembershipSet();
+
+        $company->forceFill([
+            'status' => Company::STATUS_SUSPENDED,
+            'is_active' => false,
+        ])->save();
+
+        $this->postJson('/api/v1/auth/login', [
+            'email' => 'operator@example.com',
+            'password' => 'secret-pass',
+        ])->assertForbidden()
+            ->assertJsonPath('message', 'This identity has no active company memberships.');
+    }
+
     public function test_passwordless_code_and_magic_link_are_single_use(): void
     {
         [$company] = $this->createMembershipSet(
@@ -156,6 +209,34 @@ class AuthenticationTest extends TestCase
         $this->assertDatabaseHas('auth_challenges', [
             'type' => AuthChallenge::TYPE_MAGIC_LINK,
         ]);
+    }
+
+    public function test_suspended_company_blocks_passwordless_authentication_paths(): void
+    {
+        [$company] = $this->createMembershipSet(
+            passwordlessCodeEnabled: true,
+            magicLinkEnabled: true,
+        );
+
+        $company->forceFill([
+            'status' => Company::STATUS_SUSPENDED,
+            'is_active' => false,
+        ])->save();
+
+        $this->postJson('/api/v1/auth/passwordless/lookup', [
+            'email' => 'operator@example.com',
+        ])->assertOk()
+            ->assertJsonCount(0, 'companies');
+
+        $this->postJson('/api/v1/auth/passwordless/code/request', [
+            'email' => 'operator@example.com',
+            'company_uuid' => $company->uuid,
+        ])->assertForbidden();
+
+        $this->postJson('/api/v1/auth/passwordless/magic-link/request', [
+            'email' => 'operator@example.com',
+            'company_uuid' => $company->uuid,
+        ])->assertForbidden();
     }
 
     /**

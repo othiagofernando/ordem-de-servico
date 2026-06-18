@@ -3,6 +3,7 @@ import { ref, onMounted, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { listCustomers, type Customer, type PaginationMeta } from '../../api/customers'
 import { useSortable } from '../../composables/useSortable'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 import ThSort from '../../components/ThSort.vue'
 import AppPagination from '../../components/AppPagination.vue'
 
@@ -13,6 +14,7 @@ const page = ref(1)
 const perPage = ref(15)
 const meta = ref<PaginationMeta>({ total: 0, per_page: 15, current_page: 1, last_page: 1, from: 0, to: 0 })
 let searchTimer: ReturnType<typeof setTimeout>
+const { tenantRoute } = useTenantRouting()
 
 async function load() {
   loading.value = true
@@ -44,7 +46,7 @@ const { sorted: sortedCustomers, toggleSort, sortState } = useSortable(customers
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-semibold text-white">Clientes</h1>
       <RouterLink
-        :to="{ name: 'customers.create' }"
+        :to="tenantRoute('customers.create')"
         class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
       >
         + Novo Cliente
@@ -103,7 +105,7 @@ const { sorted: sortedCustomers, toggleSort, sortState } = useSortable(customers
             </td>
             <td class="px-5 py-3.5 text-right">
               <RouterLink
-                :to="{ name: 'customers.detail', params: { id: c.id } }"
+                :to="tenantRoute('customers.detail', { params: { id: c.id } })"
                 class="link-row-action"
               >
                 Ver

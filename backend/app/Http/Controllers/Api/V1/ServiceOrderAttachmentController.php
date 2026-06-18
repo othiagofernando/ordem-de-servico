@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
+use App\Domains\Billing\Actions\ResolveCurrentSubscription;
+use App\Domains\Billing\Actions\SerializeSubscription;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\ResolveVisibleServiceOrder;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -49,6 +51,8 @@ class ServiceOrderAttachmentController extends Controller
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
         RecordBusinessAudit $recordBusinessAudit,
         ResolveVisibleServiceOrder $resolveVisibleServiceOrder,
+        ResolveCurrentSubscription $resolveCurrentSubscription,
+        SerializeSubscription $serializeSubscription,
     ): JsonResponse {
         $visible = $resolveVisibleServiceOrder->handle($serviceOrder, $visibleServiceOrders)->loadMissing('attachments');
         $membership = currentMembership();
@@ -60,6 +64,12 @@ class ServiceOrderAttachmentController extends Controller
         ]);
 
         $uploadedFile = $request->file('file');
+        $this->ensureAttachmentStorageWithinPlan(
+            $visible->company_id,
+            (int) $uploadedFile->getSize(),
+            $resolveCurrentSubscription,
+            $serializeSubscription,
+        );
         $extension = $uploadedFile->getClientOriginalExtension();
         $storageKey = sprintf(
             '%d/service-orders/%d/%s%s',
@@ -164,5 +174,38 @@ class ServiceOrderAttachmentController extends Controller
             'uploaded_by_membership_id' => $attachment->uploaded_by_membership_id,
             'created_at' => $attachment->created_at?->toIso8601String(),
         ];
+    }
+
+    protected function ensureAttachmentStorageWithinPlan(
+        int $companyId,
+        int $incomingBytes,
+        ResolveCurrentSubscription $resolveCurrentSubscription,
+        SerializeSubscription $serializeSubscription,
+    ): void {
+        $company = currentCompany();
+
+        abort_if($company === null, Response::HTTP_FORBIDDEN, 'Missing active company context.');
+
+        $subscription = $resolveCurrentSubscription->handle($company);
+
+        abort_if($subscription === null, Response::HTTP_PAYMENT_REQUIRED, 'A empresa não possui assinatura ativa configurada.');
+
+        $limitMb = $subscription->plan?->max_attachments_storage_mb;
+
+        if ($limitMb === null) {
+            return;
+        }
+
+        $usedBytes = ServiceOrderAttachment::query()
+            ->withoutGlobalScopes()
+            ->where('company_id', $companyId)
+            ->sum('file_size_bytes');
+
+        if (($usedBytes + $incomingBytes) > ($limitMb * 1024 * 1024)) {
+            abort(response()->json([
+                'message' => 'O limite de armazenamento de anexos do plano foi atingido.',
+                'subscription' => $serializeSubscription->handle($subscription),
+            ], Response::HTTP_PAYMENT_REQUIRED));
+        }
     }
 }

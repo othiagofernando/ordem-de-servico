@@ -2,7 +2,11 @@
 import { computed, ref, onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
 import { getOverview, type OverviewData, type ServiceOrderQueue } from '../../api/serviceOrders'
+import { useAuthStore } from '../../stores/auth'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
+const auth = useAuthStore()
+const { tenantRoute } = useTenantRouting()
 const data = ref<OverviewData | null>(null)
 const loading = ref(true)
 const error = ref(false)
@@ -56,28 +60,28 @@ const priorityActions = computed(() => {
     {
       label: 'Atribuir OS abertas',
       helper: 'Há ordens abertas que ainda não conseguem iniciar por falta de responsável.',
-      to: { name: 'service-orders', query: { queue: 'open' } },
+      to: tenantRoute('service-orders', { query: { queue: 'open' } }),
       count: data.value.attention.unassigned_open,
       accent: 'text-sky-300',
     },
     {
       label: 'Resolver orçamentos',
       helper: 'Aprovação comercial ainda bloqueia o avanço operacional dessas ordens.',
-      to: { name: 'service-orders', query: { queue: 'pending_quote' } },
+      to: tenantRoute('service-orders', { query: { queue: 'pending_quote' } }),
       count: data.value.attention.pending_quote,
       accent: 'text-amber-300',
     },
     {
       label: 'Liberar entregas',
       helper: 'Revise saldo, cobrança derivada e handoff antes de concluir a entrega.',
-      to: { name: 'service-orders', query: { queue: 'ready_for_pickup' } },
+      to: tenantRoute('service-orders', { query: { queue: 'ready_for_pickup' } }),
       count: data.value.attention.ready_for_pickup,
       accent: 'text-emerald-300',
     },
     {
       label: 'Revisar garantias',
       helper: 'Retornos em garantia ainda sem decisão de cobertura precisam de triagem.',
-      to: { name: 'service-orders', query: { queue: 'warranty_returns' } },
+      to: tenantRoute('service-orders', { query: { queue: 'warranty_returns' } }),
       count: data.value.attention.warranty_pending_review,
       accent: 'text-violet-300',
     },
@@ -126,7 +130,7 @@ onMounted(async () => {
       </div>
 
       <RouterLink
-        :to="{ name: 'service-orders.create' }"
+        :to="tenantRoute('service-orders.create')"
         class="inline-flex items-center justify-center rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
       >
         + Nova OS
@@ -139,6 +143,27 @@ onMounted(async () => {
     </div>
 
     <template v-else-if="data">
+      <div v-if="auth.subscription" class="rounded-2xl border border-white/10 bg-white/5 p-5">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Assinatura</p>
+            <p class="mt-2 text-lg font-semibold text-white">
+              {{ auth.subscription.plan.name ?? 'Plano não definido' }}
+            </p>
+            <p class="mt-1 text-sm text-stone-400">
+              Validade: {{ auth.subscription.expires_at ? new Date(auth.subscription.expires_at).toLocaleDateString('pt-BR') : '—' }}
+              <span v-if="auth.subscription.days_until_expiration <= 7" class="text-amber-300">
+                · vence em {{ auth.subscription.days_until_expiration }} dia(s)
+              </span>
+            </p>
+          </div>
+          <div class="grid gap-2 text-sm text-stone-300 md:text-right">
+            <p>Usuários ativos: {{ auth.subscription.usage.active_users }} / {{ auth.subscription.plan.limits.max_users ?? 'ilimitado' }}</p>
+            <p>OS no mês: {{ auth.subscription.usage.service_orders_this_month }} / {{ auth.subscription.plan.limits.max_service_orders_per_month ?? 'ilimitado' }}</p>
+          </div>
+        </div>
+      </div>
+
       <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
         <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Escopo atual</p>
         <p class="mt-2 text-sm text-stone-200">
@@ -157,7 +182,7 @@ onMounted(async () => {
           <p class="mt-2 text-3xl font-bold text-white">{{ data.totals.service_orders }}</p>
         </div>
         <RouterLink
-          :to="{ name: 'service-orders', query: { queue: 'open' } }"
+          :to="tenantRoute('service-orders', { query: { queue: 'open' } })"
           class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5 transition hover:border-sky-500/40"
         >
           <p class="text-xs font-semibold uppercase tracking-widest text-sky-300">Sem técnico</p>
@@ -165,7 +190,7 @@ onMounted(async () => {
           <p class="mt-2 text-sm text-stone-400">OS abertas sem responsável atribuído.</p>
         </RouterLink>
         <RouterLink
-          :to="{ name: 'service-orders', query: { queue: 'pending_quote' } }"
+          :to="tenantRoute('service-orders', { query: { queue: 'pending_quote' } })"
           class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 transition hover:border-amber-500/40"
         >
           <p class="text-xs font-semibold uppercase tracking-widest text-amber-300">Orçamento pendente</p>
@@ -173,7 +198,7 @@ onMounted(async () => {
           <p class="mt-2 text-sm text-stone-400">Ordens paradas aguardando definição comercial.</p>
         </RouterLink>
         <RouterLink
-          :to="{ name: 'service-orders', query: { queue: 'ready_for_pickup' } }"
+          :to="tenantRoute('service-orders', { query: { queue: 'ready_for_pickup' } })"
           class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 transition hover:border-emerald-500/40"
         >
           <p class="text-xs font-semibold uppercase tracking-widest text-emerald-300">Prontas para retirada</p>
@@ -222,7 +247,7 @@ onMounted(async () => {
             <p class="mt-1 text-sm text-stone-500">Atalhos para as principais filas do dia a dia.</p>
           </div>
           <RouterLink
-            :to="{ name: 'service-orders' }"
+            :to="tenantRoute('service-orders')"
             class="text-sm font-medium text-amber-300 transition hover:text-amber-200"
           >
             Ver todas
@@ -233,7 +258,7 @@ onMounted(async () => {
           <RouterLink
             v-for="queue in queueCards"
             :key="queue.key"
-            :to="{ name: 'service-orders', query: { queue: queue.key } }"
+            :to="tenantRoute('service-orders', { query: { queue: queue.key } })"
             class="rounded-xl border border-white/10 bg-black/20 p-4 transition hover:border-amber-500/30 hover:bg-amber-500/5"
           >
             <div class="flex items-start justify-between gap-3">

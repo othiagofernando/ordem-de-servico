@@ -1,6 +1,7 @@
 import { computed, type Ref } from 'vue'
 import type { Router } from 'vue-router'
 import type { Attachment, QuoteRevision, ServiceOrder } from '../../../api/serviceOrders'
+import { useTenantRouting } from '../../../composables/useTenantRouting'
 
 export function useServiceOrderDerivedState(
   os: Ref<ServiceOrder | null>,
@@ -8,6 +9,7 @@ export function useServiceOrderDerivedState(
   attachments: Ref<Attachment[]>,
   router: Router,
 ) {
+  const { tenantRoute } = useTenantRouting()
   const signedServiceOrderCopyType = 'signed_service_order_copy'
   const hasApprovedQuote = computed(() => quotes.value.some((quote) => quote.status === 'approved'))
 
@@ -34,19 +36,19 @@ export function useServiceOrderDerivedState(
 
   const printableHref = computed(() => (
     os.value && os.value.status !== 'draft'
-      ? router.resolve({ name: 'service-orders.print', params: { id: os.value.id } }).href
+      ? router.resolve(tenantRoute('service-orders.print', { params: { id: os.value.id } })).href
       : '#'
   ))
 
   const quotePrintableHref = computed(() => (
     os.value && quotes.value.length > 0
-      ? router.resolve({ name: 'service-orders.documents.quote', params: { id: os.value.id } }).href
+      ? router.resolve(tenantRoute('service-orders.documents.quote', { params: { id: os.value.id } })).href
       : '#'
   ))
 
   const deliveryTermPrintableHref = computed(() => (
     os.value?.status === 'delivered'
-      ? router.resolve({ name: 'service-orders.documents.delivery', params: { id: os.value.id } }).href
+      ? router.resolve(tenantRoute('service-orders.documents.delivery', { params: { id: os.value.id } })).href
       : '#'
   ))
 

@@ -13,10 +13,12 @@ use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Tests\Concerns\InteractsWithTenant;
 use Tests\TestCase;
 
 class ServiceOrderDraftIntakeTest extends TestCase
 {
+    use InteractsWithTenant;
     use RefreshDatabase;
 
     public function test_staff_can_create_resume_and_list_draft_intake_records(): void
@@ -160,6 +162,115 @@ class ServiceOrderDraftIntakeTest extends TestCase
             'reference' => 'OS-000001',
             'order_number' => 1,
         ]);
+    }
+
+    public function test_service_order_show_and_index_are_isolated_by_tenant_with_meta_totals(): void
+    {
+        [$tokenA, , $customerA, $contactA, $equipmentA] = $this->createAttendantIntakeAccess();
+        [$tokenB, , $customerB, $contactB, $equipmentB] = $this->createAttendantIntakeAccess(
+            email: 'other-isolation@example.com',
+            companyName: 'Other Isolation Co',
+        );
+        $templateA = $this->createTemplate($customerA->company_id, 'Notebook');
+        $templateB = $this->createTemplate($customerB->company_id, 'Notebook');
+
+        $orderIdA = $this->createCompleteDraft($tokenA, $customerA, $contactA, $equipmentA, $templateA)
+            ->json('data.id');
+        $this->createCompleteDraft($tokenB, $customerB, $contactB, $equipmentB, $templateB);
+
+        $this->withToken($tokenB)
+            ->getJson('/api/v1/service-orders/'.$orderIdA)
+            ->assertNotFound();
+
+        $this->withToken($tokenA)
+            ->getJson('/api/v1/service-orders')
+            ->assertOk()
+            ->assertJsonCount(1, 'data')
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonPath('meta.from', 1)
+            ->assertJsonPath('meta.to', 1);
+    }
+
+    public function test_draft_store_rejects_cross_tenant_related_ids_with_422(): void
+    {
+        [$tokenA, , $customerA] = $this->createAttendantIntakeAccess();
+        [, $membershipB, $customerB, $contactB, $equipmentB] = $this->createAttendantIntakeAccess(
+            email: 'other-cross@example.com',
+            companyName: 'Other Cross Co',
+        );
+        $templateB = $this->createTemplate($membershipB->company_id, 'Notebook');
+
+        $basePayload = [
+            'customer_id' => $customerA->getKey(),
+            'equipment_description' => 'Notebook em teste.',
+            'reported_problem' => 'Nao liga.',
+        ];
+
+        $this->withToken($tokenA)
+            ->postJson('/api/v1/service-orders/drafts', [...$basePayload, 'customer_id' => $customerB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_id']);
+
+        $this->withToken($tokenA)
+            ->postJson('/api/v1/service-orders/drafts', [...$basePayload, 'customer_contact_id' => $contactB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_contact_id']);
+
+        $this->withToken($tokenA)
+            ->postJson('/api/v1/service-orders/drafts', [...$basePayload, 'equipment_id' => $equipmentB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['equipment_id']);
+
+        $this->withToken($tokenA)
+            ->postJson('/api/v1/service-orders/drafts', [...$basePayload, 'intake_checklist_template_id' => $templateB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['intake_checklist_template_id']);
+    }
+
+    public function test_draft_update_rejects_cross_tenant_related_ids_with_422(): void
+    {
+        [$tokenA, , $customerA, $contactA, $equipmentA] = $this->createAttendantIntakeAccess();
+        [, $membershipB, $customerB, $contactB, $equipmentB] = $this->createAttendantIntakeAccess(
+            email: 'other-update-cross@example.com',
+            companyName: 'Other Update Cross Co',
+        );
+        $templateA = $this->createTemplate($customerA->company_id, 'Notebook');
+        $templateB = $this->createTemplate($membershipB->company_id, 'Notebook');
+
+        $draftId = $this->createCompleteDraft($tokenA, $customerA, $contactA, $equipmentA, $templateA)
+            ->json('data.id');
+
+        $basePayload = [
+            'customer_id' => $customerA->getKey(),
+            'customer_contact_id' => $contactA->getKey(),
+            'equipment_id' => $equipmentA->getKey(),
+            'intake_checklist_template_id' => $templateA->getKey(),
+            'equipment_description' => 'Notebook Dell Latitude 5420 com etiqueta patrimonial.',
+            'reported_problem' => 'Nao liga.',
+            'intake_checklist' => [
+                ['label' => 'Carregador entregue', 'checked' => true],
+            ],
+        ];
+
+        $this->withToken($tokenA)
+            ->putJson('/api/v1/service-orders/drafts/'.$draftId, [...$basePayload, 'customer_id' => $customerB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_id']);
+
+        $this->withToken($tokenA)
+            ->putJson('/api/v1/service-orders/drafts/'.$draftId, [...$basePayload, 'customer_contact_id' => $contactB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['customer_contact_id']);
+
+        $this->withToken($tokenA)
+            ->putJson('/api/v1/service-orders/drafts/'.$draftId, [...$basePayload, 'equipment_id' => $equipmentB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['equipment_id']);
+
+        $this->withToken($tokenA)
+            ->putJson('/api/v1/service-orders/drafts/'.$draftId, [...$basePayload, 'intake_checklist_template_id' => $templateB->getKey()])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['intake_checklist_template_id']);
     }
 
     protected function createCompleteDraft(

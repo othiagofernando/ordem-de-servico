@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { getEquipment, type Equipment } from '../../api/equipments'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
+const { tenantRoute } = useTenantRouting()
 const equipment = ref<Equipment | null>(null)
 const loading = ref(true)
 
@@ -16,7 +18,7 @@ onMounted(async () => {
 
 <template>
   <div class="space-y-6">
-    <RouterLink :to="{ name: 'equipments' }" class="text-stone-500 hover:text-stone-200">← Equipamentos</RouterLink>
+    <RouterLink :to="tenantRoute('equipments')" class="text-stone-500 hover:text-stone-200">← Equipamentos</RouterLink>
 
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
@@ -28,13 +30,13 @@ onMounted(async () => {
         </div>
         <div class="flex flex-wrap gap-2">
           <RouterLink
-            :to="{ name: 'service-orders.create', query: { equipment_id: equipment.id } }"
+            :to="tenantRoute('service-orders.create', { query: { equipment_id: equipment.id } })"
             class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
           >
             + Nova OS
           </RouterLink>
           <RouterLink
-            :to="{ name: 'equipments.edit', params: { id: equipment.id } }"
+            :to="tenantRoute('equipments.edit', { params: { id: equipment.id } })"
             class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-400"
           >
             Editar
@@ -70,7 +72,7 @@ onMounted(async () => {
               <dd>
                 <RouterLink
                   v-if="equipment.customer_id"
-                  :to="{ name: 'customers.detail', params: { id: equipment.customer_id } }"
+                  :to="tenantRoute('customers.detail', { params: { id: equipment.customer_id } })"
                   class="text-sm text-amber-400 hover:text-amber-300"
                 >
                   {{ equipment.customer_name ?? equipment.customer_id }}

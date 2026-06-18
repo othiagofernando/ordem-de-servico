@@ -83,6 +83,42 @@ class ServiceOrderOperationalDocumentsTest extends TestCase
             ->assertJsonPath('message', 'Only delivered service orders can expose a printable delivery term.');
     }
 
+    public function test_document_endpoints_return_404_for_other_tenant_and_wrong_parent_child_combinations(): void
+    {
+        [
+            'manager_token' => $managerToken,
+            'finance_token' => $financeToken,
+            'service_order_id' => $serviceOrderId,
+            'first_payment_id' => $paymentId,
+        ] = $this->createPrintableDocumentsScenario();
+        [
+            'manager_token' => $otherManagerToken,
+            'finance_token' => $otherFinanceToken,
+            'service_order_id' => $otherServiceOrderId,
+            'first_payment_id' => $otherPaymentId,
+        ] = $this->createPrintableDocumentsScenario(companyEmailPrefix: 'other-docs');
+
+        $this->withToken($otherManagerToken)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/documents/quote')
+            ->assertNotFound();
+
+        $this->withToken($otherFinanceToken)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/documents/payments/'.$paymentId.'/receipt')
+            ->assertNotFound();
+
+        $this->withToken($otherManagerToken)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/documents/delivery-term')
+            ->assertNotFound();
+
+        $this->withToken($financeToken)
+            ->getJson('/api/v1/service-orders/'.$serviceOrderId.'/documents/payments/'.$otherPaymentId.'/receipt')
+            ->assertNotFound();
+
+        $this->withToken($financeToken)
+            ->getJson('/api/v1/service-orders/'.$otherServiceOrderId.'/documents/payments/'.$paymentId.'/receipt')
+            ->assertNotFound();
+    }
+
     /**
      * @return array{
      *   manager_token: string,
@@ -92,19 +128,22 @@ class ServiceOrderOperationalDocumentsTest extends TestCase
      *   customer_id: int
      * }
      */
-    protected function createPrintableDocumentsScenario(bool $deliverServiceOrder = true): array
+    protected function createPrintableDocumentsScenario(
+        bool $deliverServiceOrder = true,
+        string $companyEmailPrefix = 'docs',
+    ): array
     {
         $company = Company::query()->create([
             'name' => 'Docs Test Company',
-            'document' => '12.345.678/0001-90',
-            'email' => 'docs@example.com',
+            'document' => '12.345.678/'.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT).'-90',
+            'email' => $companyEmailPrefix.'@example.com',
             'phone' => '(11) 99999-1111',
             'is_active' => true,
         ]);
 
         $managerUser = User::query()->create([
             'name' => 'Manager Docs',
-            'email' => 'manager.docs@example.com',
+            'email' => 'manager.'.$companyEmailPrefix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -117,7 +156,7 @@ class ServiceOrderOperationalDocumentsTest extends TestCase
 
         $financeUser = User::query()->create([
             'name' => 'Finance Docs',
-            'email' => 'finance.docs@example.com',
+            'email' => 'finance.'.$companyEmailPrefix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -130,7 +169,7 @@ class ServiceOrderOperationalDocumentsTest extends TestCase
 
         $technicianUser = User::query()->create([
             'name' => 'Technician Docs',
-            'email' => 'technician.docs@example.com',
+            'email' => 'technician.'.$companyEmailPrefix.'@example.com',
             'password' => Hash::make('secret-pass'),
         ]);
 
@@ -153,9 +192,9 @@ class ServiceOrderOperationalDocumentsTest extends TestCase
             'customer_id' => $customer->getKey(),
             'label' => 'principal',
             'name' => 'Ana Cliente',
-            'email' => 'cliente.docs@example.com',
+            'email' => 'cliente.'.$companyEmailPrefix.'@example.com',
             'phone' => '(11) 97777-0000',
-            'normalized_email' => 'cliente.docs@example.com',
+            'normalized_email' => 'cliente.'.$companyEmailPrefix.'@example.com',
             'normalized_phone' => '11977770000',
         ]);
 

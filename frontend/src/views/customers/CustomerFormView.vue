@@ -193,8 +193,8 @@ async function submit() {
               <input v-model="contact.email" type="email" placeholder="E-mail" class="input" />
               <input
                 v-model="contact.phone"
-                placeholder="(48) 3524 0388"
-                maxlength="14"
+                placeholder="(48) 9 8828 0387"
+                maxlength="15"
                 class="input"
                 @input="contact.phone = phoneMask(contact.phone)"
               />

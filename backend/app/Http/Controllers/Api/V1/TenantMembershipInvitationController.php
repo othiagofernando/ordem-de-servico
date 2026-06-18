@@ -6,6 +6,7 @@ use App\Domains\Auth\Actions\CreateAuthChallenge;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\RolePresetCatalog;
+use App\Domains\Companies\Support\FrontendTenantUrl;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -27,6 +28,7 @@ class TenantMembershipInvitationController extends Controller
         Request $request,
         RolePresetCatalog $rolePresetCatalog,
         CreateAuthChallenge $createAuthChallenge,
+        FrontendTenantUrl $frontendTenantUrl,
     ): JsonResponse {
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -100,7 +102,7 @@ class TenantMembershipInvitationController extends Controller
                 ],
                 'invitation' => [
                     'token' => $plainTextToken,
-                    'accept_url' => rtrim(env('FRONTEND_URL', config('app.url')), '/').'/convites/'.$plainTextToken,
+                    'accept_url' => $frontendTenantUrl->invitation($company, $plainTextToken),
                     'requires_password_setup' => $requiresPasswordSetup,
                 ],
             ],

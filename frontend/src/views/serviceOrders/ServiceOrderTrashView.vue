@@ -7,7 +7,9 @@ import {
 } from '../../api/serviceOrders'
 import { ApiError } from '../../api/client'
 import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
+const { tenantRoute } = useTenantRouting()
 const orders = ref<TrashedServiceOrder[]>([])
 const total = ref(0)
 const loading = ref(true)
@@ -82,7 +84,7 @@ async function handleConfirm(password: string) {
 <template>
   <div class="space-y-6">
     <div class="flex items-center gap-4">
-      <RouterLink :to="{ name: 'service-orders' }" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
+      <RouterLink :to="tenantRoute('service-orders')" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
     </div>
 
     <div>

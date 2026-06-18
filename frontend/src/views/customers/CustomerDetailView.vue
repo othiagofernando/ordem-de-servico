@@ -2,8 +2,10 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, RouterLink } from 'vue-router'
 import { getCustomer, type Customer } from '../../api/customers'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
+const { tenantRoute } = useTenantRouting()
 const customer = ref<Customer | null>(null)
 const loading = ref(true)
 
@@ -17,7 +19,7 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <div class="flex items-center gap-4">
-      <RouterLink :to="{ name: 'customers' }" class="text-stone-500 hover:text-stone-200">← Clientes</RouterLink>
+      <RouterLink :to="tenantRoute('customers')" class="text-stone-500 hover:text-stone-200">← Clientes</RouterLink>
     </div>
 
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
@@ -30,13 +32,13 @@ onMounted(async () => {
         </div>
         <div class="flex flex-wrap gap-2">
           <RouterLink
-            :to="{ name: 'service-orders.create', query: { customer_id: customer.id } }"
+            :to="tenantRoute('service-orders.create', { query: { customer_id: customer.id } })"
             class="rounded-xl bg-amber-500 px-4 py-2 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
           >
             + Nova OS
           </RouterLink>
           <RouterLink
-            :to="{ name: 'customers.edit', params: { id: customer.id } }"
+            :to="tenantRoute('customers.edit', { params: { id: customer.id } })"
             class="rounded-xl border border-white/10 px-4 py-2 text-sm text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
           >
             Editar

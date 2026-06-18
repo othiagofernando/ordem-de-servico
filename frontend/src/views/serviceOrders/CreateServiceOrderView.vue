@@ -6,9 +6,11 @@ import { listCustomers, type Customer } from '../../api/customers'
 import { listEquipments, type Equipment } from '../../api/equipments'
 import { listChecklistTemplates, type ChecklistTemplate } from '../../api/checklistTemplates'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 const saving = ref(false)
 const error = ref('')
 const customers = ref<Customer[]>([])
@@ -115,7 +117,7 @@ async function submit() {
   saving.value = true
   try {
     const res = await createDraft(form.value)
-    router.push({ name: 'service-orders.detail', params: { id: res.data.id } })
+    router.push(tenantRoute('service-orders.detail', { params: { id: res.data.id } }))
   } catch (e) {
     if (e instanceof ApiError) {
       error.value = (e.data as { message?: string })?.message ?? 'Erro ao criar rascunho.'
@@ -130,17 +132,17 @@ async function submit() {
 
 <template>
   <div class="space-y-6">
-    <RouterLink :to="{ name: 'service-orders' }" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
+    <RouterLink :to="tenantRoute('service-orders')" class="text-stone-500 hover:text-stone-200">← Ordens de Serviço</RouterLink>
     <div class="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
       <div>
         <h1 class="text-2xl font-semibold text-white">Nova Ordem de Serviço</h1>
         <p class="text-sm text-stone-400">O rascunho já nasce com contexto mínimo real: cliente, equipamento e problema relatado.</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <RouterLink :to="{ name: 'customers.create' }" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-300 hover:border-amber-500/30 hover:text-amber-300">
+        <RouterLink :to="tenantRoute('customers.create')" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-300 hover:border-amber-500/30 hover:text-amber-300">
           + Cliente
         </RouterLink>
-        <RouterLink :to="{ name: 'equipments.create' }" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-300 hover:border-amber-500/30 hover:text-amber-300">
+        <RouterLink :to="tenantRoute('equipments.create')" class="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-stone-300 hover:border-amber-500/30 hover:text-amber-300">
           + Equipamento
         </RouterLink>
       </div>
@@ -211,7 +213,7 @@ async function submit() {
             </select>
             <p v-if="form.customer_id && filteredEquipments.length === 0" class="mt-1 text-xs text-stone-500">
               Nenhum equipamento cadastrado para este cliente.
-              <RouterLink :to="{ name: 'equipments.create' }" class="text-amber-400 hover:text-amber-300">Cadastrar</RouterLink>
+              <RouterLink :to="tenantRoute('equipments.create')" class="text-amber-400 hover:text-amber-300">Cadastrar</RouterLink>
             </p>
           </div>
           <div>
@@ -267,7 +269,7 @@ async function submit() {
         </p>
         <p v-if="selectedEquipment && applicableChecklistTemplates.length === 0" class="mb-4 text-sm text-stone-500">
           Não há template cadastrado para a categoria <span class="text-stone-300">{{ selectedEquipment.category }}</span>.
-          <RouterLink :to="{ name: 'checklists' }" class="text-amber-400 hover:text-amber-300">Criar template</RouterLink>
+          <RouterLink :to="tenantRoute('checklists')" class="text-amber-400 hover:text-amber-300">Criar template</RouterLink>
         </p>
         <div v-if="form.intake_checklist!.length === 0" class="text-sm text-stone-500">
           Nenhum item adicionado. O checklist é opcional no rascunho.
@@ -301,7 +303,7 @@ async function submit() {
         >
           {{ saving ? 'Criando…' : 'Criar Rascunho' }}
         </button>
-        <RouterLink :to="{ name: 'service-orders' }" class="rounded-xl border border-white/10 px-6 py-2.5 text-sm text-stone-400 transition hover:text-stone-200">
+        <RouterLink :to="tenantRoute('service-orders')" class="rounded-xl border border-white/10 px-6 py-2.5 text-sm text-stone-400 transition hover:text-stone-200">
           Cancelar
         </RouterLink>
       </div>

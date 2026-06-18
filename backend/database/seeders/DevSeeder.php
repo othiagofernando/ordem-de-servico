@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use App\Domains\Auth\Models\ApiToken;
 use App\Domains\Auth\Models\Membership;
+use App\Domains\Billing\Models\Plan;
+use App\Domains\Billing\Models\Subscription;
 use App\Domains\Companies\Models\Company;
 use App\Domains\Companies\Models\CompanyOperationalSetting;
 use App\Domains\Customers\Models\Customer;
@@ -36,6 +38,7 @@ class DevSeeder extends Seeder
             $customers = $this->createCustomers($company);
             $equipments = $this->createEquipments($company, $customers);
             $this->createServiceOrders($company, $adminMembership, $techMembership, $customers, $equipments);
+            $this->createAdminPanelDemoCompanies();
         });
 
         $this->command->info('');
@@ -55,6 +58,11 @@ class DevSeeder extends Seeder
         $this->command->info('');
         $this->command->info('Exemplo de uso:');
         $this->command->info('  Authorization: Bearer ' . $this->adminToken);
+        $this->command->info('');
+        $this->command->info('Empresas extras do painel admin:');
+        $this->command->info('  - Oficina Centro SP (ativa)');
+        $this->command->info('  - Laboratório Norte (suspensa)');
+        $this->command->info('  - Base Litoral (cancelada)');
         $this->command->info('');
     }
 
@@ -86,15 +94,23 @@ class DevSeeder extends Seeder
             'next_service_order_number'  => 6,
         ]);
 
+        $company->subscription?->forceFill([
+            'plan_id' => Plan::query()->where('slug', 'profissional')->value('id') ?? $company->subscription?->plan_id,
+            'started_at' => now()->subDays(20),
+            'expires_at' => now()->addDays(12),
+            'status' => Subscription::STATUS_ACTIVE,
+        ])->save();
+
         return $company;
     }
 
     private function createUsersAndMemberships(Company $company): array
     {
         $adminUser = User::query()->create([
-            'name'     => 'Thiago (Admin)',
-            'email'    => 'admin@techfix.dev',
-            'password' => bcrypt('Admin@1234'),
+            'name'        => 'Thiago (Admin)',
+            'email'       => 'admin@techfix.dev',
+            'password'    => bcrypt('Admin@1234'),
+            'super_admin' => true,
         ]);
 
         $techUser = User::query()->create([
@@ -134,6 +150,118 @@ class DevSeeder extends Seeder
         ]);
 
         return [$adminMembership, $techMembership];
+    }
+
+    private function createAdminPanelDemoCompanies(): void
+    {
+        $this->createGenericCompany(
+            name: 'Oficina Centro SP',
+            document: '21.111.111/0001-10',
+            email: 'contato@oficinacentro.test',
+            phone: '(11) 4000-1001',
+            status: Company::STATUS_ACTIVE,
+            planSlug: 'starter',
+            subscriptionStatus: Subscription::STATUS_ACTIVE,
+            expiresAt: now()->addDays(5),
+            members: [
+                ['name' => 'Marina Costa', 'email' => 'marina@oficinacentro.test', 'role' => 'administrator'],
+                ['name' => 'Rafael Lima', 'email' => 'rafael@oficinacentro.test', 'role' => 'technician'],
+                ['name' => 'Paula Nunes', 'email' => 'paula@oficinacentro.test', 'role' => 'attendant'],
+            ],
+        );
+
+        $this->createGenericCompany(
+            name: 'Laboratório Norte',
+            document: '21.111.111/0001-11',
+            email: 'contato@laboratorionorte.test',
+            phone: '(11) 4000-1002',
+            status: Company::STATUS_SUSPENDED,
+            planSlug: 'starter',
+            subscriptionStatus: Subscription::STATUS_SUSPENDED,
+            expiresAt: now()->subDays(8),
+            members: [
+                ['name' => 'Bruno Martins', 'email' => 'bruno@laboratorionorte.test', 'role' => 'administrator'],
+                ['name' => 'Celia Rocha', 'email' => 'celia@laboratorionorte.test', 'role' => 'technician'],
+            ],
+        );
+
+        $this->createGenericCompany(
+            name: 'Base Litoral',
+            document: '21.111.111/0001-12',
+            email: 'contato@baselitoral.test',
+            phone: '(13) 4000-1003',
+            status: Company::STATUS_CANCELLED,
+            planSlug: 'enterprise',
+            subscriptionStatus: Subscription::STATUS_CANCELLED,
+            expiresAt: now()->subDays(40),
+            members: [
+                ['name' => 'Igor Teixeira', 'email' => 'igor@baselitoral.test', 'role' => 'administrator'],
+            ],
+        );
+    }
+
+    /**
+     * @param  array<int, array{name: string, email: string, role: string}>  $members
+     */
+    private function createGenericCompany(
+        string $name,
+        string $document,
+        string $email,
+        string $phone,
+        string $status,
+        string $planSlug,
+        string $subscriptionStatus,
+        \Illuminate\Support\Carbon $expiresAt,
+        array $members,
+    ): Company {
+        $company = Company::query()->create([
+            'uuid' => Str::uuid()->toString(),
+            'name' => $name,
+            'document' => $document,
+            'email' => $email,
+            'phone' => $phone,
+            'is_active' => $status === Company::STATUS_ACTIVE,
+            'status' => $status,
+        ]);
+
+        CompanyOperationalSetting::query()->create([
+            'company_id' => $company->id,
+            ...CompanyOperationalSetting::defaults(),
+        ]);
+
+        CompanyServiceOrderCounter::query()->create([
+            'company_id' => $company->id,
+            'next_draft_number' => 1,
+            'next_service_order_number' => 1,
+        ]);
+
+        $company->subscription?->forceFill([
+            'plan_id' => Plan::query()->where('slug', $planSlug)->value('id') ?? $company->subscription?->plan_id,
+            'started_at' => now()->subDays(15),
+            'expires_at' => $expiresAt,
+            'status' => $subscriptionStatus,
+        ])->save();
+
+        foreach ($members as $member) {
+            $user = User::query()->create([
+                'name' => $member['name'],
+                'email' => $member['email'],
+                'password' => bcrypt('Senha@1234'),
+            ]);
+
+            Membership::query()->create([
+                'company_id' => $company->id,
+                'user_id' => $user->id,
+                'role' => $member['role'],
+                'status' => Membership::STATUS_ACTIVE,
+            ]);
+        }
+
+        if ($status === Company::STATUS_CANCELLED) {
+            $company->delete();
+        }
+
+        return $company;
     }
 
     private function createCustomers(Company $company): array

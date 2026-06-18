@@ -3,9 +3,11 @@ import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { acceptInvitation, fetchInvitation, type MembershipInvitation } from '../../api/auth'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
 
 const route = useRoute()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 const token = route.params.token as string
 
 const loading = ref(true)
@@ -47,7 +49,7 @@ async function submit() {
 
     const res = await acceptInvitation(token, payload)
     localStorage.setItem('access_token', res.access_token)
-    router.push({ name: 'dashboard' })
+    router.push(tenantRoute('dashboard', { params: { tenantSlug: res.company?.slug } }))
   } catch (e) {
     if (e instanceof ApiError) {
       error.value = (e.data as { message?: string })?.message ?? 'Erro ao aceitar convite.'
