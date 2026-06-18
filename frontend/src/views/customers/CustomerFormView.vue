@@ -3,9 +3,12 @@ import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter, RouterLink } from 'vue-router'
 import { getCustomer, createCustomer, updateCustomer, type CustomerPayload } from '../../api/customers'
 import { ApiError } from '../../api/client'
+import { useTenantRouting } from '../../composables/useTenantRouting'
+import { phoneMask, documentMask, cepMask } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
+const { tenantRoute } = useTenantRouting()
 
 const isEdit = computed(() => !!route.params.id)
 const loading = ref(false)
@@ -58,6 +61,32 @@ function removeAddress(i: number) {
   form.value.addresses!.splice(i, 1)
 }
 
+function handleCepInput(addr: any, event: Event) {
+  const input = event.target as HTMLInputElement
+  addr.postal_code = cepMask(input.value)
+
+  const digits = addr.postal_code.replace(/\D/g, '')
+  if (digits.length === 8) {
+    lookupCep(addr, digits)
+  }
+}
+
+async function lookupCep(addr: any, cep: string) {
+  try {
+    const response = await fetch(`/api/v1/cep/${cep}`)
+    const data = await response.json()
+
+    if (data) {
+      if (data.street) addr.line_1 = data.street
+      if (data.district) addr.district = data.district
+      if (data.city) addr.city = data.city
+      if (data.state) addr.state = data.state
+    }
+  } catch (e) {
+    console.error('Erro ao buscar CEP:', e)
+  }
+}
+
 async function submit() {
   error.value = ''
   saving.value = true
@@ -71,10 +100,10 @@ async function submit() {
 
     if (isEdit.value) {
       await updateCustomer(Number(route.params.id), payload)
-      router.push({ name: 'customers.detail', params: { id: route.params.id } })
+      router.push(tenantRoute('customers.detail', { params: { id: route.params.id } }))
     } else {
       const res = await createCustomer(payload)
-      router.push({ name: 'customers.detail', params: { id: res.data.id } })
+      router.push(tenantRoute('customers.detail', { params: { id: res.data.id } }))
     }
   } catch (e) {
     if (e instanceof ApiError) {
@@ -91,7 +120,7 @@ async function submit() {
 <template>
   <div class="space-y-6">
     <div class="flex items-center gap-4">
-      <RouterLink :to="{ name: 'customers' }" class="text-stone-500 hover:text-stone-200">← Clientes</RouterLink>
+      <RouterLink :to="tenantRoute('customers')" class="text-stone-500 hover:text-stone-200">← Clientes</RouterLink>
     </div>
 
     <h1 class="text-2xl font-semibold text-white">{{ isEdit ? 'Editar Cliente' : 'Novo Cliente' }}</h1>
@@ -131,7 +160,12 @@ async function submit() {
 
           <div>
             <label class="mb-1.5 block text-sm text-stone-300">{{ form.customer_type === 'PJ' ? 'CNPJ' : 'CPF' }}</label>
-            <input v-model="form.document" class="input" />
+            <input
+              v-model="form.document"
+              maxlength="18"
+              class="input"
+              @input="form.document = documentMask(form.document)"
+            />
           </div>
 
           <div class="sm:col-span-2">
@@ -157,7 +191,13 @@ async function submit() {
               <input v-model="contact.label" placeholder="Rótulo (ex: Pessoal, Comercial)" class="input" />
               <input v-model="contact.name" placeholder="Nome do contato" class="input" />
               <input v-model="contact.email" type="email" placeholder="E-mail" class="input" />
-              <input v-model="contact.phone" placeholder="Telefone" class="input" />
+              <input
+                v-model="contact.phone"
+                placeholder="(48) 3524 0388"
+                maxlength="14"
+                class="input"
+                @input="contact.phone = phoneMask(contact.phone)"
+              />
             </div>
             <button
               v-if="(form.contacts?.length ?? 0) > 1"
@@ -191,7 +231,15 @@ async function submit() {
               <input v-model="addr.district" placeholder="Bairro" class="input" />
               <input v-model="addr.city" placeholder="Cidade" class="input" />
               <input v-model="addr.state" placeholder="UF" maxlength="2" class="input" />
-              <input v-model="addr.postal_code" placeholder="CEP" class="input" />
+              <div class="relative">
+                <input
+                  v-model="addr.postal_code"
+                  placeholder="88901-056"
+                  maxlength="9"
+                  class="input"
+                  @input="handleCepInput(addr, $event)"
+                />
+              </div>
             </div>
             <button
               type="button"
@@ -213,7 +261,7 @@ async function submit() {
           {{ saving ? 'Salvando…' : 'Salvar' }}
         </button>
         <RouterLink
-          :to="{ name: 'customers' }"
+          :to="tenantRoute('customers')"
           class="rounded-xl border border-white/10 px-6 py-2.5 text-sm text-stone-400 transition hover:text-stone-200"
         >
           Cancelar

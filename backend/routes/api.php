@@ -11,12 +11,26 @@ use App\Http\Controllers\Api\V1\Auth\PasswordlessCompanyLookupController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkConsumeController;
 use App\Http\Controllers\Api\V1\Auth\PasswordlessMagicLinkRequestController;
 use App\Http\Controllers\Api\V1\Auth\PermissionProfileController;
+use App\Http\Controllers\Api\V1\Auth\RegisterController;
 use App\Http\Controllers\Api\V1\Auth\BootstrapController;
 use App\Http\Controllers\Api\V1\Auth\SelectCompanyController;
+use App\Http\Controllers\Api\V1\Admin\AdminAuditController;
+use App\Http\Controllers\Api\V1\Admin\AdminAlertController;
+use App\Http\Controllers\Api\V1\Admin\AdminBillingInvoiceController;
+use App\Http\Controllers\Api\V1\Admin\AdminCompanyController;
+use App\Http\Controllers\Api\V1\Admin\AdminCompanyAuditController;
+use App\Http\Controllers\Api\V1\Admin\AdminCompanySubscriptionController;
+use App\Http\Controllers\Api\V1\Admin\AdminPlanController;
+use App\Http\Controllers\Api\V1\Admin\AdminOverviewController;
+use App\Http\Controllers\Api\V1\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\V1\BusinessAuditController;
 use App\Http\Controllers\Api\V1\CompanyOperationalSettingController;
+use App\Http\Controllers\Api\V1\CompanyLogoController;
 use App\Http\Controllers\Api\V1\CustomerController;
 use App\Http\Controllers\Api\V1\CustomerQuotePortalController;
+use App\Http\Controllers\Api\V1\BillingCheckoutController;
+use App\Http\Controllers\Api\V1\BillingSubscriptionCancelController;
+use App\Http\Controllers\Api\V1\BillingWebhookController;
 use App\Http\Controllers\Api\V1\EquipmentController;
 use App\Http\Controllers\Api\V1\HealthController;
 use App\Http\Controllers\Api\V1\IntakeChecklistTemplateController;
@@ -24,6 +38,7 @@ use App\Http\Controllers\Api\V1\MembershipAuthorizationController;
 use App\Http\Controllers\Api\V1\MembershipStatusController;
 use App\Http\Controllers\Api\V1\QuotePortalTokenController;
 use App\Http\Controllers\Api\V1\QuoteRevisionController;
+use App\Http\Controllers\Api\V1\PublicTenantLookupController;
 use App\Http\Controllers\Api\V1\ServiceOrderAttachmentController;
 use App\Http\Controllers\Api\V1\ServiceOrderDeleteController;
 use App\Http\Controllers\Api\V1\ServiceOrderForceDeleteController;
@@ -36,6 +51,7 @@ use App\Http\Controllers\Api\V1\ServiceOrderExecutionController;
 use App\Http\Controllers\Api\V1\ServiceOrderFinancialController;
 use App\Http\Controllers\Api\V1\ServiceOrderWarrantyController;
 use App\Http\Controllers\Api\V1\ServiceOrderAssignmentController;
+use App\Http\Controllers\Api\V1\SubscriptionController;
 use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use App\Http\Controllers\Api\V1\TenantMembershipDeleteController;
@@ -43,9 +59,13 @@ use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
+use App\Http\Controllers\Api\V1\CepLookupController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
+Route::post('/register', RegisterController::class)->name('api.v1.register');
+Route::get('/public/tenants/{slug}', PublicTenantLookupController::class)->name('api.v1.public.tenants.show');
+Route::get('/cep/{cep}', CepLookupController::class)->name('api.v1.cep.lookup');
 
 Route::prefix('auth')->group(function (): void {
     Route::post('/login', LoginController::class)->name('api.v1.auth.login');
@@ -78,21 +98,60 @@ Route::prefix('portal')->group(function (): void {
         ->name('api.v1.portal.quotes.documents.delivery');
 });
 
+Route::post('/billing/webhooks/asaas', [BillingWebhookController::class, 'asaas'])
+    ->name('api.v1.billing.webhooks.asaas');
+
 Route::middleware('auth.token')->group(function (): void {
     Route::post('/auth/logout', LogoutController::class)->name('api.v1.auth.logout');
     Route::put('/auth/me/password', ChangePasswordController::class)->name('api.v1.auth.me.password');
     Route::get('/auth/bootstrap', BootstrapController::class)->name('api.v1.auth.bootstrap');
     Route::get('/auth/permissions/me', PermissionProfileController::class)->name('api.v1.auth.permissions.me');
+    Route::get('/subscription', SubscriptionController::class)->name('api.v1.subscription.show');
+    Route::post('/subscription/checkout', BillingCheckoutController::class)->name('api.v1.subscription.checkout');
+    Route::post('/subscription/cancel', BillingSubscriptionCancelController::class)->name('api.v1.subscription.cancel');
     Route::get('/audit-logs', BusinessAuditController::class)
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.audit-logs.index');
     Route::get('/tenant/context', TenantContextController::class)->name('api.v1.tenant.context');
+    Route::prefix('admin')->middleware('super_admin')->group(function (): void {
+        Route::get('/overview', AdminOverviewController::class)->name('api.v1.admin.overview');
+        Route::get('/alerts', AdminAlertController::class)->name('api.v1.admin.alerts');
+        Route::get('/audits', [AdminAuditController::class, 'index'])->name('api.v1.admin.audits.index');
+        Route::get('/audits/{audit}', [AdminAuditController::class, 'show'])->name('api.v1.admin.audits.show');
+        Route::get('/billing/invoices', [AdminBillingInvoiceController::class, 'index'])->name('api.v1.admin.billing.invoices.index');
+        Route::get('/billing/invoices/{billingInvoice}', [AdminBillingInvoiceController::class, 'show'])->name('api.v1.admin.billing.invoices.show');
+        Route::get('/plans', [AdminPlanController::class, 'index'])->name('api.v1.admin.plans.index');
+        Route::post('/plans', [AdminPlanController::class, 'store'])->name('api.v1.admin.plans.store');
+        Route::get('/plans/{plan}', [AdminPlanController::class, 'show'])->name('api.v1.admin.plans.show');
+        Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('api.v1.admin.plans.update');
+        Route::get('/subscriptions', [AdminSubscriptionController::class, 'index'])->name('api.v1.admin.subscriptions.index');
+        Route::get('/companies', [AdminCompanyController::class, 'index'])->name('api.v1.admin.companies.index');
+        Route::post('/companies', [AdminCompanyController::class, 'store'])->name('api.v1.admin.companies.store');
+        Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('api.v1.admin.companies.show');
+        Route::put('/companies/{company}', [AdminCompanyController::class, 'update'])->name('api.v1.admin.companies.update');
+        Route::get('/companies/{company}/audits', [AdminCompanyAuditController::class, 'index'])->name('api.v1.admin.companies.audits.index');
+        Route::put('/companies/{company}/subscription', [AdminCompanySubscriptionController::class, 'update'])->name('api.v1.admin.companies.subscription.update');
+        Route::post('/companies/{company}/subscription/extend', [AdminCompanySubscriptionController::class, 'extend'])->name('api.v1.admin.companies.subscription.extend');
+        Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('api.v1.admin.companies.suspend');
+        Route::patch('/companies/{company}/activate', [AdminCompanyController::class, 'activate'])->name('api.v1.admin.companies.activate');
+        Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
+    });
+    Route::middleware('subscription.active')->group(function (): void {
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.company.settings.show');
     Route::put('/company/settings', [CompanyOperationalSettingController::class, 'update'])
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.company.settings.update');
+    Route::get('/settings', [CompanyOperationalSettingController::class, 'show'])
+        ->middleware('permission:company_settings.manage')
+        ->name('api.v1.settings.show');
+    Route::put('/settings', [CompanyOperationalSettingController::class, 'update'])
+        ->middleware('permission:company_settings.manage')
+        ->name('api.v1.settings.update');
+    Route::post('/settings/logo', CompanyLogoController::class)
+        ->middleware('permission:company_settings.manage')
+        ->name('api.v1.settings.logo');
     Route::get('/tenant/memberships', TenantMembershipListController::class)
         ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)
@@ -247,4 +306,5 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');
+    });
 });
