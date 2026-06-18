@@ -10,6 +10,9 @@ import {
 } from '../../api/admin'
 import { ApiError } from '../../api/client'
 import { useAuthStore } from '../../stores/auth'
+import { useSortable } from '../../composables/useSortable'
+import ThSort from '../../components/ThSort.vue'
+import AppPagination from '../../components/AppPagination.vue'
 
 const auth = useAuthStore()
 const users = ref<AdminUser[]>([])
@@ -18,12 +21,17 @@ const error = ref('')
 const search = ref('')
 const roleFilter = ref('')
 
+const page = ref(1)
+const perPage = ref(15)
+
+// ── resumo ────────────────────────────────────────────────
 const summary = computed(() => ({
   total: users.value.length,
   super_admins: users.value.filter((u) => u.admin_role === 'super_admin').length,
   others: users.value.filter((u) => u.admin_role !== 'super_admin').length,
 }))
 
+// ── filtragem ─────────────────────────────────────────────
 const filteredUsers = computed(() => {
   let result = users.value
   const q = search.value.toLowerCase().trim()
@@ -32,7 +40,35 @@ const filteredUsers = computed(() => {
   return result
 })
 
-// ── modal criar/editar ──────────────────────────────────────
+// ── ordenação ─────────────────────────────────────────────
+const { sorted: sortedUsers, toggleSort, sortState } = useSortable(filteredUsers, {
+  name:       (u) => u.name,
+  admin_role: (u) => roleLabel(u.admin_role),
+  created_at: (u) => u.created_at,
+})
+
+// ── paginação ─────────────────────────────────────────────
+const paginationMeta = computed(() => {
+  const total = sortedUsers.value.length
+  const lastPage = Math.ceil(total / perPage.value) || 1
+  const from = (page.value - 1) * perPage.value + 1
+  const to = Math.min(page.value * perPage.value, total)
+  return {
+    total,
+    per_page: perPage.value,
+    current_page: page.value,
+    last_page: lastPage,
+    from: total === 0 ? 0 : from,
+    to,
+  }
+})
+
+const paginatedUsers = computed(() => {
+  const start = (page.value - 1) * perPage.value
+  return sortedUsers.value.slice(start, start + perPage.value)
+})
+
+// ── modal criar/editar ───────────────────────────────────
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const selectedUser = ref<AdminUser | null>(null)
@@ -40,7 +76,7 @@ const form = ref({ name: '', email: '', password: '', admin_role: 'support' })
 const formLoading = ref(false)
 const formError = ref('')
 
-// ── modal revogar ───────────────────────────────────────────
+// ── modal revogar ────────────────────────────────────────
 const showRevokeConfirm = ref(false)
 const revokeTarget = ref<AdminUser | null>(null)
 const revokeLoading = ref(false)
@@ -96,7 +132,6 @@ async function submitForm() {
         admin_role: form.value.admin_role,
       })
       users.value.push(data)
-      users.value.sort((a, b) => a.name.localeCompare(b.name))
     } else if (selectedUser.value) {
       const payload: { name?: string; admin_role?: string; password?: string } = {
         name: form.value.name,
@@ -106,7 +141,6 @@ async function submitForm() {
       const { data } = await updateAdminUser(selectedUser.value.id, payload)
       const idx = users.value.findIndex((u) => u.id === data.id)
       if (idx !== -1) users.value[idx] = data
-      users.value.sort((a, b) => a.name.localeCompare(b.name))
     }
     showModal.value = false
   } catch (e) {
@@ -172,6 +206,7 @@ onMounted(async () => {
           type="search"
           placeholder="Buscar por nome ou e-mail"
           class="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none transition placeholder:text-stone-500 focus:border-amber-500/40"
+          @input="page = 1"
         />
         <button
           type="button"
@@ -215,7 +250,7 @@ onMounted(async () => {
             ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
             : 'border-white/10 bg-white/5 text-stone-400 hover:border-white/20 hover:text-stone-200',
         ]"
-        @click="roleFilter = ''"
+        @click="roleFilter = ''; page = 1"
       >
         Todos
       </button>
@@ -229,7 +264,7 @@ onMounted(async () => {
             ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
             : 'border-white/10 bg-white/5 text-stone-400 hover:border-white/20 hover:text-stone-200',
         ]"
-        @click="roleFilter = role.value"
+        @click="roleFilter = role.value; page = 1"
       >
         {{ role.label }}
       </button>
@@ -240,64 +275,72 @@ onMounted(async () => {
 
     <!-- ── Vazio ──────────────────────────────────────────── -->
     <div
-      v-else-if="filteredUsers.length === 0"
+      v-else-if="sortedUsers.length === 0"
       class="rounded-2xl border border-white/10 bg-white/5 px-6 py-12 text-center text-stone-500"
     >
       Nenhum usuário encontrado para os filtros atuais.
     </div>
 
     <!-- ── Tabela ──────────────────────────────────────────── -->
-    <div v-else class="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
-      <table class="min-w-full divide-y divide-white/10 text-sm">
-        <thead class="bg-black/20 text-left text-xs uppercase tracking-widest text-stone-500">
-          <tr>
-            <th class="px-5 py-3 font-semibold">Usuário</th>
-            <th class="px-5 py-3 font-semibold">Perfil / Área</th>
-            <th class="hidden px-5 py-3 font-semibold sm:table-cell">Criado em</th>
-            <th class="px-5 py-3 text-right font-semibold">Ações</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-white/5">
-          <tr v-for="user in filteredUsers" :key="user.id" class="hover:bg-white/5">
-            <td class="px-4 py-4">
-              <div class="font-medium text-white">{{ user.name }}</div>
-              <div class="mt-1 text-xs text-stone-500">{{ user.email }}</div>
-            </td>
-            <td class="px-4 py-4">
-              <span
-                class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                :class="roleBadge(user.admin_role)"
-              >
-                {{ roleLabel(user.admin_role) }}
-              </span>
-            </td>
-            <td class="hidden px-4 py-4 text-stone-400 sm:table-cell">
-              {{ formatDate(user.created_at) }}
-            </td>
-            <td class="px-4 py-4">
-              <div class="flex items-center justify-end gap-2">
-                <button
-                  type="button"
-                  class="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20"
-                  @click="openEdit(user)"
+    <template v-else>
+      <div class="overflow-hidden rounded-2xl border border-white/10 bg-white/5">
+        <table class="min-w-full divide-y divide-white/10 text-sm">
+          <thead class="bg-black/20 text-left text-xs uppercase tracking-widest text-stone-500">
+            <tr>
+              <ThSort :state="sortState('name')" @click="toggleSort('name'); page = 1">Nome</ThSort>
+              <ThSort :state="sortState('admin_role')" @click="toggleSort('admin_role'); page = 1">Perfil / Área</ThSort>
+              <ThSort :state="sortState('created_at')" class="hidden sm:table-cell" @click="toggleSort('created_at'); page = 1">Criado em</ThSort>
+              <th class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-widest">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-white/5">
+            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-white/5">
+              <td class="px-4 py-4">
+                <div class="font-medium text-white">{{ user.name }}</div>
+                <div class="mt-1 text-xs text-stone-500">{{ user.email }}</div>
+              </td>
+              <td class="px-4 py-4">
+                <span
+                  class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
+                  :class="roleBadge(user.admin_role)"
                 >
-                  Editar
-                </button>
-                <button
-                  v-if="user.id !== auth.user?.id"
-                  type="button"
-                  class="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
-                  @click="confirmRevoke(user)"
-                >
-                  Revogar
-                </button>
-                <span v-else class="text-xs italic text-stone-500">você</span>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+                  {{ roleLabel(user.admin_role) }}
+                </span>
+              </td>
+              <td class="hidden px-4 py-4 text-stone-400 sm:table-cell">
+                {{ formatDate(user.created_at) }}
+              </td>
+              <td class="px-4 py-4">
+                <div class="flex items-center justify-end gap-2">
+                  <button
+                    type="button"
+                    class="rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs font-semibold text-sky-300 transition hover:bg-sky-500/20"
+                    @click="openEdit(user)"
+                  >
+                    Editar
+                  </button>
+                  <button
+                    v-if="user.id !== auth.user?.id"
+                    type="button"
+                    class="rounded-xl border border-rose-500/20 bg-rose-500/10 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                    @click="confirmRevoke(user)"
+                  >
+                    Revogar
+                  </button>
+                  <span v-else class="text-xs italic text-stone-500">você</span>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <AppPagination
+        :meta="paginationMeta"
+        @update:page="(p) => { page = p }"
+        @update:perPage="(n) => { perPage = n; page = 1 }"
+      />
+    </template>
 
     <!-- ── Modal criar / editar ──────────────────────────── -->
     <div
