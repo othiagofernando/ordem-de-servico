@@ -392,7 +392,7 @@ router.beforeEach(async (to) => {
     }
 
     if (to.meta.requiresAuth && !auth.isAuthenticated) {
-      return routeTenantSlug ? { name: 'tenant-login', params: { tenantSlug: routeTenantSlug } } : { name: 'login' }
+      return { name: 'login' }
     }
 
   if (to.meta.requiresAuth && auth.isAuthenticated && !auth.context) {
@@ -405,7 +405,7 @@ router.beforeEach(async (to) => {
       }
 
       auth.logout()
-      return routeTenantSlug ? { name: 'tenant-login', params: { tenantSlug: routeTenantSlug } } : { name: 'login' }
+      return { name: 'login' }
     }
   }
 
