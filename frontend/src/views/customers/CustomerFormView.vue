@@ -194,7 +194,7 @@ async function submit() {
               <input
                 v-model="contact.phone"
                 placeholder="(48) 9 8828 0387"
-                maxlength="15"
+                maxlength="16"
                 class="input"
                 @input="contact.phone = phoneMask(contact.phone)"
               />
@@ -224,6 +224,15 @@ async function submit() {
             class="rounded-xl border border-white/5 bg-black/20 p-4"
           >
             <div class="grid gap-3 sm:grid-cols-2">
+              <div class="relative sm:col-span-2">
+                <input
+                  v-model="addr.postal_code"
+                  placeholder="CEP (88901-056)"
+                  maxlength="9"
+                  class="input"
+                  @input="handleCepInput(addr, $event)"
+                />
+              </div>
               <input v-model="addr.label" placeholder="Rótulo (ex: Residencial, Comercial)" class="input" />
               <input v-model="addr.recipient" placeholder="Destinatário" class="input" />
               <input v-model="addr.line_1" placeholder="Endereço (logradouro e número)" class="input sm:col-span-2" required />
@@ -231,15 +240,6 @@ async function submit() {
               <input v-model="addr.district" placeholder="Bairro" class="input" />
               <input v-model="addr.city" placeholder="Cidade" class="input" />
               <input v-model="addr.state" placeholder="UF" maxlength="2" class="input" />
-              <div class="relative">
-                <input
-                  v-model="addr.postal_code"
-                  placeholder="88901-056"
-                  maxlength="9"
-                  class="input"
-                  @input="handleCepInput(addr, $event)"
-                />
-              </div>
             </div>
             <button
               type="button"

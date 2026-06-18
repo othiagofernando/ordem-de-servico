@@ -265,7 +265,7 @@ async function lookupCep(cep: string) {
               <label class="mb-1.5 block text-sm text-stone-300">Telefone</label>
               <input
                 v-model="form.phone"
-                maxlength="15"
+                maxlength="16"
                 placeholder="(48) 9 8828 0387"
                 class="input"
                 @input="form.phone = phoneMask(form.phone)"
@@ -284,6 +284,17 @@ async function lookupCep(cep: string) {
             <p class="mt-1 text-sm text-stone-500">Dados úteis para contratos, comunicação operacional e referência geográfica.</p>
           </div>
           <div class="mt-5 grid gap-4 md:grid-cols-2">
+            <div>
+              <label class="mb-1.5 block text-sm text-stone-300">CEP</label>
+              <input
+                v-model="form.postal_code"
+                placeholder="88901-056"
+                maxlength="9"
+                class="input"
+                @input="handleCepInput"
+              />
+            </div>
+            <div></div>
             <div class="md:col-span-2">
               <label class="mb-1.5 block text-sm text-stone-300">Endereço</label>
               <input v-model="form.address_line_1" class="input" />
@@ -303,16 +314,6 @@ async function lookupCep(cep: string) {
             <div>
               <label class="mb-1.5 block text-sm text-stone-300">UF</label>
               <input v-model="form.state" maxlength="2" class="input" />
-            </div>
-            <div>
-              <label class="mb-1.5 block text-sm text-stone-300">CEP</label>
-              <input
-                v-model="form.postal_code"
-                placeholder="88901-056"
-                maxlength="9"
-                class="input"
-                @input="handleCepInput"
-              />
             </div>
           </div>
         </section>
