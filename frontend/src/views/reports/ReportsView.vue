@@ -1,27 +1,70 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+} from 'chart.js'
+import { Bar, Doughnut } from 'vue-chartjs'
 import { useSortable } from '../../composables/useSortable'
 import ThSort from '../../components/ThSort.vue'
 import AppPagination from '../../components/AppPagination.vue'
 import {
   downloadFinancialReportCsv,
   downloadServiceOrderReportCsv,
+  downloadTechnicianReportCsv,
   getFinancialReport,
+  getOverview,
   getServiceOrderReport,
+  getTechnicianReport,
+  getTrends,
   type FinancialReportResponse,
+  type OverviewData,
   type PaginationMeta,
   type ServiceOrderQueue,
   type ServiceOrderReportResponse,
+  type TechnicianReportRow,
+  type TrendsMonth,
 } from '../../api/serviceOrders'
 import { useTenantRouting } from '../../composables/useTenantRouting'
+import { useThemeStore } from '../../stores/theme'
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+)
 
 const { tenantRoute } = useTenantRouting()
-const activeTab = ref<'service_orders' | 'financial'>('service_orders')
+const theme = useThemeStore()
+
+const activeTab = ref<'overview' | 'service_orders' | 'financial' | 'technician'>('overview')
 const loading = ref(false)
 const exporting = ref(false)
 const error = ref('')
 
+// Overview tab state
+const overviewData = ref<OverviewData | null>(null)
+const trendsData = ref<TrendsMonth[]>([])
+const overviewLoading = ref(false)
+
+// Service Orders tab state
 const soPage = ref(1)
 const soPerPage = ref(15)
 const finPage = ref(1)
@@ -57,16 +100,188 @@ const financialFilters = ref<{
   received_to: '',
 })
 
+// Technician tab state
+const technicianFilters = ref<{ opened_from: string; opened_to: string }>({
+  opened_from: '',
+  opened_to: '',
+})
+const technicianRows = ref<TechnicianReportRow[]>([])
+const technicianLoading = ref(false)
+
 const serviceOrderReport = ref<ServiceOrderReportResponse | null>(null)
 const financialReport = ref<FinancialReportResponse | null>(null)
 
 const soRows = computed(() => serviceOrderReport.value?.data ?? [])
 const finRows = computed(() => financialReport.value?.data ?? [])
+const techRows = computed(() => technicianRows.value)
 
 const { sorted: sortedSoRows, toggleSort: soToggle, sortState: soState } = useSortable(soRows, {
   reference: (r) => (r.order_number !== null ? String(r.order_number) : r.reference),
 })
 const { sorted: sortedFinRows, toggleSort: finToggle, sortState: finState } = useSortable(finRows)
+const { sorted: sortedTechRows, toggleSort: techToggle, sortState: techState } = useSortable(techRows)
+
+// Chart theme
+const isDark = computed(() => theme.isDark)
+const gridColor = computed(() => isDark.value ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)')
+const textColor = computed(() => isDark.value ? '#78716c' : '#57534e')
+
+// Trends chart data
+const trendsChartData = computed(() => ({
+  labels: trendsData.value.map((m) => m.label),
+  datasets: [
+    {
+      label: 'OS Abertas',
+      data: trendsData.value.map((m) => m.opened),
+      backgroundColor: 'rgba(245,158,11,0.7)',
+      borderColor: 'rgba(245,158,11,1)',
+      borderWidth: 2,
+      borderRadius: 4,
+    },
+    {
+      label: 'OS Concluídas',
+      data: trendsData.value.map((m) => m.completed),
+      backgroundColor: 'rgba(52,211,153,0.7)',
+      borderColor: 'rgba(52,211,153,1)',
+      borderWidth: 2,
+      borderRadius: 4,
+    },
+  ],
+}))
+
+const trendsChartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      labels: { color: textColor.value },
+    },
+  },
+  scales: {
+    x: {
+      grid: { color: gridColor.value },
+      ticks: { color: textColor.value },
+    },
+    y: {
+      grid: { color: gridColor.value },
+      ticks: { color: textColor.value },
+      beginAtZero: true,
+    },
+  },
+}))
+
+// Status chart data
+const statusChartData = computed(() => {
+  const byStatus = overviewData.value?.by_status ?? {}
+  const statusLabelMap: Record<string, string> = {
+    draft: 'Rascunho',
+    open: 'Aberta',
+    in_progress: 'Em execução',
+    completed: 'Concluída',
+    ready_for_pickup: 'Pronta p/ retirada',
+    delivered: 'Entregue',
+    cancelled: 'Cancelada',
+    no_repair: 'Sem reparo',
+  }
+  const colors = [
+    'rgba(245,158,11,0.8)',
+    'rgba(52,211,153,0.8)',
+    'rgba(96,165,250,0.8)',
+    'rgba(167,139,250,0.8)',
+    'rgba(251,191,36,0.8)',
+    'rgba(34,211,238,0.8)',
+    'rgba(248,113,113,0.8)',
+    'rgba(163,163,163,0.8)',
+  ]
+  const keys = Object.keys(byStatus)
+  return {
+    labels: keys.map((k) => statusLabelMap[k] ?? k),
+    datasets: [
+      {
+        data: keys.map((k) => byStatus[k]),
+        backgroundColor: keys.map((_, i) => colors[i % colors.length]),
+        borderWidth: 0,
+      },
+    ],
+  }
+})
+
+// Quote outcomes chart data
+const quoteChartData = computed(() => {
+  const outcomes = overviewData.value?.quote_outcomes ?? {}
+  const outcomeLabels: Record<string, string> = {
+    pending: 'Pendente',
+    approved: 'Aprovado',
+    rejected: 'Recusado',
+    expired: 'Expirado',
+  }
+  const colors = [
+    'rgba(245,158,11,0.8)',
+    'rgba(52,211,153,0.8)',
+    'rgba(248,113,113,0.8)',
+    'rgba(163,163,163,0.8)',
+  ]
+  const keys = Object.keys(outcomes)
+  return {
+    labels: keys.map((k) => outcomeLabels[k] ?? k),
+    datasets: [
+      {
+        data: keys.map((k) => outcomes[k]),
+        backgroundColor: keys.map((_, i) => colors[i % colors.length]),
+        borderWidth: 0,
+      },
+    ],
+  }
+})
+
+// Technician workload chart data
+const workloadChartData = computed(() => {
+  const workload = overviewData.value?.technician_workload ?? []
+  return {
+    labels: workload.map((w) => w.assigned_membership_name ?? 'Desconhecido'),
+    datasets: [
+      {
+        label: 'OS Atribuídas',
+        data: workload.map((w) => w.service_order_count),
+        backgroundColor: 'rgba(96,165,250,0.8)',
+        borderColor: 'rgba(96,165,250,1)',
+        borderWidth: 2,
+        borderRadius: 4,
+      },
+    ],
+  }
+})
+
+const doughnutOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'right' as const,
+      labels: { color: textColor.value, boxWidth: 12, font: { size: 11 } },
+    },
+  },
+}))
+
+const workloadChartOptions = computed(() => ({
+  responsive: true,
+  maintainAspectRatio: false,
+  indexAxis: 'y' as const,
+  plugins: {
+    legend: { display: false },
+  },
+  scales: {
+    x: {
+      grid: { color: gridColor.value },
+      ticks: { color: textColor.value },
+      beginAtZero: true,
+    },
+    y: {
+      grid: { color: gridColor.value },
+      ticks: { color: textColor.value },
+    },
+  },
+}))
 
 const queueOptions: Array<{ value: '' | ServiceOrderQueue; label: string }> = [
   { value: '', label: 'Todas as filas' },
@@ -132,6 +347,20 @@ const activeFinancialFilters = computed(() =>
   ].filter(Boolean) as string[],
 )
 
+// Technician totals
+const technicianTotals = computed(() => {
+  const rows = technicianRows.value
+  return {
+    total: rows.reduce((s, r) => s + r.total, 0),
+    in_progress: rows.reduce((s, r) => s + r.in_progress, 0),
+    completed: rows.reduce((s, r) => s + r.completed, 0),
+    cancelled: rows.reduce((s, r) => s + r.cancelled, 0),
+    no_repair: rows.reduce((s, r) => s + r.no_repair, 0),
+    pending: rows.reduce((s, r) => s + r.pending, 0),
+    total_received_cents: rows.reduce((s, r) => s + r.total_received_cents, 0),
+  }
+})
+
 function formatMoney(cents: number) {
   return (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
@@ -149,6 +378,41 @@ function resetServiceOrderFilters() {
 function resetFinancialFilters() {
   financialFilters.value = { q: '', payment_method: '', balance_state: '', received_from: '', received_to: '' }
   loadFinancialReport(true)
+}
+
+async function loadOverview() {
+  overviewLoading.value = true
+  error.value = ''
+
+  try {
+    const [overviewRes, trendsRes] = await Promise.all([
+      getOverview(),
+      getTrends(6),
+    ])
+    overviewData.value = overviewRes.data
+    trendsData.value = trendsRes.data.months
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Falha ao carregar visão geral.'
+  } finally {
+    overviewLoading.value = false
+  }
+}
+
+async function loadTechnicianReport() {
+  technicianLoading.value = true
+  error.value = ''
+
+  try {
+    const res = await getTechnicianReport({
+      opened_from: technicianFilters.value.opened_from || undefined,
+      opened_to: technicianFilters.value.opened_to || undefined,
+    })
+    technicianRows.value = res.data
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'Falha ao carregar relatório por técnico.'
+  } finally {
+    technicianLoading.value = false
+  }
 }
 
 async function loadServiceOrderReport(resetPage = false) {
@@ -208,13 +472,18 @@ async function exportCurrentReport() {
         opened_from: serviceOrderFilters.value.opened_from || undefined,
         opened_to: serviceOrderFilters.value.opened_to || undefined,
       })
-    } else {
+    } else if (activeTab.value === 'financial') {
       await downloadFinancialReportCsv({
         q: financialFilters.value.q || undefined,
         payment_method: financialFilters.value.payment_method || undefined,
         balance_state: financialFilters.value.balance_state || undefined,
         received_from: financialFilters.value.received_from || undefined,
         received_to: financialFilters.value.received_to || undefined,
+      })
+    } else if (activeTab.value === 'technician') {
+      await downloadTechnicianReportCsv({
+        opened_from: technicianFilters.value.opened_from || undefined,
+        opened_to: technicianFilters.value.opened_to || undefined,
       })
     }
   } catch (err) {
@@ -225,14 +494,18 @@ async function exportCurrentReport() {
 }
 
 function loadActiveTab() {
-  if (activeTab.value === 'service_orders') {
+  if (activeTab.value === 'overview') {
+    loadOverview()
+  } else if (activeTab.value === 'service_orders') {
     loadServiceOrderReport()
-    return
+  } else if (activeTab.value === 'financial') {
+    loadFinancialReport()
+  } else if (activeTab.value === 'technician') {
+    loadTechnicianReport()
   }
-
-  loadFinancialReport()
 }
 
+watch(activeTab, loadActiveTab)
 onMounted(loadActiveTab)
 </script>
 
@@ -242,11 +515,12 @@ onMounted(loadActiveTab)
       <div>
         <h1 class="text-2xl font-semibold text-white">Relatórios</h1>
         <p class="mt-1 text-sm text-stone-400">
-          Consulta operacional e exportação CSV para O.S. e financeiro.
+          Dashboard visual, relatórios operacionais e exportação CSV.
         </p>
       </div>
 
       <button
+        v-if="activeTab !== 'overview'"
         class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500/50 disabled:cursor-not-allowed disabled:opacity-60"
         :disabled="exporting"
         @click="exportCurrentReport"
@@ -257,18 +531,32 @@ onMounted(loadActiveTab)
 
     <div class="flex flex-wrap gap-2">
       <button
+        :class="activeTab === 'overview' ? 'bg-amber-500 text-stone-950' : 'border border-white/10 text-stone-400 hover:border-amber-500/30 hover:text-amber-300'"
+        class="rounded-full px-4 py-2 text-sm font-medium transition"
+        @click="activeTab = 'overview'"
+      >
+        Visão Geral
+      </button>
+      <button
         :class="activeTab === 'service_orders' ? 'bg-amber-500 text-stone-950' : 'border border-white/10 text-stone-400 hover:border-amber-500/30 hover:text-amber-300'"
         class="rounded-full px-4 py-2 text-sm font-medium transition"
-        @click="activeTab = 'service_orders'; loadServiceOrderReport()"
+        @click="activeTab = 'service_orders'"
       >
         Relatório de O.S.
       </button>
       <button
         :class="activeTab === 'financial' ? 'bg-amber-500 text-stone-950' : 'border border-white/10 text-stone-400 hover:border-amber-500/30 hover:text-amber-300'"
         class="rounded-full px-4 py-2 text-sm font-medium transition"
-        @click="activeTab = 'financial'; loadFinancialReport()"
+        @click="activeTab = 'financial'"
       >
         Relatório financeiro
+      </button>
+      <button
+        :class="activeTab === 'technician' ? 'bg-amber-500 text-stone-950' : 'border border-white/10 text-stone-400 hover:border-amber-500/30 hover:text-amber-300'"
+        class="rounded-full px-4 py-2 text-sm font-medium transition"
+        @click="activeTab = 'technician'"
+      >
+        Por Técnico
       </button>
     </div>
 
@@ -276,7 +564,69 @@ onMounted(loadActiveTab)
       {{ error }}
     </div>
 
-    <template v-if="activeTab === 'service_orders'">
+    <!-- ======================== VISÃO GERAL ======================== -->
+    <template v-if="activeTab === 'overview'">
+      <div v-if="overviewLoading" class="py-12 text-center text-sm text-stone-500">
+        Carregando visão geral…
+      </div>
+
+      <template v-else-if="overviewData">
+        <!-- Métricas atuais -->
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Total de O.S.</p>
+            <p class="mt-2 text-3xl font-bold text-white">{{ overviewData.totals.service_orders }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Receita Recebida</p>
+            <p class="mt-2 text-2xl font-bold text-emerald-400">{{ formatMoney(overviewData.received_amounts.total_received_cents) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">OS Pendentes</p>
+            <p class="mt-2 text-3xl font-bold text-amber-300">{{ (overviewData.queues['open'] ?? 0) + (overviewData.queues['in_progress'] ?? 0) }}</p>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+            <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">OS Prontas</p>
+            <p class="mt-2 text-3xl font-bold text-blue-400">{{ overviewData.attention.ready_for_pickup }}</p>
+          </div>
+        </div>
+
+        <!-- Tendência Mensal -->
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Tendência Mensal</h2>
+          <div style="height: 260px">
+            <Bar :data="trendsChartData" :options="trendsChartOptions" />
+          </div>
+        </div>
+
+        <!-- Status + Orçamentos -->
+        <div class="grid gap-4 lg:grid-cols-2">
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">OS por Status</h2>
+            <div style="height: 260px">
+              <Doughnut :data="statusChartData" :options="doughnutOptions" />
+            </div>
+          </div>
+          <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Orçamentos</h2>
+            <div style="height: 260px">
+              <Doughnut :data="quoteChartData" :options="doughnutOptions" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Carga por Técnico -->
+        <div v-if="overviewData.technician_workload.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 class="mb-4 text-sm font-semibold uppercase tracking-widest text-stone-500">Carga por Técnico</h2>
+          <div :style="{ height: Math.max(140, overviewData.technician_workload.length * 40) + 'px' }">
+            <Bar :data="workloadChartData" :options="workloadChartOptions" />
+          </div>
+        </div>
+      </template>
+    </template>
+
+    <!-- ======================== RELATÓRIO DE O.S. ======================== -->
+    <template v-else-if="activeTab === 'service_orders'">
       <div class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 lg:grid-cols-4">
         <label class="space-y-1">
           <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Busca</span>
@@ -389,7 +739,8 @@ onMounted(loadActiveTab)
       </div>
     </template>
 
-    <template v-else>
+    <!-- ======================== RELATÓRIO FINANCEIRO ======================== -->
+    <template v-else-if="activeTab === 'financial'">
       <div class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 lg:grid-cols-5">
         <label class="space-y-1">
           <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Busca</span>
@@ -515,6 +866,95 @@ onMounted(loadActiveTab)
             @update:per-page="finPerPage = $event; loadFinancialReport(true)"
           />
         </template>
+      </div>
+    </template>
+
+    <!-- ======================== POR TÉCNICO ======================== -->
+    <template v-else-if="activeTab === 'technician'">
+      <div class="grid gap-4 rounded-2xl border border-white/10 bg-white/5 p-6 lg:grid-cols-4">
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Abertas de</span>
+          <input
+            v-model="technicianFilters.opened_from"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <label class="space-y-1">
+          <span class="text-xs font-semibold uppercase tracking-widest text-stone-500">Abertas até</span>
+          <input
+            v-model="technicianFilters.opened_to"
+            type="date"
+            class="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm text-white outline-none focus:border-amber-500/40"
+          />
+        </label>
+        <div class="flex flex-wrap items-end gap-2 lg:col-span-2">
+          <button
+            class="rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400"
+            :disabled="technicianLoading"
+            @click="loadTechnicianReport"
+          >
+            {{ technicianLoading ? 'Consultando…' : 'Aplicar filtros' }}
+          </button>
+          <button
+            class="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-stone-300 transition hover:border-white/20 hover:text-white"
+            :disabled="technicianLoading"
+            @click="technicianFilters = { opened_from: '', opened_to: '' }; loadTechnicianReport()"
+          >
+            Limpar filtros
+          </button>
+        </div>
+      </div>
+
+      <div v-if="technicianLoading" class="py-8 text-center text-sm text-stone-500">
+        Carregando…
+      </div>
+
+      <template v-else-if="technicianRows.length > 0">
+        <div class="t-wrap">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="t-head">
+                <ThSort :state="techState('name')" @click="techToggle('name')">Técnico</ThSort>
+                <ThSort :state="techState('total')" @click="techToggle('total')">Total</ThSort>
+                <ThSort :state="techState('in_progress')" @click="techToggle('in_progress')">Em Andamento</ThSort>
+                <ThSort :state="techState('completed')" @click="techToggle('completed')">Concluídas</ThSort>
+                <ThSort :state="techState('cancelled')" @click="techToggle('cancelled')">Canceladas</ThSort>
+                <ThSort :state="techState('no_repair')" @click="techToggle('no_repair')">Sem Reparo</ThSort>
+                <ThSort :state="techState('pending')" @click="techToggle('pending')">Pendentes</ThSort>
+                <ThSort :state="techState('total_received_cents')" @click="techToggle('total_received_cents')">Receita</ThSort>
+              </tr>
+            </thead>
+            <tbody class="t-body">
+              <tr v-for="row in sortedTechRows" :key="row.id ?? 'unassigned'" class="t-row">
+                <td class="px-4 py-3 td-main">{{ row.name }}</td>
+                <td class="px-4 py-3 td-data font-semibold text-white">{{ row.total }}</td>
+                <td class="px-4 py-3 td-data">{{ row.in_progress }}</td>
+                <td class="px-4 py-3 text-emerald-400">{{ row.completed }}</td>
+                <td class="px-4 py-3 text-red-400">{{ row.cancelled }}</td>
+                <td class="px-4 py-3 td-meta">{{ row.no_repair }}</td>
+                <td class="px-4 py-3 text-amber-300">{{ row.pending }}</td>
+                <td class="px-4 py-3 text-emerald-400 font-semibold">{{ formatMoney(row.total_received_cents) }}</td>
+              </tr>
+            </tbody>
+            <tfoot>
+              <tr class="border-t border-white/10 text-xs font-semibold text-stone-400">
+                <td class="px-4 py-3">Totais</td>
+                <td class="px-4 py-3 text-white">{{ technicianTotals.total }}</td>
+                <td class="px-4 py-3">{{ technicianTotals.in_progress }}</td>
+                <td class="px-4 py-3 text-emerald-400">{{ technicianTotals.completed }}</td>
+                <td class="px-4 py-3 text-red-400">{{ technicianTotals.cancelled }}</td>
+                <td class="px-4 py-3">{{ technicianTotals.no_repair }}</td>
+                <td class="px-4 py-3 text-amber-300">{{ technicianTotals.pending }}</td>
+                <td class="px-4 py-3 text-emerald-400">{{ formatMoney(technicianTotals.total_received_cents) }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </template>
+
+      <div v-else-if="!technicianLoading" class="rounded-2xl border border-white/10 bg-white/5 p-8 text-center text-stone-400">
+        Nenhum dado de técnico encontrado para os filtros atuais.
       </div>
     </template>
   </div>

@@ -641,3 +641,50 @@ export function restoreServiceOrder(id: number, password: string) {
 export function forceDeleteServiceOrder(id: number, password: string) {
   return apiDelete(`/service-orders/${id}/force`, { password })
 }
+
+export interface TrendsMonth {
+  month: string
+  label: string
+  opened: number
+  completed: number
+  received_cents: number
+}
+
+export interface TechnicianReportRow {
+  id: number | null
+  name: string
+  total: number
+  in_progress: number
+  completed: number
+  cancelled: number
+  no_repair: number
+  pending: number
+  total_received_cents: number
+}
+
+export interface TechnicianReportFilters {
+  opened_from?: string
+  opened_to?: string
+}
+
+export function getTrends(months?: number): Promise<{ data: { months: TrendsMonth[] } }> {
+  const params = months ? `?months=${months}` : ''
+  return apiGet<{ data: { months: TrendsMonth[] } }>(`/service-orders/reports/trends${params}`)
+}
+
+export function getTechnicianReport(filters?: TechnicianReportFilters): Promise<{ data: TechnicianReportRow[] }> {
+  const params = new URLSearchParams()
+  if (filters?.opened_from) params.set('opened_from', filters.opened_from)
+  if (filters?.opened_to) params.set('opened_to', filters.opened_to)
+  const qs = params.toString()
+  return apiGet<{ data: TechnicianReportRow[] }>(`/service-orders/reports/by-technician${qs ? '?' + qs : ''}`)
+}
+
+export function downloadTechnicianReportCsv(filters?: TechnicianReportFilters) {
+  const params = new URLSearchParams()
+  if (filters?.opened_from) params.set('opened_from', filters.opened_from)
+  if (filters?.opened_to) params.set('opened_to', filters.opened_to)
+  params.set('format', 'csv')
+  const qs = params.toString()
+  return apiDownload(`/service-orders/reports/by-technician?${qs}`, 'relatorio-por-tecnico.csv')
+}

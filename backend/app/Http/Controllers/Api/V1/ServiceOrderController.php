@@ -1081,6 +1081,160 @@ class ServiceOrderController extends Controller
         return $query;
     }
 
+    /**
+     * Return monthly aggregated counts for opened/completed OS and received payments.
+     *
+     * @group Service Orders
+     */
+    public function trendsReport(Request $request, VisibleServiceOrders $visibleServiceOrders): JsonResponse
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (
+            ! $membership->hasPermission('service_orders.view_any')
+            && ! $membership->hasPermission('service_orders.view_assigned')
+        ) {
+            return response()->json([
+                'message' => 'This membership cannot view service orders.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $months = min(max((int) $request->query('months', 6), 1), 12);
+        $companyId = currentCompany()->getKey();
+        $from = now()->startOfMonth()->subMonths($months - 1);
+
+        $opened = DB::table('service_orders')
+            ->where('company_id', $companyId)
+            ->where('opened_at', '>=', $from)
+            ->whereNull('deleted_at')
+            ->select(DB::raw("DATE_FORMAT(opened_at, '%Y-%m') as month"), DB::raw('COUNT(*) as count'))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $completed = DB::table('service_orders')
+            ->where('company_id', $companyId)
+            ->whereIn('status', [ServiceOrder::STATUS_DELIVERED, 'completed'])
+            ->where('updated_at', '>=', $from)
+            ->whereNull('deleted_at')
+            ->select(DB::raw("DATE_FORMAT(updated_at, '%Y-%m') as month"), DB::raw('COUNT(*) as count'))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $received = DB::table('service_order_payments')
+            ->join('service_orders', 'service_orders.id', '=', 'service_order_payments.service_order_id')
+            ->where('service_orders.company_id', $companyId)
+            ->where('service_order_payments.received_at', '>=', $from)
+            ->select(DB::raw("DATE_FORMAT(service_order_payments.received_at, '%Y-%m') as month"), DB::raw('SUM(service_order_payments.amount_cents) as total_cents'))
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $monthList = collect();
+        for ($i = $months - 1; $i >= 0; $i--) {
+            $m = now()->subMonths($i)->format('Y-m');
+            $label = now()->subMonths($i)->locale('pt_BR')->isoFormat('MMM/YY');
+            $monthList->push([
+                'month' => $m,
+                'label' => $label,
+                'opened' => (int) ($opened[$m]->count ?? 0),
+                'completed' => (int) ($completed[$m]->count ?? 0),
+                'received_cents' => (int) ($received[$m]->total_cents ?? 0),
+            ]);
+        }
+
+        return response()->json([
+            'data' => [
+                'months' => $monthList->values()->all(),
+            ],
+        ]);
+    }
+
+    /**
+     * Return per-technician performance stats for visible service orders.
+     *
+     * @group Service Orders
+     */
+    public function technicianReport(Request $request, VisibleServiceOrders $visibleServiceOrders)
+    {
+        $membership = currentMembership();
+
+        if ($membership === null) {
+            return response()->json(['message' => 'Missing active membership context.'], Response::HTTP_FORBIDDEN);
+        }
+
+        if (
+            ! $membership->hasPermission('service_orders.view_any')
+            && ! $membership->hasPermission('service_orders.view_assigned')
+        ) {
+            return response()->json([
+                'message' => 'This membership cannot view service orders.',
+            ], Response::HTTP_FORBIDDEN);
+        }
+
+        $serviceOrders = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
+            ->with(['assignedMembership.user', 'payments'])
+            ->get();
+
+        $grouped = $serviceOrders->groupBy(fn (ServiceOrder $so): string => (string) ($so->assigned_membership_id ?? 'unassigned'));
+
+        $rows = $grouped->map(function (Collection $orders, string $key): array {
+            /** @var ServiceOrder $first */
+            $first = $orders->first();
+
+            $completedStatuses = [ServiceOrder::STATUS_DELIVERED, 'completed'];
+
+            return [
+                'id' => $key === 'unassigned' ? null : (int) $key,
+                'name' => $key === 'unassigned' ? 'Não atribuído' : ($first->assignedMembership?->user?->name ?? 'Desconhecido'),
+                'total' => $orders->count(),
+                'in_progress' => $orders->where('status', ServiceOrder::STATUS_IN_PROGRESS)->count(),
+                'completed' => $orders->whereIn('status', $completedStatuses)->count(),
+                'cancelled' => $orders->where('status', ServiceOrder::STATUS_CANCELLED)->count(),
+                'no_repair' => $orders->where('status', ServiceOrder::STATUS_NO_REPAIR)->count(),
+                'pending' => $orders->whereIn('status', [
+                    ServiceOrder::STATUS_OPEN,
+                    ServiceOrder::STATUS_READY_FOR_PICKUP,
+                    'awaiting_quote',
+                ])->count(),
+                'total_received_cents' => (int) $orders
+                    ->flatMap(fn (ServiceOrder $so): Collection => $so->payments)
+                    ->sum('amount_cents'),
+            ];
+        })->sortByDesc('total')->values()->all();
+
+        if ($request->query('format') === 'csv') {
+            $csvRows = collect($rows)->map(fn (array $row): array => [
+                $row['name'],
+                $row['total'],
+                $row['in_progress'],
+                $row['completed'],
+                $row['cancelled'],
+                $row['no_repair'],
+                $row['pending'],
+                $row['total_received_cents'],
+            ]);
+
+            return $this->downloadCsv(
+                'relatorio-por-tecnico.csv',
+                ['Técnico', 'Total', 'Em Andamento', 'Concluídas', 'Canceladas', 'Sem Reparo', 'Pendentes', 'Receita (centavos)'],
+                $csvRows,
+            );
+        }
+
+        return response()->json([
+            'data' => $rows,
+        ]);
+    }
+
     protected function downloadCsv(string $fileName, array $header, Collection $rows)
     {
         return response()->streamDownload(function () use ($header, $rows): void {

@@ -330,6 +330,10 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.service-orders.reports.service-orders');
     Route::get('/service-orders/reports/financial', [ServiceOrderController::class, 'financialReport'])
         ->name('api.v1.service-orders.reports.financial');
+    Route::get('/service-orders/reports/trends', [ServiceOrderController::class, 'trendsReport'])
+        ->name('api.v1.service-orders.reports.trends');
+    Route::get('/service-orders/reports/by-technician', [ServiceOrderController::class, 'technicianReport'])
+        ->name('api.v1.service-orders.reports.by-technician');
     Route::get('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'index'])
         ->name('api.v1.service-orders.attachments.index');
     Route::post('/service-orders/{serviceOrder}/attachments', [ServiceOrderAttachmentController::class, 'store'])
