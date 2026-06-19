@@ -156,6 +156,9 @@ const navLinks = computed(() => {
         { to: tenantRoute("customers"), label: "Clientes" },
         { to: tenantRoute("equipments"), label: "Equipamentos" },
         { to: tenantRoute("members"), label: "Usuários" },
+        ...(auth.permissions.includes("parts.view_any")
+          ? [{ to: tenantRoute("parts"), label: "Peças" }]
+          : []),
         { to: tenantRoute("checklists"), label: "Checklists" },
         ...(["administrator", "manager"].includes(auth.role ?? "")
           ? [{ to: tenantRoute("audit"), label: "Auditoria" }]

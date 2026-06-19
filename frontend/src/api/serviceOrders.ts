@@ -60,6 +60,7 @@ export interface ServiceOrder {
   warranty_origin_service_order_id: number | null
   final_test_results: Array<{ label: string; passed: boolean; notes?: string | null }> | null
   execution_entries: Array<{ id: number; entry_type: string; description: string; quantity: number; notes: string | null }> | null
+  parts: Array<{ id: number; part_id: number; part_name: string | null; part_sku: string | null; part_unit: string | null; quantity: number; unit_cost_price_cents: number; unit_sale_price_cents: number; notes: string | null }> | null
   deleted_at: string | null
 }
 

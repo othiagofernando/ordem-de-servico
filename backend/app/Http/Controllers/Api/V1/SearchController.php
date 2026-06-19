@@ -6,6 +6,7 @@ use App\Domains\Auth\Models\Membership;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Equipments\Models\Equipment;
 use App\Domains\Learning\Models\Playbook;
+use App\Domains\Parts\Models\Part;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
@@ -114,6 +115,27 @@ class SearchController extends Controller
                     'label'    => $membership->user?->name ?? '—',
                     'sublabel' => $membership->user?->email ?? '—',
                     'meta'     => $membership->role,
+                ];
+            });
+
+        // Peças
+        Part::query()
+            ->where(function ($query) use ($q): void {
+                $query->where('name', 'like', "%{$q}%")
+                    ->orWhere('sku', 'like', "%{$q}%")
+                    ->orWhere('category', 'like', "%{$q}%");
+            })
+            ->where('active', true)
+            ->orderBy('name')
+            ->limit($limit)
+            ->get()
+            ->each(function (Part $part) use (&$results): void {
+                $results[] = [
+                    'type'     => 'part',
+                    'id'       => $part->getKey(),
+                    'label'    => $part->name,
+                    'sublabel' => $part->sku ? "SKU: {$part->sku}" : ($part->category ?? '—'),
+                    'meta'     => (string) $part->stock_quantity,
                 ];
             });
 

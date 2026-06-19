@@ -1,7 +1,7 @@
 import { apiGet } from './client'
 
 export interface SearchResult {
-  type: 'service_order' | 'customer' | 'equipment' | 'member' | 'playbook' | 'company' | 'plan' | 'admin_user'
+  type: 'service_order' | 'customer' | 'equipment' | 'member' | 'playbook' | 'part' | 'company' | 'plan' | 'admin_user'
   id: number
   label: string
   sublabel: string

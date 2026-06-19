@@ -27,11 +27,18 @@ import { useServiceOrderDerivedState } from './composables/useServiceOrderDerive
 import { useServiceOrderFormatting } from './composables/useServiceOrderFormatting'
 import PasswordConfirmModal from '../../components/PasswordConfirmModal.vue'
 import { useTenantRouting } from '../../composables/useTenantRouting'
+import ServiceOrderPartsPanel from './components/ServiceOrderPartsPanel.vue'
+import { useAuthStore } from '../../stores/auth'
+import type { ServiceOrderPart } from '../../api/parts'
 
 const route = useRoute()
 const router = useRouter()
 const { tenantRoute } = useTenantRouting()
+const auth = useAuthStore()
 const os = ref<ServiceOrder | null>(null)
+const osParts = ref<ServiceOrderPart[]>([])
+
+const canManageParts = computed(() => auth.permissions.includes('parts.manage'))
 const timeline = ref<TimelineEvent[]>([])
 const quotes = ref<QuoteRevision[]>([])
 const financials = ref<Financials | null>(null)
@@ -182,6 +189,7 @@ async function reload() {
     getQuotes(Number(route.params.id)),
   ])
   os.value = osRes.data
+  osParts.value = osRes.data.parts ?? []
   timeline.value = tlRes.data
   quotes.value = qtRes.data
   selectedMembershipId.value = osRes.data.assigned_membership_id
@@ -1187,6 +1195,15 @@ async function downloadAttachment(attachmentId: number) {
               </div>
             </div>
           </div>
+
+          <!-- Peças Utilizadas (estoque) -->
+          <ServiceOrderPartsPanel
+            v-if="auth.permissions.includes('parts.view_any')"
+            :service-order-id="os.id"
+            :parts="osParts"
+            :can-manage="canManageParts && os.status === 'in_progress'"
+            @updated="osParts = $event"
+          />
 
           <!-- Testes Finais -->
           <div v-if="os.final_test_results && os.final_test_results.length > 0" class="rounded-2xl border border-white/10 bg-white/5 p-5">

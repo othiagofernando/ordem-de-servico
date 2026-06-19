@@ -26,6 +26,8 @@ class RolePresetCatalog
                 'service_orders.execute',
                 'service_orders.finance',
                 'service_orders.override_delivery_balance',
+                'parts.view_any',
+                'parts.manage',
             ],
             'manager' => [
                 'company_settings.manage',
@@ -42,6 +44,8 @@ class RolePresetCatalog
                 'service_orders.execute',
                 'service_orders.finance',
                 'service_orders.override_delivery_balance',
+                'parts.view_any',
+                'parts.manage',
             ],
             'attendant' => [
                 'customers.view_any',
@@ -50,15 +54,19 @@ class RolePresetCatalog
                 'equipments.manage',
                 'service_orders.view_any',
                 'service_orders.manage',
+                'parts.view_any',
             ],
             'technician' => [
                 'service_orders.view_assigned',
                 'service_orders.diagnose',
                 'service_orders.execute',
+                'parts.view_any',
+                'parts.manage',
             ],
             'finance' => [
                 'service_orders.view_any',
                 'service_orders.finance',
+                'parts.view_any',
             ],
         ];
     }

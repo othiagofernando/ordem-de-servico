@@ -15,6 +15,8 @@ class SerializeServiceOrder
             ? $serviceOrder->quoteRevisions->sortByDesc('revision_number')->first()
             : null;
 
+        $serviceOrder->loadMissing('serviceOrderParts.part');
+
         return [
             'id' => $serviceOrder->getKey(),
             'reference' => $serviceOrder->reference,
@@ -64,6 +66,17 @@ class SerializeServiceOrder
             'equipment_brand' => $serviceOrder->equipment?->brand,
             'equipment_model' => $serviceOrder->equipment?->model,
             'latest_quote_status' => $latestQuote?->status,
+            'parts' => $serviceOrder->serviceOrderParts->map(fn ($sop) => [
+                'id'                    => $sop->getKey(),
+                'part_id'               => $sop->part_id,
+                'part_name'             => $sop->part?->name,
+                'part_sku'              => $sop->part?->sku,
+                'part_unit'             => $sop->part?->unit,
+                'quantity'              => (float) $sop->quantity,
+                'unit_cost_price_cents' => $sop->unit_cost_price_cents,
+                'unit_sale_price_cents' => $sop->unit_sale_price_cents,
+                'notes'                 => $sop->notes,
+            ])->all(),
         ];
     }
 }

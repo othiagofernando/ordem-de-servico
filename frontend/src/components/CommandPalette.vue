@@ -84,6 +84,10 @@ const TYPE_META: Record<string, { label: string; icon: string }> = {
     label: 'Empresas',
     icon: 'M3.75 6.75A2.25 2.25 0 0 1 6 4.5h3A2.25 2.25 0 0 1 11.25 6.75v12A2.25 2.25 0 0 1 9 21H6a2.25 2.25 0 0 1-2.25-2.25v-12ZM12.75 10.5A2.25 2.25 0 0 1 15 8.25h3A2.25 2.25 0 0 1 20.25 10.5v8.25A2.25 2.25 0 0 1 18 21h-3a2.25 2.25 0 0 1-2.25-2.25V10.5Z',
   },
+  part: {
+    label: 'Peças',
+    icon: 'M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125',
+  },
   plan: {
     label: 'Planos',
     icon: 'M3.75 6.75A2.25 2.25 0 0 1 6 4.5h12A2.25 2.25 0 0 1 20.25 6.75v10.5A2.25 2.25 0 0 1 18 19.5H6a2.25 2.25 0 0 1-2.25-2.25V6.75ZM7.5 9.75h4.5m-4.5 4.5h9',
@@ -213,6 +217,7 @@ function getRoute(result: SearchResult): RouteLocationRaw {
       case 'customer':      return tenantRoute('customers.detail', { params: { id: result.id } })
       case 'equipment':     return tenantRoute('equipments.detail', { params: { id: result.id } })
       case 'member':        return tenantRoute('members')
+      case 'part':          return tenantRoute('parts.edit', { params: { id: result.id } })
       case 'playbook':      return tenantRoute('learning.detail', { params: { id: result.id } })
     }
   }

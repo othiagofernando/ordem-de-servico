@@ -68,8 +68,10 @@ use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use App\Http\Controllers\Api\V1\RoleCatalogController;
 use App\Http\Controllers\Api\V1\CepLookupController;
 use App\Http\Controllers\Api\V1\UserNotificationController;
+use App\Http\Controllers\Api\V1\PartController;
 use App\Http\Controllers\Api\V1\PlaybookController;
 use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\ServiceOrderPartController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlaybookController;
 use App\Http\Controllers\Api\V1\Admin\AdminSearchController;
 use Illuminate\Support\Facades\Route;
@@ -379,5 +381,14 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.playbooks.index');
     Route::get('/playbooks/{playbook}', [PlaybookController::class, 'show'])
         ->name('api.v1.playbooks.show');
+    // Peças
+    Route::get('/parts', [PartController::class, 'index'])->middleware('permission:parts.view_any')->name('api.v1.parts.index');
+    Route::post('/parts', [PartController::class, 'store'])->middleware('permission:parts.manage')->name('api.v1.parts.store');
+    Route::get('/parts/{part}', [PartController::class, 'show'])->middleware('permission:parts.view_any')->name('api.v1.parts.show');
+    Route::put('/parts/{part}', [PartController::class, 'update'])->middleware('permission:parts.manage')->name('api.v1.parts.update');
+    Route::delete('/parts/{part}', [PartController::class, 'destroy'])->middleware('permission:parts.manage')->name('api.v1.parts.destroy');
+    Route::patch('/parts/{part}/stock', [PartController::class, 'adjustStock'])->middleware('permission:parts.manage')->name('api.v1.parts.stock.adjust');
+    Route::post('/service-orders/{serviceOrder}/parts', [ServiceOrderPartController::class, 'store'])->middleware('permission:parts.manage')->name('api.v1.service-orders.parts.store');
+    Route::delete('/service-orders/{serviceOrder}/parts/{serviceOrderPart}', [ServiceOrderPartController::class, 'destroy'])->middleware('permission:parts.manage')->name('api.v1.service-orders.parts.destroy');
     });
 });

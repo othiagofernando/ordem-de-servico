@@ -7,6 +7,7 @@ use App\Domains\Companies\Concerns\BelongsToCompany;
 use App\Domains\Customers\Models\Customer;
 use App\Domains\Customers\Models\CustomerContact;
 use App\Domains\Equipments\Models\Equipment;
+use App\Domains\Parts\Models\ServiceOrderPart;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Casts\AsArrayObject;
 use Illuminate\Database\Eloquent\Model;
@@ -196,5 +197,10 @@ class ServiceOrder extends Model
     public function printSnapshot(): HasOne
     {
         return $this->hasOne(ServiceOrderPrintSnapshot::class);
+    }
+
+    public function serviceOrderParts(): HasMany
+    {
+        return $this->hasMany(ServiceOrderPart::class);
     }
 }
