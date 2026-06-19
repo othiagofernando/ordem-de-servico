@@ -108,7 +108,7 @@ async function exitImpersonation() {
 function buildAdminNav() {
   const perms = auth.adminPermissions;
   const has = (p: string) => perms.includes(p);
-  const isSA = auth.adminRole === "super_admin" && !auth.adminRoleId;
+  const isSA = auth.isSuperAdmin;
 
   return [
     { to: { name: "admin" as const }, label: "Resumo" },
