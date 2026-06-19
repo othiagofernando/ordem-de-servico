@@ -138,175 +138,248 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="mx-auto max-w-2xl space-y-6">
+  <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center gap-3">
-      <RouterLink :to="tenantRoute('parts')" class="text-sm hover:underline" style="color: var(--c-text-muted)">
-        ← Peças e Estoque
-      </RouterLink>
-    </div>
-    <h1 class="text-2xl font-semibold" style="color: var(--c-text)">
+    <RouterLink
+      :to="tenantRoute('parts')"
+      class="text-stone-500 hover:text-stone-200"
+    >
+      ← Peças e Estoque
+    </RouterLink>
+    <h1 class="text-2xl font-semibold text-white">
       {{ isEdit ? 'Editar Peça' : 'Nova Peça' }}
     </h1>
 
-    <div v-if="loading" class="py-10 text-center text-sm" style="color: var(--c-text-dim)">Carregando...</div>
+    <div v-if="loading" class="py-16 text-center text-stone-500">Carregando…</div>
 
-    <form v-else class="space-y-5" @submit.prevent="save">
-      <!-- Nome -->
-      <div>
-        <label class="form-label">Nome *</label>
-        <input v-model="form.name" type="text" class="form-input w-full" :class="{ 'border-red-500': errors.name }" maxlength="200" />
-        <p v-if="errors.name" class="mt-1 text-xs text-red-400">{{ errors.name }}</p>
-      </div>
+    <form v-else class="space-y-6" @submit.prevent="save">
+      <!-- Informações básicas -->
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <!-- Nome -->
+          <div class="sm:col-span-2">
+            <label class="mb-1.5 block text-sm text-stone-300">Nome da peça *</label>
+            <input
+              v-model="form.name"
+              type="text"
+              class="input"
+              :class="{ 'border-red-500': errors.name }"
+              maxlength="200"
+              required
+              placeholder="Ex: Tela LCD, Bateria, Conector USB"
+            />
+            <p v-if="errors.name" class="mt-1 text-xs text-red-400">{{ errors.name }}</p>
+          </div>
 
-      <!-- Descrição -->
-      <div>
-        <label class="form-label">Descrição</label>
-        <textarea v-model="form.description" class="form-input w-full" rows="2" />
-      </div>
+          <!-- Descrição -->
+          <div class="sm:col-span-2">
+            <label class="mb-1.5 block text-sm text-stone-300">Descrição</label>
+            <textarea
+              v-model="form.description"
+              class="input resize-none"
+              rows="2"
+              placeholder="Informações adicionais sobre a peça"
+            />
+          </div>
 
-      <!-- Categoria e SKU -->
-      <div class="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label class="form-label">Categoria</label>
-          <input v-model="form.category" type="text" class="form-input w-full" maxlength="100" placeholder="Ex: Tela, Bateria, Conector..." />
+          <!-- Categoria -->
+          <div>
+            <label class="mb-1.5 block text-sm text-stone-300">Categoria</label>
+            <input
+              v-model="form.category"
+              type="text"
+              class="input"
+              maxlength="100"
+              placeholder="Ex: Tela, Bateria, Conector"
+            />
+          </div>
+
+          <!-- SKU / Código -->
+          <div>
+            <label class="mb-1.5 block text-sm text-stone-300">SKU / Código</label>
+            <input
+              v-model="form.sku"
+              type="text"
+              class="input font-mono"
+              :class="{ 'border-red-500': errors.sku }"
+              maxlength="100"
+              placeholder="Ex: TEL-TELA-SAM-A54"
+            />
+            <p v-if="errors.sku" class="mt-1 text-xs text-red-400">{{ errors.sku }}</p>
+          </div>
+
+          <!-- Unidade -->
+          <div>
+            <label class="mb-1.5 block text-sm text-stone-300">Unidade de medida</label>
+            <select v-model="form.unit" class="input">
+              <option v-for="u in UNITS" :key="u" :value="u">{{ u }}</option>
+            </select>
+          </div>
         </div>
-        <div>
-          <label class="form-label">SKU / Código</label>
-          <input v-model="form.sku" type="text" class="form-input w-full" :class="{ 'border-red-500': errors.sku }" maxlength="100" placeholder="Ex: TEL-TELA-SAM-A54" />
-          <p v-if="errors.sku" class="mt-1 text-xs text-red-400">{{ errors.sku }}</p>
-        </div>
-      </div>
-
-      <!-- Unidade -->
-      <div>
-        <label class="form-label">Unidade de medida</label>
-        <select v-model="form.unit" class="form-input w-40">
-          <option v-for="u in UNITS" :key="u" :value="u">{{ u }}</option>
-        </select>
       </div>
 
       <!-- Estoque -->
-      <div class="rounded-2xl border p-4 space-y-4" style="border-color: var(--c-border)">
-        <div class="flex items-center justify-between">
-          <h3 class="font-medium" style="color: var(--c-text)">Estoque</h3>
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <div class="mb-4 flex items-center justify-between">
+          <h3 class="font-semibold text-white">Controle de Estoque</h3>
           <button
             v-if="isEdit"
             type="button"
-            class="btn-ghost text-xs px-3 py-1.5"
+            class="rounded-lg border border-white/10 px-3 py-1.5 text-xs font-medium text-stone-300 transition hover:border-amber-500/30 hover:text-amber-300"
             @click="showStockModal = true"
           >
             Ajustar estoque
           </button>
         </div>
+
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="form-label">Quantidade atual</label>
+            <label class="mb-1.5 block text-sm text-stone-300">Quantidade atual</label>
             <input
               v-if="!isEdit"
               v-model.number="form.stock_quantity"
               type="number"
-              class="form-input w-full"
+              class="input"
               min="0"
               step="0.001"
+              placeholder="0"
             />
-            <div v-else class="flex items-center gap-2">
-              <span class="text-2xl font-bold tabular-nums" style="color: var(--c-text)">{{ currentStock.toLocaleString('pt-BR') }}</span>
-              <span class="text-sm" style="color: var(--c-text-dim)">{{ form.unit }}</span>
+            <div v-else class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2">
+              <span class="text-2xl font-bold tabular-nums text-white">{{ currentStock.toLocaleString('pt-BR') }}</span>
+              <span class="text-sm text-stone-400">{{ form.unit }}</span>
             </div>
           </div>
+
           <div>
-            <label class="form-label">Quantidade mínima (alerta)</label>
+            <label class="mb-1.5 block text-sm text-stone-300">Quantidade mínima (alerta)</label>
             <input
               v-model.number="form.min_stock_quantity"
               type="number"
-              class="form-input w-full"
+              class="input"
               min="0"
               step="0.001"
+              placeholder="0"
             />
           </div>
         </div>
       </div>
 
       <!-- Preços -->
-      <div class="rounded-2xl border p-4 space-y-4" style="border-color: var(--c-border)">
-        <h3 class="font-medium" style="color: var(--c-text)">Preços</h3>
+      <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
+        <h3 class="mb-4 font-semibold text-white">Preços</h3>
+
         <div class="grid gap-4 sm:grid-cols-2">
           <div>
-            <label class="form-label">Custo de aquisição (R$)</label>
+            <label class="mb-1.5 block text-sm text-stone-300">Custo de aquisição (R$)</label>
             <input
               type="text"
-              class="form-input w-full font-mono"
+              class="input font-mono"
               :value="costFormatted"
               inputmode="decimal"
+              placeholder="0,00"
               @input="onCostInput"
             />
           </div>
+
           <div>
-            <label class="form-label">Preço de venda sugerido (R$)</label>
+            <label class="mb-1.5 block text-sm text-stone-300">Preço de venda sugerido (R$)</label>
             <input
               type="text"
-              class="form-input w-full font-mono"
+              class="input font-mono"
               :value="saleFormatted"
               inputmode="decimal"
+              placeholder="0,00"
               @input="onSaleInput"
             />
           </div>
         </div>
       </div>
 
-      <!-- Ativo -->
+      <!-- Status -->
       <label class="flex items-center gap-3 cursor-pointer">
-        <input v-model="form.active" type="checkbox" class="h-4 w-4 rounded" />
-        <span class="text-sm font-medium" style="color: var(--c-text)">Peça ativa</span>
+        <input
+          v-model="form.active"
+          type="checkbox"
+          class="h-4 w-4 rounded border border-white/20 bg-white/5 accent-amber-500"
+        />
+        <span class="text-sm font-medium text-stone-300">Peça ativa</span>
       </label>
 
       <!-- Ações -->
       <div class="flex gap-3 pt-2">
-        <button type="submit" class="btn-primary" :disabled="saving">
-          {{ saving ? 'Salvando...' : 'Salvar' }}
+        <button
+          type="submit"
+          :disabled="saving"
+          class="rounded-xl bg-amber-500 px-6 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+        >
+          {{ saving ? 'Salvando…' : 'Salvar Peça' }}
         </button>
-        <RouterLink :to="tenantRoute('parts')" class="btn-ghost px-4 py-2 text-sm">
+        <RouterLink
+          :to="tenantRoute('parts')"
+          class="rounded-xl border border-white/10 px-6 py-2.5 text-sm text-stone-400 transition hover:text-stone-200"
+        >
           Cancelar
         </RouterLink>
       </div>
     </form>
   </div>
 
-  <!-- Modal ajuste de estoque -->
+  <!-- Modal: Ajuste de estoque -->
   <Teleport to="body">
-    <div v-if="showStockModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.self="showStockModal = false">
-      <div class="w-full max-w-sm rounded-2xl border p-6 space-y-4" style="background: var(--c-sidebar); border-color: var(--c-border)">
-        <h3 class="text-lg font-semibold" style="color: var(--c-text)">Ajustar Estoque</h3>
-        <p class="text-sm" style="color: var(--c-text-muted)">
-          Estoque atual: <strong class="tabular-nums" style="color: var(--c-text)">{{ currentStock.toLocaleString('pt-BR') }} {{ form.unit }}</strong>
+    <div
+      v-if="showStockModal"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      @click.self="showStockModal = false"
+    >
+      <div class="w-full max-w-sm rounded-2xl border border-white/10 bg-stone-900 p-6">
+        <h3 class="mb-4 text-lg font-semibold text-white">Ajustar Estoque</h3>
+
+        <p class="mb-4 text-sm text-stone-300">
+          Estoque atual: <strong class="tabular-nums text-white">{{ currentStock.toLocaleString('pt-BR') }} {{ form.unit }}</strong>
         </p>
-        <div>
-          <label class="form-label">Quantidade (positivo para entrada, negativo para saída)</label>
-          <input
-            v-model.number="stockAdjustQty"
-            type="number"
-            step="0.001"
-            class="form-input w-full font-mono"
-            placeholder="Ex: 10 ou -3"
-          />
-          <p class="mt-1 text-xs" style="color: var(--c-text-dim)">
-            Novo estoque: <strong style="color: var(--c-text)">{{ (currentStock + (stockAdjustQty || 0)).toLocaleString('pt-BR') }} {{ form.unit }}</strong>
-          </p>
-        </div>
-        <div>
-          <label class="form-label">Observação (opcional)</label>
-          <input v-model="stockAdjustNotes" type="text" class="form-input w-full" maxlength="500" placeholder="Ex: Compra fornecedor X, nota 1234" />
-        </div>
-        <div class="flex gap-3 pt-1">
-          <button
-            class="btn-primary flex-1"
-            :disabled="stockAdjusting || stockAdjustQty === 0"
-            @click="doAdjustStock"
-          >
-            {{ stockAdjusting ? 'Salvando...' : 'Confirmar' }}
-          </button>
-          <button class="btn-ghost px-4 py-2 text-sm" @click="showStockModal = false">Cancelar</button>
+
+        <div class="space-y-4">
+          <div>
+            <label class="mb-1.5 block text-sm text-stone-300">Quantidade (positivo para entrada, negativo para saída)</label>
+            <input
+              v-model.number="stockAdjustQty"
+              type="number"
+              step="0.001"
+              class="input font-mono"
+              placeholder="Ex: 10 ou -3"
+              autofocus
+            />
+            <p class="mt-1 text-xs text-stone-400">
+              Novo estoque: <strong class="text-stone-200">{{ (currentStock + (stockAdjustQty || 0)).toLocaleString('pt-BR') }} {{ form.unit }}</strong>
+            </p>
+          </div>
+
+          <div>
+            <label class="mb-1.5 block text-sm text-stone-300">Observação (opcional)</label>
+            <input
+              v-model="stockAdjustNotes"
+              type="text"
+              class="input"
+              maxlength="500"
+              placeholder="Ex: Compra fornecedor X, nota 1234"
+            />
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button
+              class="flex-1 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-stone-950 transition hover:bg-amber-400 disabled:opacity-50"
+              :disabled="stockAdjusting || stockAdjustQty === 0"
+              @click="doAdjustStock"
+            >
+              {{ stockAdjusting ? 'Salvando…' : 'Confirmar' }}
+            </button>
+            <button
+              class="rounded-xl border border-white/10 px-4 py-2.5 text-sm text-stone-400 transition hover:text-stone-200"
+              @click="showStockModal = false"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       </div>
     </div>
