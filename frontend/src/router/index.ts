@@ -96,18 +96,6 @@ const tenantChildren: RouteRecordRaw[] = [
     meta: { tenantOnly: true },
   },
   {
-    path: 'perfis',
-    name: 'roles',
-    component: () => import('../views/members/CompanyRolesView.vue'),
-    meta: { tenantOnly: true },
-  },
-  {
-    path: 'permissoes',
-    name: 'permissions',
-    component: () => import('../views/members/PermissionsView.vue'),
-    meta: { tenantOnly: true },
-  },
-  {
     path: 'configuracoes',
     name: 'settings',
     component: () => import('../views/settings/SettingsView.vue'),
@@ -276,6 +264,18 @@ const router = createRouter({
           path: 'usuarios',
           name: 'admin.users',
           component: () => import('../views/admin/AdminUsersView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
+          path: 'perfis',
+          name: 'admin.roles',
+          component: () => import('../views/admin/AdminRolesView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
+          path: 'permissoes',
+          name: 'admin.permissions',
+          component: () => import('../views/admin/AdminPermissionsView.vue'),
           meta: { requiresAuth: true, superAdminOnly: true },
         },
         {

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminRole;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class AdminUserController extends Controller
     {
         $users = User::query()
             ->where('super_admin', true)
+            ->with('adminRoleModel')
             ->orderBy('name')
             ->get();
 
@@ -31,18 +33,28 @@ class AdminUserController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', Password::defaults()],
-            'admin_role' => ['required', 'in:'.implode(',', self::ROLES)],
+            'admin_role' => ['required_without:admin_role_id', 'nullable', 'in:'.implode(',', self::ROLES)],
+            'admin_role_id' => ['required_without:admin_role', 'nullable', 'exists:admin_roles,id'],
         ]);
 
-        $user = User::create([
+        $userData = [
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'],
             'super_admin' => true,
-            'admin_role' => $validated['admin_role'],
-        ]);
+        ];
 
-        return response()->json(['data' => $this->serialize($user)], Response::HTTP_CREATED);
+        if (! empty($validated['admin_role_id'])) {
+            $userData['admin_role_id'] = $validated['admin_role_id'];
+            $userData['admin_role'] = null;
+        } else {
+            $userData['admin_role'] = $validated['admin_role'];
+            $userData['admin_role_id'] = null;
+        }
+
+        $user = User::create($userData);
+
+        return response()->json(['data' => $this->serialize($user->load('adminRoleModel'))], Response::HTTP_CREATED);
     }
 
     public function update(Request $request, User $user): JsonResponse
@@ -51,14 +63,32 @@ class AdminUserController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'admin_role' => ['sometimes', 'in:'.implode(',', self::ROLES)],
+            'admin_role' => ['sometimes', 'nullable', 'in:'.implode(',', self::ROLES)],
+            'admin_role_id' => ['sometimes', 'nullable', 'exists:admin_roles,id'],
             'password' => ['sometimes', 'nullable', Password::defaults()],
         ]);
 
-        $data = array_filter([
-            'name' => $validated['name'] ?? null,
-            'admin_role' => $validated['admin_role'] ?? null,
-        ], fn ($v) => $v !== null);
+        $data = [];
+
+        if (isset($validated['name'])) {
+            $data['name'] = $validated['name'];
+        }
+
+        // Handle role assignment: custom role takes precedence
+        if (array_key_exists('admin_role_id', $validated)) {
+            if (! empty($validated['admin_role_id'])) {
+                $data['admin_role_id'] = $validated['admin_role_id'];
+                $data['admin_role'] = null;
+            } else {
+                $data['admin_role_id'] = null;
+                if (isset($validated['admin_role'])) {
+                    $data['admin_role'] = $validated['admin_role'];
+                }
+            }
+        } elseif (array_key_exists('admin_role', $validated)) {
+            $data['admin_role'] = $validated['admin_role'];
+            $data['admin_role_id'] = null;
+        }
 
         if (! empty($validated['password'])) {
             $data['password'] = $validated['password'];
@@ -66,7 +96,7 @@ class AdminUserController extends Controller
 
         $user->update($data);
 
-        return response()->json(['data' => $this->serialize($user->refresh())]);
+        return response()->json(['data' => $this->serialize($user->refresh()->load('adminRoleModel'))]);
     }
 
     public function destroy(Request $request, User $user): JsonResponse
@@ -82,18 +112,22 @@ class AdminUserController extends Controller
             return response()->json(['message' => 'Deve existir ao menos um usuário com perfil Super Admin.'], Response::HTTP_UNPROCESSABLE_ENTITY);
         }
 
-        $user->update(['super_admin' => false, 'admin_role' => null]);
+        $user->update(['super_admin' => false, 'admin_role' => null, 'admin_role_id' => null]);
 
         return response()->json(['message' => 'Acesso administrativo revogado com sucesso.']);
     }
 
     private function serialize(User $user): array
     {
+        $customRole = $user->relationLoaded('adminRoleModel') ? $user->adminRoleModel : null;
+
         return [
             'id' => $user->getKey(),
             'name' => $user->name,
             'email' => $user->email,
-            'admin_role' => $user->admin_role ?? 'super_admin',
+            'admin_role' => $user->admin_role_id ? null : ($user->admin_role ?? 'super_admin'),
+            'admin_role_id' => $user->admin_role_id,
+            'admin_role_name' => $customRole?->name,
             'created_at' => $user->created_at?->toISOString(),
         ];
     }

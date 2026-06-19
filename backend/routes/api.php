@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminImpersonationController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlanController;
 use App\Http\Controllers\Api\V1\Admin\AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminSubscriptionController;
+use App\Http\Controllers\Api\V1\Admin\AdminAdminRoleController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
 use App\Http\Controllers\Api\V1\BusinessAuditController;
 use App\Http\Controllers\Api\V1\CompanyOperationalSettingController;
@@ -63,7 +64,6 @@ use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
-use App\Http\Controllers\Api\V1\CompanyRoleController;
 use App\Http\Controllers\Api\V1\RoleCatalogController;
 use App\Http\Controllers\Api\V1\CepLookupController;
 use Illuminate\Support\Facades\Route;
@@ -122,54 +122,40 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.audit-logs.index');
     Route::get('/tenant/context', TenantContextController::class)->name('api.v1.tenant.context');
     Route::prefix('admin')->middleware('super_admin')->group(function (): void {
-        // Todos os roles admin têm acesso ao resumo
         Route::get('/overview', AdminOverviewController::class)->name('api.v1.admin.overview');
-
-        // Viewer+ — leitura geral de empresas, assinaturas e auditoria
-        Route::middleware('super_admin:super_admin,support,billing,plans,viewer')->group(function (): void {
-            Route::get('/audits', [AdminAuditController::class, 'index'])->name('api.v1.admin.audits.index');
-            Route::get('/audits/{audit}', [AdminAuditController::class, 'show'])->name('api.v1.admin.audits.show');
-            Route::get('/subscriptions', [AdminSubscriptionController::class, 'index'])->name('api.v1.admin.subscriptions.index');
-            Route::get('/companies', [AdminCompanyController::class, 'index'])->name('api.v1.admin.companies.index');
-            Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('api.v1.admin.companies.show');
-        });
-
-        // Support+ — alertas, gestão de empresas, impersonation
-        Route::middleware('super_admin:super_admin,support')->group(function (): void {
-            Route::get('/alerts', AdminAlertController::class)->name('api.v1.admin.alerts');
-            Route::post('/companies', [AdminCompanyController::class, 'store'])->name('api.v1.admin.companies.store');
-            Route::put('/companies/{company}', [AdminCompanyController::class, 'update'])->name('api.v1.admin.companies.update');
-            Route::get('/companies/{company}/audits', [AdminCompanyAuditController::class, 'index'])->name('api.v1.admin.companies.audits.index');
-            Route::put('/companies/{company}/subscription', [AdminCompanySubscriptionController::class, 'update'])->name('api.v1.admin.companies.subscription.update');
-            Route::post('/companies/{company}/subscription/extend', [AdminCompanySubscriptionController::class, 'extend'])->name('api.v1.admin.companies.subscription.extend');
-            Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('api.v1.admin.companies.suspend');
-            Route::patch('/companies/{company}/activate', [AdminCompanyController::class, 'activate'])->name('api.v1.admin.companies.activate');
-            Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
-            Route::get('/companies/{company}/memberships', [AdminImpersonationController::class, 'memberships'])->name('api.v1.admin.companies.memberships.index');
-            Route::post('/companies/{company}/memberships/{membership}/impersonate', [AdminImpersonationController::class, 'impersonate'])->name('api.v1.admin.companies.memberships.impersonate');
-        });
-
-        // Billing+ — cobranças/faturas
-        Route::middleware('super_admin:super_admin,billing')->group(function (): void {
-            Route::get('/billing/invoices', [AdminBillingInvoiceController::class, 'index'])->name('api.v1.admin.billing.invoices.index');
-            Route::get('/billing/invoices/{billingInvoice}', [AdminBillingInvoiceController::class, 'show'])->name('api.v1.admin.billing.invoices.show');
-        });
-
-        // Plans+ — gestão de planos (billing também acessa)
-        Route::middleware('super_admin:super_admin,plans,billing')->group(function (): void {
-            Route::get('/plans', [AdminPlanController::class, 'index'])->name('api.v1.admin.plans.index');
-            Route::get('/plans/{plan}', [AdminPlanController::class, 'show'])->name('api.v1.admin.plans.show');
-            Route::post('/plans', [AdminPlanController::class, 'store'])->name('api.v1.admin.plans.store');
-            Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('api.v1.admin.plans.update');
-            Route::delete('/plans/{plan}', [AdminPlanController::class, 'destroy'])->name('api.v1.admin.plans.destroy');
-        });
-
-        // Super admin exclusivo — gestão de outros usuários admin
+        Route::get('/alerts', AdminAlertController::class)->name('api.v1.admin.alerts');
+        Route::get('/audits', [AdminAuditController::class, 'index'])->name('api.v1.admin.audits.index');
+        Route::get('/audits/{audit}', [AdminAuditController::class, 'show'])->name('api.v1.admin.audits.show');
+        Route::get('/billing/invoices', [AdminBillingInvoiceController::class, 'index'])->name('api.v1.admin.billing.invoices.index');
+        Route::get('/billing/invoices/{billingInvoice}', [AdminBillingInvoiceController::class, 'show'])->name('api.v1.admin.billing.invoices.show');
+        Route::get('/plans', [AdminPlanController::class, 'index'])->name('api.v1.admin.plans.index');
+        Route::post('/plans', [AdminPlanController::class, 'store'])->name('api.v1.admin.plans.store');
+        Route::get('/plans/{plan}', [AdminPlanController::class, 'show'])->name('api.v1.admin.plans.show');
+        Route::put('/plans/{plan}', [AdminPlanController::class, 'update'])->name('api.v1.admin.plans.update');
+        Route::delete('/plans/{plan}', [AdminPlanController::class, 'destroy'])->name('api.v1.admin.plans.destroy');
+        Route::get('/subscriptions', [AdminSubscriptionController::class, 'index'])->name('api.v1.admin.subscriptions.index');
+        Route::get('/companies', [AdminCompanyController::class, 'index'])->name('api.v1.admin.companies.index');
+        Route::post('/companies', [AdminCompanyController::class, 'store'])->name('api.v1.admin.companies.store');
+        Route::get('/companies/{company}', [AdminCompanyController::class, 'show'])->name('api.v1.admin.companies.show');
+        Route::put('/companies/{company}', [AdminCompanyController::class, 'update'])->name('api.v1.admin.companies.update');
+        Route::get('/companies/{company}/audits', [AdminCompanyAuditController::class, 'index'])->name('api.v1.admin.companies.audits.index');
+        Route::put('/companies/{company}/subscription', [AdminCompanySubscriptionController::class, 'update'])->name('api.v1.admin.companies.subscription.update');
+        Route::post('/companies/{company}/subscription/extend', [AdminCompanySubscriptionController::class, 'extend'])->name('api.v1.admin.companies.subscription.extend');
+        Route::patch('/companies/{company}/suspend', [AdminCompanyController::class, 'suspend'])->name('api.v1.admin.companies.suspend');
+        Route::patch('/companies/{company}/activate', [AdminCompanyController::class, 'activate'])->name('api.v1.admin.companies.activate');
+        Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
+        Route::get('/companies/{company}/memberships', [AdminImpersonationController::class, 'memberships'])->name('api.v1.admin.companies.memberships.index');
+        Route::post('/companies/{company}/memberships/{membership}/impersonate', [AdminImpersonationController::class, 'impersonate'])->name('api.v1.admin.companies.memberships.impersonate');
         Route::middleware('super_admin:super_admin')->group(function (): void {
             Route::get('/users', [AdminUserController::class, 'index'])->name('api.v1.admin.users.index');
             Route::post('/users', [AdminUserController::class, 'store'])->name('api.v1.admin.users.store');
             Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('api.v1.admin.users.update');
             Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('api.v1.admin.users.destroy');
+
+            Route::get('/roles', [AdminAdminRoleController::class, 'index'])->name('api.v1.admin.roles.index');
+            Route::post('/roles', [AdminAdminRoleController::class, 'store'])->name('api.v1.admin.roles.store');
+            Route::put('/roles/{adminRole}', [AdminAdminRoleController::class, 'update'])->name('api.v1.admin.roles.update');
+            Route::delete('/roles/{adminRole}', [AdminAdminRoleController::class, 'destroy'])->name('api.v1.admin.roles.destroy');
         });
     });
     Route::middleware('subscription.active')->group(function (): void {
@@ -190,18 +176,6 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.settings.logo');
     Route::get('/tenant/roles', RoleCatalogController::class)
         ->name('api.v1.tenant.roles.index');
-    Route::get('/tenant/company-roles', [CompanyRoleController::class, 'index'])
-        ->middleware('permission:memberships.manage')
-        ->name('api.v1.tenant.company-roles.index');
-    Route::post('/tenant/company-roles', [CompanyRoleController::class, 'store'])
-        ->middleware('permission:memberships.manage')
-        ->name('api.v1.tenant.company-roles.store');
-    Route::put('/tenant/company-roles/{companyRole}', [CompanyRoleController::class, 'update'])
-        ->middleware('permission:memberships.manage')
-        ->name('api.v1.tenant.company-roles.update');
-    Route::delete('/tenant/company-roles/{companyRole}', [CompanyRoleController::class, 'destroy'])
-        ->middleware('permission:memberships.manage')
-        ->name('api.v1.tenant.company-roles.destroy');
     Route::get('/tenant/memberships', TenantMembershipListController::class)
         ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)

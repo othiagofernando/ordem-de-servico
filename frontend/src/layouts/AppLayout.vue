@@ -36,21 +36,21 @@ async function exitImpersonation() {
 }
 
 function buildAdminNav() {
-  const role = auth.adminRole ?? 'super_admin'
-  const isSA = role === 'super_admin'
-  const isSupport = isSA || role === 'support'
-  const isBilling = isSA || role === 'billing'
-  const isPlans = isSA || role === 'plans' || role === 'billing'
+  const perms = auth.adminPermissions
+  const has = (p: string) => perms.includes(p)
+  const isSA = auth.adminRole === 'super_admin' && !auth.adminRoleId
 
   return [
     { to: { name: 'admin' as const }, label: 'Resumo' },
-    ...(isSupport ? [{ to: { name: 'admin.alerts' as const }, label: 'Alertas' }] : []),
-    { to: { name: 'admin.companies' as const }, label: 'Empresas' },
-    { to: { name: 'admin.subscriptions' as const }, label: 'Assinaturas' },
-    ...(isBilling ? [{ to: { name: 'admin.billing' as const }, label: 'Cobranças' }] : []),
-    ...(isPlans ? [{ to: { name: 'admin.plans' as const }, label: 'Planos' }] : []),
-    { to: { name: 'admin.audit' as const }, label: 'Auditoria' },
+    ...(has('alerts') ? [{ to: { name: 'admin.alerts' as const }, label: 'Alertas' }] : []),
+    ...(has('companies') ? [{ to: { name: 'admin.companies' as const }, label: 'Empresas' }] : []),
+    ...(has('subscriptions') ? [{ to: { name: 'admin.subscriptions' as const }, label: 'Assinaturas' }] : []),
+    ...(has('billing') ? [{ to: { name: 'admin.billing' as const }, label: 'Cobranças' }] : []),
+    ...(has('plans') ? [{ to: { name: 'admin.plans' as const }, label: 'Planos' }] : []),
+    ...(has('audit') ? [{ to: { name: 'admin.audit' as const }, label: 'Auditoria' }] : []),
     ...(isSA ? [{ to: { name: 'admin.users' as const }, label: 'Usuários' }] : []),
+    ...(isSA ? [{ to: { name: 'admin.roles' as const }, label: 'Perfis' }] : []),
+    ...(isSA ? [{ to: { name: 'admin.permissions' as const }, label: 'Permissões' }] : []),
   ]
 }
 
@@ -67,10 +67,6 @@ const navLinks = computed(() => {
         { to: tenantRoute('customers'), label: 'Clientes' },
         { to: tenantRoute('equipments'), label: 'Equipamentos' },
         { to: tenantRoute('members'), label: 'Usuários' },
-        ...(['administrator'].includes(auth.role ?? '') ? [
-          { to: tenantRoute('roles'), label: 'Perfis' },
-          { to: tenantRoute('permissions'), label: 'Permissões' },
-        ] : []),
         { to: tenantRoute('checklists'), label: 'Checklists' },
         ...(['administrator', 'manager'].includes(auth.role ?? '') ? [{ to: tenantRoute('audit'), label: 'Auditoria' }] : []),
         { to: tenantRoute('settings'), label: 'Configurações' },

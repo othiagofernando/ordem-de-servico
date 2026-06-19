@@ -438,7 +438,9 @@ export interface AdminUser {
   id: number
   name: string
   email: string
-  admin_role: string
+  admin_role: string | null
+  admin_role_id: number | null
+  admin_role_name: string | null
   created_at: string | null
 }
 
@@ -450,6 +452,14 @@ export const ADMIN_ROLE_LABELS: Record<string, string> = {
   viewer: 'Visualizador',
 }
 
+export interface AdminGlobalRole {
+  id: number
+  name: string
+  permissions: string[]
+  users_count: number | null
+  created_at: string | null
+}
+
 export function listAdminUsers() {
   return apiGet<{ data: AdminUser[] }>('/admin/users')
 }
@@ -458,18 +468,35 @@ export function createAdminUser(payload: {
   name: string
   email: string
   password: string
-  admin_role: string
+  admin_role?: string | null
+  admin_role_id?: number | null
 }) {
   return apiPost<{ data: AdminUser }>('/admin/users', payload)
 }
 
 export function updateAdminUser(
   userId: number,
-  payload: { name?: string; admin_role?: string; password?: string },
+  payload: { name?: string; admin_role?: string | null; admin_role_id?: number | null; password?: string },
 ) {
   return apiPatch<{ data: AdminUser }>(`/admin/users/${userId}`, payload)
 }
 
 export function revokeAdminUser(userId: number) {
   return apiDelete<{ message: string }>(`/admin/users/${userId}`)
+}
+
+export function listAdminRoles() {
+  return apiGet<{ data: AdminGlobalRole[] }>('/admin/roles')
+}
+
+export function createAdminRole(payload: { name: string; permissions: string[] }) {
+  return apiPost<{ data: AdminGlobalRole }>('/admin/roles', payload)
+}
+
+export function updateAdminRole(id: number, payload: { name?: string; permissions?: string[] }) {
+  return apiPut<{ data: AdminGlobalRole }>(`/admin/roles/${id}`, payload)
+}
+
+export function deleteAdminRole(id: number) {
+  return apiDelete<{ message: string }>(`/admin/roles/${id}`)
 }

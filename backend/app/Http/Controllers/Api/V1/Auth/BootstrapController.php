@@ -29,6 +29,11 @@ class BootstrapController extends Controller
         $activeMembership = $context->membership();
         $company = $context->company();
 
+        // Eager-load custom admin role for super admin users so we can include permissions
+        if ($user?->super_admin && $user->admin_role_id) {
+            $user->load('adminRoleModel');
+        }
+
         $memberships = $user === null
             ? collect()
             : $resolveActiveMemberships->handle($user)
@@ -58,6 +63,10 @@ class BootstrapController extends Controller
                     'email' => $user?->email,
                     'super_admin' => $user?->super_admin ?? false,
                     'admin_role' => $user?->admin_role,
+                    'admin_role_id' => $user?->admin_role_id,
+                    'admin_permissions' => $user?->super_admin && $user->admin_role_id
+                        ? ($user->adminRoleModel?->permissions ?? [])
+                        : null,
                 ],
             ],
             'permissions' => $user?->super_admin ? ['super_admin'] : ($activeMembership?->resolvedPermissions() ?? []),

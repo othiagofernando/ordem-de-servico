@@ -3,8 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import {
   ADMIN_ROLE_LABELS,
   type AdminUser,
+  type AdminGlobalRole,
   createAdminUser,
   listAdminUsers,
+  listAdminRoles,
   revokeAdminUser,
   updateAdminUser,
 } from '../../api/admin'
@@ -16,6 +18,7 @@ import AppPagination from '../../components/AppPagination.vue'
 
 const auth = useAuthStore()
 const users = ref<AdminUser[]>([])
+const globalRoles = ref<AdminGlobalRole[]>([])
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
@@ -43,7 +46,7 @@ const filteredUsers = computed(() => {
 // ── ordenação ─────────────────────────────────────────────
 const { sorted: sortedUsers, toggleSort, sortState } = useSortable(filteredUsers, {
   name:       (u) => u.name,
-  admin_role: (u) => roleLabel(u.admin_role),
+  admin_role: (u) => displayRoleLabel(u),
   created_at: (u) => u.created_at,
 })
 
@@ -72,7 +75,15 @@ const paginatedUsers = computed(() => {
 const showModal = ref(false)
 const modalMode = ref<'create' | 'edit'>('create')
 const selectedUser = ref<AdminUser | null>(null)
-const form = ref({ name: '', email: '', password: '', admin_role: 'support' })
+// roleType: 'fixed' | 'custom'
+const form = ref({
+  name: '',
+  email: '',
+  password: '',
+  roleType: 'fixed' as 'fixed' | 'custom',
+  admin_role: 'support',
+  admin_role_id: null as number | null,
+})
 const formLoading = ref(false)
 const formError = ref('')
 
@@ -82,7 +93,7 @@ const revokeTarget = ref<AdminUser | null>(null)
 const revokeLoading = ref(false)
 const revokeError = ref('')
 
-const ROLES = Object.entries(ADMIN_ROLE_LABELS).map(([value, label]) => ({ value, label }))
+const FIXED_ROLES = Object.entries(ADMIN_ROLE_LABELS).map(([value, label]) => ({ value, label }))
 
 const ROLE_BADGE: Record<string, string> = {
   super_admin: 'border-red-500/30 bg-red-500/15 text-red-300',
@@ -100,14 +111,24 @@ const ROLE_DESC: Record<string, string> = {
   viewer:      'Leitura de todos os dados, sem edição.',
 }
 
-function roleBadge(role: string) { return ROLE_BADGE[role] ?? ROLE_BADGE.viewer }
-function roleLabel(role: string) { return ADMIN_ROLE_LABELS[role] ?? role }
+function roleBadge(role: string | null) { return ROLE_BADGE[role ?? ''] ?? 'border-indigo-500/30 bg-indigo-500/15 text-indigo-300' }
+function roleLabel(role: string | null) { return ADMIN_ROLE_LABELS[role ?? ''] ?? role ?? '—' }
 function roleDesc(role: string)  { return ROLE_DESC[role] ?? '' }
+
+function displayRoleLabel(user: AdminUser): string {
+  if (user.admin_role_id && user.admin_role_name) return user.admin_role_name
+  return roleLabel(user.admin_role)
+}
+
+function displayRoleBadge(user: AdminUser): string {
+  if (user.admin_role_id) return 'border-indigo-500/30 bg-indigo-500/15 text-indigo-300'
+  return roleBadge(user.admin_role)
+}
 
 function openCreate() {
   modalMode.value = 'create'
   selectedUser.value = null
-  form.value = { name: '', email: '', password: '', admin_role: 'support' }
+  form.value = { name: '', email: '', password: '', roleType: 'fixed', admin_role: 'support', admin_role_id: null }
   formError.value = ''
   showModal.value = true
 }
@@ -115,7 +136,15 @@ function openCreate() {
 function openEdit(user: AdminUser) {
   modalMode.value = 'edit'
   selectedUser.value = user
-  form.value = { name: user.name, email: user.email, password: '', admin_role: user.admin_role }
+  const isCustom = user.admin_role_id !== null
+  form.value = {
+    name: user.name,
+    email: user.email,
+    password: '',
+    roleType: isCustom ? 'custom' : 'fixed',
+    admin_role: user.admin_role ?? 'support',
+    admin_role_id: user.admin_role_id,
+  }
   formError.value = ''
   showModal.value = true
 }
@@ -125,17 +154,28 @@ async function submitForm() {
   formLoading.value = true
   try {
     if (modalMode.value === 'create') {
-      const { data } = await createAdminUser({
+      const payload: Parameters<typeof createAdminUser>[0] = {
         name: form.value.name,
         email: form.value.email,
         password: form.value.password,
-        admin_role: form.value.admin_role,
-      })
+      }
+      if (form.value.roleType === 'custom') {
+        payload.admin_role_id = form.value.admin_role_id
+        payload.admin_role = null
+      } else {
+        payload.admin_role = form.value.admin_role
+        payload.admin_role_id = null
+      }
+      const { data } = await createAdminUser(payload)
       users.value.push(data)
     } else if (selectedUser.value) {
-      const payload: { name?: string; admin_role?: string; password?: string } = {
-        name: form.value.name,
-        admin_role: form.value.admin_role,
+      const payload: Parameters<typeof updateAdminUser>[1] = { name: form.value.name }
+      if (form.value.roleType === 'custom') {
+        payload.admin_role_id = form.value.admin_role_id
+        payload.admin_role = null
+      } else {
+        payload.admin_role = form.value.admin_role
+        payload.admin_role_id = null
       }
       if (form.value.password) payload.password = form.value.password
       const { data } = await updateAdminUser(selectedUser.value.id, payload)
@@ -178,8 +218,9 @@ function formatDate(iso: string | null) {
 
 onMounted(async () => {
   try {
-    const { data } = await listAdminUsers()
-    users.value = data
+    const [usersRes, rolesRes] = await Promise.all([listAdminUsers(), listAdminRoles()])
+    users.value = usersRes.data
+    globalRoles.value = rolesRes.data
   } catch {
     error.value = 'Erro ao carregar usuários administrativos.'
   } finally {
@@ -255,7 +296,7 @@ onMounted(async () => {
         Todos
       </button>
       <button
-        v-for="role in ROLES"
+        v-for="role in FIXED_ROLES"
         :key="role.value"
         type="button"
         :class="[
@@ -302,10 +343,11 @@ onMounted(async () => {
               <td class="px-4 py-4">
                 <span
                   class="inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold"
-                  :class="roleBadge(user.admin_role)"
+                  :class="displayRoleBadge(user)"
                 >
-                  {{ roleLabel(user.admin_role) }}
+                  {{ displayRoleLabel(user) }}
                 </span>
+                <span v-if="user.admin_role_id" class="ml-1.5 text-[10px] text-indigo-400">Personalizado</span>
               </td>
               <td class="hidden px-4 py-4 text-stone-400 sm:table-cell">
                 {{ formatDate(user.created_at) }}
@@ -401,14 +443,44 @@ onMounted(async () => {
             />
           </div>
 
+          <!-- Tipo de perfil -->
           <div>
+            <label class="mb-1.5 block text-sm text-stone-300">Tipo de acesso *</label>
+            <div class="flex gap-3">
+              <label class="flex cursor-pointer items-center gap-2">
+                <input v-model="form.roleType" type="radio" value="fixed" class="accent-amber-500" />
+                <span class="text-sm text-stone-300">Perfil fixo</span>
+              </label>
+              <label class="flex cursor-pointer items-center gap-2">
+                <input v-model="form.roleType" type="radio" value="custom" class="accent-amber-500" />
+                <span class="text-sm text-stone-300">Perfil personalizado</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Perfil fixo -->
+          <div v-if="form.roleType === 'fixed'">
             <label class="mb-1.5 block text-sm text-stone-300">Perfil / Área *</label>
             <select v-model="form.admin_role" class="input">
-              <option v-for="role in ROLES" :key="role.value" :value="role.value">
+              <option v-for="role in FIXED_ROLES" :key="role.value" :value="role.value">
                 {{ role.label }}
               </option>
             </select>
             <p class="mt-1.5 text-xs text-stone-500">{{ roleDesc(form.admin_role) }}</p>
+          </div>
+
+          <!-- Perfil personalizado -->
+          <div v-else>
+            <label class="mb-1.5 block text-sm text-stone-300">Perfil personalizado *</label>
+            <select v-model="form.admin_role_id" class="input">
+              <option :value="null">Selecione um perfil…</option>
+              <option v-for="role in globalRoles" :key="role.id" :value="role.id">
+                {{ role.name }} ({{ role.permissions.length }} permissão(ões))
+              </option>
+            </select>
+            <p v-if="globalRoles.length === 0" class="mt-1.5 text-xs text-amber-400">
+              Nenhum perfil personalizado criado ainda. Acesse <strong>Perfis</strong> para criar.
+            </p>
           </div>
 
           <div class="flex flex-wrap items-center gap-3 pt-2">

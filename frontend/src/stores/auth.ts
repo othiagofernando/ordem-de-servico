@@ -51,6 +51,25 @@ export const useAuthStore = defineStore('auth', {
     membershipCount: (state) => state.memberships.length,
     isSuperAdmin: (state) => state.context?.user?.super_admin ?? false,
     adminRole: (state) => state.context?.user?.admin_role ?? null,
+    adminRoleId: (state) => state.context?.user?.admin_role_id ?? null,
+    adminPermissions: (state): string[] => {
+      const user = state.context?.user
+      if (!user?.super_admin) return []
+      // Custom role: use permissions from the role
+      if (user.admin_role_id && user.admin_permissions) return user.admin_permissions
+      // Fixed role: map to sections
+      const role = user.admin_role ?? 'super_admin'
+      if (role === 'super_admin') {
+        return ['overview', 'alerts', 'companies', 'companies.manage', 'subscriptions', 'billing', 'plans', 'audit']
+      }
+      const map: Record<string, string[]> = {
+        support: ['overview', 'alerts', 'companies', 'companies.manage', 'subscriptions', 'audit'],
+        billing: ['overview', 'billing', 'subscriptions'],
+        plans: ['overview', 'plans'],
+        viewer: ['overview', 'companies', 'subscriptions', 'audit'],
+      }
+      return map[role] ?? ['overview']
+    },
     subscriptionExpiringSoon: (state) => (state.subscription?.days_until_expiration ?? 999) <= 7,
     isImpersonating: (state) => state.impersonation !== null,
   },
