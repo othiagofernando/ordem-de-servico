@@ -64,7 +64,9 @@ export function listParts(params?: PartListParams): Promise<{ data: Part[]; meta
   if (params?.q) q.set('q', params.q)
   if (params?.category) q.set('category', params.category)
   if (params?.low_stock) q.set('low_stock', '1')
-  if (params?.active !== undefined) q.set('active', params.active === 'all' ? 'all' : params.active ? '1' : '0')
+  if (params?.active !== undefined && params.active !== 'all') {
+    q.set('active', params.active ? '1' : '0')
+  }
   if (params?.per_page) q.set('per_page', String(params.per_page))
   if (params?.page) q.set('page', String(params.page))
   const qs = q.toString()
