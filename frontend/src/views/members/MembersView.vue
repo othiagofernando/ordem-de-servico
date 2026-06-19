@@ -98,6 +98,7 @@ const permissionGroups: { label: string; prefix: string }[] = [
   { label: 'Clientes', prefix: 'customers' },
   { label: 'Equipamentos', prefix: 'equipments' },
   { label: 'Ordens de serviço', prefix: 'service_orders' },
+  { label: 'Peças / Estoque', prefix: 'parts' },
 ]
 
 const permissionLabels: Record<string, string> = {
@@ -116,6 +117,8 @@ const permissionLabels: Record<string, string> = {
   'service_orders.execute': 'Executar',
   'service_orders.finance': 'Financeiro',
   'service_orders.override_delivery_balance': 'Liberar entrega com saldo',
+  'parts.view_any': 'Visualizar peças e estoque',
+  'parts.manage': 'Gerenciar peças e estoque',
 }
 
 // Todas as permissões disponíveis (extraídas dos presets carregados)

@@ -445,7 +445,7 @@ const navLinks = computed(() => {
           v-if="auth.isImpersonating && auth.impersonation"
           class="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-violet-500/30 bg-violet-500/10 px-4 py-3"
         >
-          <p class="text-sm text-violet-200">
+          <p class="text-sm text-violet-300 dark:text-violet-400">
             <strong class="font-semibold">Modo impersonação:</strong>
             você está acessando como
             <strong>{{ auth.impersonation.userName }}</strong> em

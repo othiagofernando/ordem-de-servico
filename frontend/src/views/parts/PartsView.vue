@@ -16,7 +16,7 @@ const showLowStock = ref(false)
 const page = ref(1)
 const meta = ref({ total: 0, per_page: 20, current_page: 1, last_page: 1, from: 0, to: 0 })
 
-const canManage = computed(() => auth.hasPermission('parts.manage'))
+const canManage = computed(() => auth.permissions.includes('parts.manage'))
 
 const categories = computed(() => {
   const all = parts.value.map((p) => p.category).filter(Boolean) as string[]
