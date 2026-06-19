@@ -26,6 +26,14 @@ const { sorted, toggleSort, sortState } = useSortable(roles, {
 const page = ref(1)
 const perPage = ref(20)
 
+const paginationMeta = computed(() => {
+  const total = sorted.value.length
+  const lastPage = Math.ceil(total / perPage.value) || 1
+  const from = (page.value - 1) * perPage.value + 1
+  const to = Math.min(page.value * perPage.value, total)
+  return { total, per_page: perPage.value, current_page: page.value, last_page: lastPage, from: total === 0 ? 0 : from, to }
+})
+
 const paginated = computed(() => {
   const start = (page.value - 1) * perPage.value
   return sorted.value.slice(start, start + perPage.value)
@@ -250,11 +258,9 @@ async function load() {
     </div>
 
     <AppPagination
-      v-if="sorted.length > perPage"
-      :total="sorted.length"
-      :page="page"
-      :per-page="perPage"
-      @update:page="page = $event"
+      :meta="paginationMeta"
+      @update:page="(p) => { page = p }"
+      @update:perPage="(n) => { perPage = n; page = 1 }"
     />
 
     <!-- Modal criar/editar ─────────────────────────────────────────────── -->
