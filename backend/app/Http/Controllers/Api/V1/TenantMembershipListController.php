@@ -21,7 +21,7 @@ class TenantMembershipListController extends Controller
 
         $membershipsQuery = Membership::query()
             ->where('company_id', $companyId)
-            ->with('user')
+            ->with(['user', 'companyRole'])
             ->orderBy('id');
 
         if (! $includeInactive) {
@@ -35,6 +35,8 @@ class TenantMembershipListController extends Controller
                 'id' => $m->getKey(),
                 'user_id' => $m->user_id,
                 'role' => $m->role,
+                'company_role_id' => $m->company_role_id,
+                'company_role_name' => $m->companyRole?->name,
                 'status' => $m->status,
                 'permissions' => $m->permissions ?? [],
                 'resolved_permissions' => $m->resolvedPermissions(),

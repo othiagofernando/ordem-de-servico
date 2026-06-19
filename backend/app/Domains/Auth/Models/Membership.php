@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['company_id', 'user_id', 'role', 'status', 'permissions'])]
+#[Fillable(['company_id', 'user_id', 'role', 'company_role_id', 'status', 'permissions'])]
 class Membership extends Model
 {
     use BelongsToCompany;
@@ -32,15 +32,21 @@ class Membership extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function companyRole(): BelongsTo
+    {
+        return $this->belongsTo(CompanyRole::class);
+    }
+
     /**
      * @return array<int, string>
      */
     public function resolvedPermissions(): array
     {
-        $presetPermissions = app(RolePresetCatalog::class)->permissionsFor($this->role);
-        $customPermissions = $this->permissions ?? [];
+        $basePermissions = $this->company_role_id
+            ? ($this->companyRole?->permissions ?? [])
+            : app(RolePresetCatalog::class)->permissionsFor($this->role ?? '');
 
-        return array_values(array_unique([...$presetPermissions, ...$customPermissions]));
+        return array_values(array_unique([...$basePermissions, ...($this->permissions ?? [])]));
     }
 
     public function hasPermission(string $permission): bool

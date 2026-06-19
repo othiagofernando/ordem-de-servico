@@ -96,6 +96,12 @@ const tenantChildren: RouteRecordRaw[] = [
     meta: { tenantOnly: true },
   },
   {
+    path: 'perfis',
+    name: 'roles',
+    component: () => import('../views/members/CompanyRolesView.vue'),
+    meta: { tenantOnly: true },
+  },
+  {
     path: 'configuracoes',
     name: 'settings',
     component: () => import('../views/settings/SettingsView.vue'),

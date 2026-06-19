@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
+use App\Domains\Auth\Models\CompanyRole;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\RolePresetCatalog;
 use App\Http\Controllers\Controller;
@@ -27,18 +28,30 @@ class MembershipAuthorizationController extends Controller
     ): JsonResponse
     {
         $data = $request->validate([
-            'role' => ['required', 'string', Rule::in(array_keys($rolePresetCatalog->all()))],
+            'role' => ['nullable', 'string', Rule::in(array_keys($rolePresetCatalog->all()))],
+            'company_role_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('company_roles', 'id')->where('company_id', currentCompany()?->getKey()),
+            ],
             'permissions' => ['sometimes', 'array'],
             'permissions.*' => ['string'],
         ]);
 
+        $request->validate([
+            'role' => Rule::requiredIf(empty($data['company_role_id'])),
+        ]);
+
         $beforeValues = [
             'role' => $membership->role,
+            'company_role_id' => $membership->company_role_id,
             'permissions' => $membership->permissions ?? [],
         ];
 
+        $companyRoleId = $data['company_role_id'] ?? null;
         $membership->forceFill([
-            'role' => $data['role'],
+            'role' => $companyRoleId ? null : $data['role'],
+            'company_role_id' => $companyRoleId,
             'permissions' => $data['permissions'] ?? [],
         ])->save();
 
@@ -55,6 +68,7 @@ class MembershipAuthorizationController extends Controller
             beforeValues: $beforeValues,
             afterValues: [
                 'role' => $membership->role,
+                'company_role_id' => $membership->company_role_id,
                 'permissions' => $membership->permissions ?? [],
             ],
         );
@@ -63,6 +77,7 @@ class MembershipAuthorizationController extends Controller
             'data' => [
                 'id' => $membership->getKey(),
                 'role' => $membership->role,
+                'company_role_id' => $membership->company_role_id,
                 'permissions' => $membership->resolvedPermissions(),
             ],
         ]);

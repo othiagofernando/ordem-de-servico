@@ -59,6 +59,7 @@ const navLinks = computed(() => {
         { to: tenantRoute('customers'), label: 'Clientes' },
         { to: tenantRoute('equipments'), label: 'Equipamentos' },
         { to: tenantRoute('members'), label: 'Usuários' },
+        ...(['administrator'].includes(auth.role ?? '') ? [{ to: tenantRoute('roles'), label: 'Perfis' }] : []),
         { to: tenantRoute('checklists'), label: 'Checklists' },
         ...(['administrator', 'manager'].includes(auth.role ?? '') ? [{ to: tenantRoute('audit'), label: 'Auditoria' }] : []),
         { to: tenantRoute('settings'), label: 'Configurações' },

@@ -3,13 +3,23 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiPut } from './client'
 export interface Membership {
   id: number
   user_id: number
-  role: string
+  role: string | null
+  company_role_id: number | null
+  company_role_name: string | null
   status: string
   permissions: string[]
   resolved_permissions: string[]
   user_name: string | null
   user_email: string | null
   user_phone: string | null
+  created_at: string | null
+}
+
+export interface CompanyRole {
+  id: number
+  name: string
+  permissions: string[]
+  memberships_count: number | null
   created_at: string | null
 }
 
@@ -38,13 +48,28 @@ export function inviteMembership(payload: { name: string; email: string; role: s
 
 export function updateMembershipAuthorization(
   membershipId: number,
-  role: string,
-  permissions: string[],
+  payload: { role?: string | null; company_role_id?: number | null; permissions?: string[] },
 ) {
-  return apiPatch<{ data: { id: number; role: string; permissions: string[] } }>(
+  return apiPatch<{ data: { id: number; role: string | null; company_role_id: number | null; permissions: string[] } }>(
     `/tenant/memberships/${membershipId}/authorization`,
-    { role, permissions },
+    payload,
   )
+}
+
+export function listCompanyRoles() {
+  return apiGet<{ data: CompanyRole[] }>('/tenant/company-roles')
+}
+
+export function createCompanyRole(payload: { name: string; permissions: string[] }) {
+  return apiPost<{ data: CompanyRole }>('/tenant/company-roles', payload)
+}
+
+export function updateCompanyRole(id: number, payload: { name?: string; permissions?: string[] }) {
+  return apiPut<{ data: CompanyRole }>(`/tenant/company-roles/${id}`, payload)
+}
+
+export function deleteCompanyRole(id: number) {
+  return apiDelete<{ message: string }>(`/tenant/company-roles/${id}`)
 }
 
 export function updateMembershipStatus(membershipId: number, status: 'active' | 'suspended') {

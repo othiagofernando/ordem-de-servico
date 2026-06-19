@@ -198,7 +198,7 @@ async function saveAuthorization(membershipId: number) {
   editLoading.value = true
   editError.value = ''
   try {
-    await updateMembershipAuthorization(membershipId, editRole.value, editCustomPerms.value)
+    await updateMembershipAuthorization(membershipId, { role: editRole.value, company_role_id: null, permissions: editCustomPerms.value })
     await load()
     editingId.value = null
   } catch (e) {
