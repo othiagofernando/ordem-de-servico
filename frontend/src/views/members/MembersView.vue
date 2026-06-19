@@ -5,6 +5,7 @@ import {
   listMemberships,
   listRoles,
   removeMembership,
+  resendInvitation,
   type Membership,
   type RolePreset,
   updateMembershipAuthorization,
@@ -42,6 +43,10 @@ const generatedInviteUrl = ref('')
 
 // ── Status de ação ────────────────────────────────────────────────────────────
 const statusLoadingId = ref<number | null>(null)
+
+// ── Reenvio de convite ────────────────────────────────────────────────────────
+const resendingId = ref<number | null>(null)
+const resentId = ref<number | null>(null)
 
 // ── Editor de perfil ──────────────────────────────────────────────────────────
 const editingId = ref<number | null>(null)
@@ -220,7 +225,7 @@ async function submitInvite() {
   try {
     const res = await inviteMembership(inviteForm.value)
     generatedInviteUrl.value = res.data.invitation.accept_url
-    inviteSuccess.value = 'Convite criado com sucesso.'
+    inviteSuccess.value = `Convite criado e e-mail enviado para ${inviteForm.value.email}.`
     inviteForm.value = { name: '', email: '', role: 'technician' }
     await load()
   } catch (e) {
@@ -232,6 +237,22 @@ async function submitInvite() {
     }
   } finally {
     inviteLoading.value = false
+  }
+}
+
+async function doResend(member: Membership) {
+  resendingId.value = member.id
+  resentId.value = null
+  try {
+    await resendInvitation(member.id)
+    resentId.value = member.id
+    setTimeout(() => {
+      if (resentId.value === member.id) resentId.value = null
+    }, 3000)
+  } catch {
+    // silently ignore — in a full app we'd show a toast
+  } finally {
+    resendingId.value = null
   }
 }
 
@@ -389,6 +410,13 @@ function permsByGroup(group: { prefix: string }) {
               <div v-if="editingId !== member.id" class="flex flex-wrap gap-1.5 shrink-0">
                 <button class="btn-ghost text-xs" @click="editModal = member">Dados</button>
                 <button class="btn-ghost text-xs" @click="startEditRole(member)">Perfil</button>
+                <button
+                  v-if="member.status === 'invited'"
+                  :disabled="resendingId === member.id"
+                  class="btn-ghost text-xs disabled:opacity-50"
+                  :class="resentId === member.id ? '!text-emerald-400 !border-emerald-500/40' : 'hover:!text-sky-400'"
+                  @click="doResend(member)"
+                >{{ resendingId === member.id ? '…' : resentId === member.id ? 'Convite reenviado!' : 'Reenviar convite' }}</button>
                 <button
                   v-if="member.status !== 'invited'"
                   :disabled="statusLoadingId === member.id"

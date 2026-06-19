@@ -61,6 +61,7 @@ use App\Http\Controllers\Api\V1\TenantContextController;
 use App\Http\Controllers\Api\V1\TenantMembershipController;
 use App\Http\Controllers\Api\V1\TenantMembershipDeleteController;
 use App\Http\Controllers\Api\V1\TenantMembershipInvitationController;
+use App\Http\Controllers\Api\V1\TenantMembershipInvitationResendController;
 use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
@@ -183,6 +184,9 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/tenant/memberships/invitations', TenantMembershipInvitationController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.invitations.store');
+    Route::post('/tenant/memberships/{membership}/invitations/resend', TenantMembershipInvitationResendController::class)
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.memberships.invitations.resend');
     Route::patch('/tenant/memberships/{membership}/authorization', MembershipAuthorizationController::class)
         ->middleware('permission:memberships.manage')
         ->name('api.v1.tenant.memberships.authorization.update');

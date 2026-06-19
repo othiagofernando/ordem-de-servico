@@ -99,3 +99,10 @@ export function resetMemberPassword(
     password_confirmation: passwordConfirmation,
   })
 }
+
+export function resendInvitation(membershipId: number) {
+  return apiPost<{ data: { invitation: { token: string; accept_url: string } } }>(
+    `/tenant/memberships/${membershipId}/invitations/resend`,
+    {},
+  )
+}

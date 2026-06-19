@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auth\Actions\CreateAuthChallenge;
+use App\Domains\Auth\Mail\MembershipInvitationMail;
 use App\Domains\Auth\Models\AuthChallenge;
 use App\Domains\Auth\Models\Membership;
 use App\Domains\Auth\Support\RolePresetCatalog;
@@ -13,6 +14,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\Response;
@@ -92,6 +94,28 @@ class TenantMembershipInvitationController extends Controller
         /** @var array{Membership, string, bool} $result */
         [$membership, $plainTextToken, $requiresPasswordSetup] = $result;
 
+        $roleLabels = [
+            'administrator' => 'Administrador',
+            'manager' => 'Gerente',
+            'attendant' => 'Atendente',
+            'technician' => 'Técnico',
+            'finance' => 'Financeiro',
+        ];
+
+        $invitedUser = User::find($membership->user_id);
+        $inviteUrl = $frontendTenantUrl->invitation($company, $plainTextToken);
+
+        if ($invitedUser !== null) {
+            Mail::to($invitedUser->email, $invitedUser->name)
+                ->queue(new MembershipInvitationMail(
+                    inviteUrl: $inviteUrl,
+                    companyName: $company->name,
+                    inviteeName: $invitedUser->name,
+                    roleName: $roleLabels[$membership->role] ?? $membership->role,
+                    requiresPasswordSetup: $requiresPasswordSetup,
+                ));
+        }
+
         return response()->json([
             'data' => [
                 'membership' => [
@@ -102,7 +126,7 @@ class TenantMembershipInvitationController extends Controller
                 ],
                 'invitation' => [
                     'token' => $plainTextToken,
-                    'accept_url' => $frontendTenantUrl->invitation($company, $plainTextToken),
+                    'accept_url' => $inviteUrl,
                     'requires_password_setup' => $requiresPasswordSetup,
                 ],
             ],
