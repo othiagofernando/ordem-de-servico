@@ -61,12 +61,23 @@ const statusLabels: Record<string, string> = {
   no_repair: 'Sem Conserto',
 }
 
+interface PortalHistoryItem {
+  id: number
+  reference: string
+  order_number: string | null
+  status: string
+  opened_at: string | null
+  title: string | null
+}
+
 const data = ref<PortalData | null>(null)
 const loading = ref(true)
 const error = ref('')
 const deciding = ref(false)
 const decided = ref<'approved' | 'rejected' | null>(null)
 const conflictMessage = ref('')
+const history = ref<PortalHistoryItem[]>([])
+const historyLoading = ref(false)
 
 async function load() {
   try {
@@ -175,7 +186,29 @@ const availableDocuments = computed(() => {
   return docs
 })
 
-onMounted(load)
+async function loadHistory() {
+  historyLoading.value = true
+  try {
+    const res = await fetch(`${API_BASE}/portal/quotes/${token}/history`, {
+      headers: { Accept: 'application/json' },
+    })
+    if (res.ok) {
+      const body = await res.json()
+      history.value = (body.data as PortalHistoryItem[]).slice(0, 10)
+    }
+  } catch {
+    // silently ignore — history is supplemental
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+onMounted(async () => {
+  await load()
+  if (data.value) {
+    loadHistory()
+  }
+})
 </script>
 
 <template>
@@ -324,6 +357,26 @@ onMounted(load)
         <div v-if="data.portal.footer_text || data.company.customer_contact_line" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-stone-400">
           <p v-if="data.portal.footer_text">{{ data.portal.footer_text }}</p>
           <p v-if="data.company.customer_contact_line" class="mt-2 text-stone-300">Contato: {{ data.company.customer_contact_line }}</p>
+        </div>
+
+        <div v-if="history.length > 0" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 class="mb-4 text-sm font-semibold text-stone-300">Outras ordens deste cliente</h2>
+          <div class="space-y-3">
+            <div
+              v-for="item in history"
+              :key="item.id"
+              class="rounded-xl border border-white/10 bg-black/20 px-4 py-3"
+            >
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm font-medium text-stone-200">{{ item.order_number ?? item.reference }}</span>
+                <span class="rounded-full bg-amber-500/15 px-2 py-0.5 text-xs font-semibold text-amber-300">
+                  {{ statusLabels[item.status] ?? item.status }}
+                </span>
+                <span v-if="item.opened_at" class="ml-auto text-xs text-stone-500">{{ fmtDate(item.opened_at) }}</span>
+              </div>
+              <p v-if="item.title" class="mt-1 text-xs text-stone-400">{{ item.title }}</p>
+            </div>
+          </div>
         </div>
       </template>
     </div>

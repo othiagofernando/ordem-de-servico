@@ -117,6 +117,12 @@ export interface OverviewData {
     total: number
     by_decision_status: Record<string, number>
   }
+  financial_kpis: {
+    this_month: { revenue_cents: number; order_count: number; avg_ticket_cents: number }
+    last_month: { revenue_cents: number; order_count: number; avg_ticket_cents: number }
+    mom_revenue_change_pct: number | null
+    completion_rate_30d: number | null
+  }
 }
 
 export interface ServiceOrderReportRow {

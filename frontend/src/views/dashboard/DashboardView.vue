@@ -207,6 +207,51 @@ onMounted(async () => {
         </RouterLink>
       </div>
 
+      <!-- Financial KPIs -->
+      <div v-if="data.financial_kpis" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <!-- Receita do mês -->
+        <div class="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-emerald-300">Receita do mês</p>
+          <p class="mt-2 text-2xl font-bold text-white">{{ formatMoney(data.financial_kpis.this_month.revenue_cents) }}</p>
+          <p class="mt-2 flex items-center gap-1.5 text-sm">
+            <span
+              v-if="data.financial_kpis.mom_revenue_change_pct !== null"
+              :class="data.financial_kpis.mom_revenue_change_pct >= 0 ? 'text-emerald-300' : 'text-red-300'"
+            >
+              {{ data.financial_kpis.mom_revenue_change_pct >= 0 ? '+' : '' }}{{ data.financial_kpis.mom_revenue_change_pct.toFixed(1) }}% vs mês anterior
+            </span>
+            <span v-else class="text-stone-500">sem histórico anterior</span>
+          </p>
+        </div>
+
+        <!-- Ticket médio -->
+        <div class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-sky-300">Ticket médio</p>
+          <p class="mt-2 text-2xl font-bold text-white">{{ formatMoney(data.financial_kpis.this_month.avg_ticket_cents) }}</p>
+          <p class="mt-2 text-sm text-stone-400">
+            {{ data.financial_kpis.this_month.order_count }} OS com pagamento este mês
+          </p>
+        </div>
+
+        <!-- Receita mês anterior -->
+        <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-stone-500">Mês anterior</p>
+          <p class="mt-2 text-2xl font-bold text-white">{{ formatMoney(data.financial_kpis.last_month.revenue_cents) }}</p>
+          <p class="mt-2 text-sm text-stone-400">
+            {{ data.financial_kpis.last_month.order_count }} OS · ticket médio {{ formatMoney(data.financial_kpis.last_month.avg_ticket_cents) }}
+          </p>
+        </div>
+
+        <!-- Taxa de conclusão -->
+        <div class="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5">
+          <p class="text-xs font-semibold uppercase tracking-widest text-amber-300">Conclusão (30d)</p>
+          <p class="mt-2 text-2xl font-bold text-white">
+            {{ data.financial_kpis.completion_rate_30d !== null ? data.financial_kpis.completion_rate_30d.toFixed(1) + '%' : '—' }}
+          </p>
+          <p class="mt-2 text-sm text-stone-400">OS abertas nos últimos 30 dias concluídas</p>
+        </div>
+      </div>
+
       <div class="rounded-2xl border border-white/10 bg-white/5 p-6">
         <div class="flex items-center justify-between gap-3">
           <div>

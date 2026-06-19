@@ -106,6 +106,8 @@ Route::prefix('portal')->group(function (): void {
         ->name('api.v1.portal.quotes.documents.receipt');
     Route::get('/quotes/{token}/documents/delivery-term', [CustomerQuotePortalController::class, 'documentDelivery'])
         ->name('api.v1.portal.quotes.documents.delivery');
+    Route::get('/quotes/{token}/history', [CustomerQuotePortalController::class, 'history'])
+        ->name('api.v1.portal.quotes.history');
 });
 
 Route::post('/billing/webhooks/asaas', [BillingWebhookController::class, 'asaas'])

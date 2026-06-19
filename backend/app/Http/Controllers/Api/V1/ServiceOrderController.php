@@ -473,6 +473,79 @@ class ServiceOrderController extends Controller
                         ->map(fn (Collection $orders): int => $orders->count())
                         ->all(),
                 ],
+                'financial_kpis' => (function () use ($serviceOrders): array {
+                    $thisMonthStart  = now()->startOfMonth();
+                    $lastMonthStart  = now()->subMonth()->startOfMonth();
+                    $lastMonthEnd    = now()->subMonth()->endOfMonth();
+                    $thirtyDaysAgo   = now()->subDays(30);
+
+                    $allPayments = $serviceOrders
+                        ->flatMap(fn (ServiceOrder $serviceOrder): Collection => $serviceOrder->payments);
+
+                    // This-month payments: received_at >= start of current month and <= now
+                    $thisMonthPayments = $allPayments->filter(
+                        fn ($payment): bool => $payment->received_at !== null
+                            && $payment->received_at->gte($thisMonthStart)
+                            && $payment->received_at->lte(now())
+                    );
+
+                    // Last-month payments: received_at within last calendar month
+                    $lastMonthPayments = $allPayments->filter(
+                        fn ($payment): bool => $payment->received_at !== null
+                            && $payment->received_at->gte($lastMonthStart)
+                            && $payment->received_at->lte($lastMonthEnd)
+                    );
+
+                    // Orders that have at least one payment received this month
+                    $thisMonthOrderIds = $thisMonthPayments->pluck('service_order_id')->unique();
+                    $thisMonthOrderCount = $thisMonthOrderIds->count();
+                    $thisMonthRevenue = (int) $thisMonthPayments->sum('amount_cents');
+                    $thisMonthAvgTicket = $thisMonthOrderCount > 0
+                        ? (int) round($thisMonthRevenue / $thisMonthOrderCount)
+                        : 0;
+
+                    // Orders that have at least one payment received last month
+                    $lastMonthOrderIds = $lastMonthPayments->pluck('service_order_id')->unique();
+                    $lastMonthOrderCount = $lastMonthOrderIds->count();
+                    $lastMonthRevenue = (int) $lastMonthPayments->sum('amount_cents');
+                    $lastMonthAvgTicket = $lastMonthOrderCount > 0
+                        ? (int) round($lastMonthRevenue / $lastMonthOrderCount)
+                        : 0;
+
+                    // Month-over-month revenue change percentage
+                    $momRevenueChangePct = $lastMonthRevenue > 0
+                        ? round(($thisMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue * 100, 2)
+                        : null;
+
+                    // Completion rate for orders opened in the last 30 days
+                    $recentOrders = $serviceOrders->filter(
+                        fn (ServiceOrder $serviceOrder): bool => $serviceOrder->opened_at !== null
+                            && $serviceOrder->opened_at->gte($thirtyDaysAgo)
+                    );
+                    $recentTotal = $recentOrders->count();
+                    $completedStatuses = ['delivered', 'completed', 'no_repair'];
+                    $recentCompleted = $recentOrders->filter(
+                        fn (ServiceOrder $serviceOrder): bool => in_array($serviceOrder->status, $completedStatuses, true)
+                    )->count();
+                    $completionRate30d = $recentTotal > 0
+                        ? round($recentCompleted / $recentTotal * 100, 2)
+                        : null;
+
+                    return [
+                        'this_month' => [
+                            'revenue_cents'    => $thisMonthRevenue,
+                            'order_count'      => $thisMonthOrderCount,
+                            'avg_ticket_cents' => $thisMonthAvgTicket,
+                        ],
+                        'last_month' => [
+                            'revenue_cents'    => $lastMonthRevenue,
+                            'order_count'      => $lastMonthOrderCount,
+                            'avg_ticket_cents' => $lastMonthAvgTicket,
+                        ],
+                        'mom_revenue_change_pct' => $momRevenueChangePct,
+                        'completion_rate_30d'    => $completionRate30d,
+                    ];
+                })(),
             ],
         ]);
     }

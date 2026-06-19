@@ -106,6 +106,44 @@ class CustomerQuotePortalController extends Controller
     }
 
     /**
+     * Return all other service orders for the same customer in the same company.
+     *
+     * @group Customer Portal
+     */
+    public function history(string $token): JsonResponse
+    {
+        $quote = $this->resolveQuoteByPortalToken($token);
+        $quote->serviceOrder->loadMissing(['customer']);
+
+        $customerId = $quote->serviceOrder->customer_id;
+        $companyId = $quote->serviceOrder->company_id;
+        $currentId = $quote->serviceOrder->getKey();
+
+        if ($customerId === null) {
+            return response()->json(['data' => []]);
+        }
+
+        $orders = ServiceOrder::query()
+            ->where('customer_id', $customerId)
+            ->where('company_id', $companyId)
+            ->where('id', '!=', $currentId)
+            ->orderByDesc('opened_at')
+            ->with(['payments'])
+            ->get();
+
+        $data = $orders->map(fn (ServiceOrder $order): array => [
+            'id' => $order->getKey(),
+            'reference' => $order->reference,
+            'order_number' => $order->order_number,
+            'status' => $order->status,
+            'opened_at' => $order->opened_at?->toIso8601String(),
+            'title' => $order->title,
+        ])->values()->all();
+
+        return response()->json(['data' => $data]);
+    }
+
+    /**
      * Approve or reject a quote through a portal token.
      *
      * @group Customer Portal
