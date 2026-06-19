@@ -258,6 +258,17 @@ export function downloadServiceOrderReportCsv(filters?: ServiceOrderReportFilter
   return apiDownload(`/service-orders/reports/service-orders${query}`, 'relatorio-ordens-servico.csv')
 }
 
+export function getServiceOrderReportForPrint(filters?: ServiceOrderReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    queue: filters?.queue,
+    opened_from: filters?.opened_from,
+    opened_to: filters?.opened_to,
+    format: 'print',
+  })
+  return apiGet<{ data: ServiceOrderReportRow[] }>(`/service-orders/reports/service-orders${query}`)
+}
+
 export function getFinancialReport(filters?: FinancialReportFilters) {
   const query = buildReportQuery({
     q: filters?.q,
@@ -283,6 +294,21 @@ export function downloadFinancialReportCsv(filters?: FinancialReportFilters) {
   })
 
   return apiDownload(`/service-orders/reports/financial${query}`, 'relatorio-financeiro.csv')
+}
+
+export function getFinancialReportForPrint(filters?: FinancialReportFilters) {
+  const query = buildReportQuery({
+    q: filters?.q,
+    payment_method: filters?.payment_method,
+    balance_state: filters?.balance_state,
+    received_from: filters?.received_from,
+    received_to: filters?.received_to,
+    format: 'print',
+  })
+  return apiGet<{
+    data: FinancialReportRow[]
+    totals: { total_charged_cents: number; total_paid_cents: number; outstanding_balance_cents: number }
+  }>(`/service-orders/reports/financial${query}`)
 }
 
 export function createDraft(payload: ServiceOrderDraftPayload) {

@@ -352,6 +352,12 @@ const router = createRouter({
       meta: { requiresAuth: true, tenantOnly: true, tenantSlugRoute: true },
     },
     {
+      path: '/:tenantSlug/relatorios/imprimir',
+      name: 'reports.print',
+      component: () => import('../views/reports/ReportsPrintView.vue'),
+      meta: { requiresAuth: true, tenantOnly: true, tenantSlugRoute: true },
+    },
+    {
       path: '/:tenantSlug/ordens-de-servico/:id/documentos/orcamento',
       name: 'service-orders.documents.quote',
       component: () => import('../views/serviceOrders/ServiceOrderDocumentPrintView.vue'),

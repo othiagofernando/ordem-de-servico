@@ -35,8 +35,10 @@ import {
   type TechnicianReportRow,
   type TrendsMonth,
 } from '../../api/serviceOrders'
+import { useRouter } from 'vue-router'
 import { useTenantRouting } from '../../composables/useTenantRouting'
 import { useThemeStore } from '../../stores/theme'
+import { useAuthStore } from '../../stores/auth'
 
 ChartJS.register(
   CategoryScale,
@@ -53,6 +55,8 @@ ChartJS.register(
 
 const { tenantRoute } = useTenantRouting()
 const theme = useThemeStore()
+const auth = useAuthStore()
+const router = useRouter()
 
 const activeTab = ref<'overview' | 'service_orders' | 'financial' | 'technician'>('overview')
 const loading = ref(false)
@@ -493,6 +497,34 @@ async function exportCurrentReport() {
   }
 }
 
+function openPrintReport() {
+  const slug = auth.company?.slug ?? ''
+  const company = auth.company?.name ?? ''
+  const query: Record<string, string> = { company }
+
+  if (activeTab.value === 'financial') {
+    query.type = 'financial'
+    if (financialFilters.value.q) query.q = financialFilters.value.q
+    if (financialFilters.value.payment_method) query.payment_method = financialFilters.value.payment_method
+    if (financialFilters.value.balance_state) query.balance_state = financialFilters.value.balance_state
+    if (financialFilters.value.received_from) query.received_from = financialFilters.value.received_from
+    if (financialFilters.value.received_to) query.received_to = financialFilters.value.received_to
+  } else if (activeTab.value === 'technician') {
+    query.type = 'technician'
+    if (technicianFilters.value.opened_from) query.opened_from = technicianFilters.value.opened_from
+    if (technicianFilters.value.opened_to) query.opened_to = technicianFilters.value.opened_to
+  } else {
+    query.type = 'service_orders'
+    if (serviceOrderFilters.value.q) query.q = serviceOrderFilters.value.q
+    if (serviceOrderFilters.value.queue) query.queue = serviceOrderFilters.value.queue
+    if (serviceOrderFilters.value.opened_from) query.opened_from = serviceOrderFilters.value.opened_from
+    if (serviceOrderFilters.value.opened_to) query.opened_to = serviceOrderFilters.value.opened_to
+  }
+
+  const resolved = router.resolve({ name: 'reports.print', params: { tenantSlug: slug }, query })
+  window.open(resolved.href, '_blank')
+}
+
 function loadActiveTab() {
   if (activeTab.value === 'overview') {
     loadOverview()
@@ -519,14 +551,21 @@ onMounted(loadActiveTab)
         </p>
       </div>
 
-      <button
-        v-if="activeTab !== 'overview'"
-        class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500/50 disabled:cursor-not-allowed disabled:opacity-60"
-        :disabled="exporting"
-        @click="exportCurrentReport"
-      >
-        {{ exporting ? 'Exportando…' : 'Exportar CSV' }}
-      </button>
+      <div v-if="activeTab !== 'overview'" class="flex gap-2">
+        <button
+          class="rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-2 text-sm font-semibold text-sky-300 transition hover:border-sky-500/50"
+          @click="openPrintReport"
+        >
+          Exportar PDF
+        </button>
+        <button
+          class="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-sm font-semibold text-emerald-300 transition hover:border-emerald-500/50 disabled:cursor-not-allowed disabled:opacity-60"
+          :disabled="exporting"
+          @click="exportCurrentReport"
+        >
+          {{ exporting ? 'Exportando…' : 'Exportar CSV' }}
+        </button>
+      </div>
     </div>
 
     <div class="flex flex-wrap gap-2">

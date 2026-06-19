@@ -523,27 +523,50 @@ class ServiceOrderController extends Controller
             'warranty_decision_status' => $serviceOrder->warranty_decision_status,
         ]);
 
-        if ($request->query('format') === 'csv') {
-            // CSV exports the full result set — bypass pagination
+        $format = $request->query('format');
+
+        if ($format === 'csv' || $format === 'print') {
+            // Both CSV and print export the full result set — bypass pagination
             $all = $this->buildFilteredVisibleQuery($request, $visibleServiceOrders, $membership)
                 ->with(['customer', 'equipment', 'assignedMembership.user', 'quoteRevisions'])
                 ->get();
-            $csvRows = $all->map(fn (ServiceOrder $so): array => [
-                $so->reference,
-                $so->order_number ?? '',
-                $so->status,
-                $so->opened_at?->toIso8601String() ?? '',
-                $so->customer?->name ?? '',
-                $so->customer?->document ?? '',
-                trim(collect([$so->equipment?->brand, $so->equipment?->model])->filter()->implode(' ')),
-                $so->assignedMembership?->user?->name ?? '',
-                $so->quoteRevisions->sortByDesc('revision_number')->first()?->status ?? '',
-                $so->warranty_decision_status ?? '',
+            $allRows = $all->map(fn (ServiceOrder $so): array => [
+                'id'                       => $so->getKey(),
+                'reference'                => $so->reference,
+                'order_number'             => $so->order_number,
+                'status'                   => $so->status,
+                'opened_at'                => $so->opened_at?->toIso8601String(),
+                'customer_name'            => $so->customer?->name,
+                'customer_document'        => $so->customer?->document,
+                'equipment_summary'        => trim(collect([
+                    $so->equipment?->brand,
+                    $so->equipment?->model,
+                    $so->equipment?->serial_number ? 'S/N '.$so->equipment->serial_number : null,
+                ])->filter()->implode(' ')),
+                'assigned_membership_name' => $so->assignedMembership?->user?->name,
+                'latest_quote_status'      => $so->quoteRevisions->sortByDesc('revision_number')->first()?->status,
+                'warranty_decision_status' => $so->warranty_decision_status,
             ]);
+
+            if ($format === 'print') {
+                return response()->json(['data' => $allRows->all()]);
+            }
+
             return $this->downloadCsv(
                 'relatorio-ordens-servico.csv',
                 ['Referencia', 'Numero OS', 'Status', 'Abertura', 'Cliente', 'Documento', 'Equipamento', 'Tecnico', 'Ultimo Orcamento', 'Garantia'],
-                $csvRows,
+                $allRows->map(fn (array $row): array => [
+                    $row['reference'],
+                    $row['order_number'] ?? '',
+                    $row['status'],
+                    $row['opened_at'] ?? '',
+                    $row['customer_name'] ?? '',
+                    $row['customer_document'] ?? '',
+                    $row['equipment_summary'] ?? '',
+                    $row['assigned_membership_name'] ?? '',
+                    $row['latest_quote_status'] ?? '',
+                    $row['warranty_decision_status'] ?? '',
+                ]),
             );
         }
 
@@ -673,7 +696,19 @@ class ServiceOrderController extends Controller
             ];
         });
 
-        if ($request->query('format') === 'csv') {
+        $format = $request->query('format');
+
+        if ($format === 'csv' || $format === 'print') {
+            $totals = [
+                'total_charged_cents'       => (int) $rows->sum('total_charged_cents'),
+                'total_paid_cents'          => (int) $rows->sum('total_paid_cents'),
+                'outstanding_balance_cents' => (int) $rows->sum('outstanding_balance_cents'),
+            ];
+
+            if ($format === 'print') {
+                return response()->json(['data' => $rows->all(), 'totals' => $totals]);
+            }
+
             return $this->downloadCsv(
                 'relatorio-financeiro.csv',
                 ['Referencia', 'Numero OS', 'Status', 'Cliente', 'Tecnico', 'Cobrado', 'Pago', 'Saldo', 'Meios de pagamento', 'Ultimo pagamento'],
