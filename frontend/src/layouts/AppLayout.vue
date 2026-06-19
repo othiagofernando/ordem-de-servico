@@ -40,18 +40,25 @@ const navLinks = computed(() => {
     return []
   }
   return auth.isSuperAdmin
-    ? [
-        { to: { name: 'admin' }, label: 'Resumo' },
-        { to: { name: 'admin.alerts' }, label: 'Alertas' },
-        { to: { name: 'admin.companies' }, label: 'Empresas' },
-        { to: { name: 'admin.subscriptions' }, label: 'Assinaturas' },
-        { to: { name: 'admin.billing' }, label: 'Cobranças' },
-        { to: { name: 'admin.plans' }, label: 'Planos' },
-        { to: { name: 'admin.audit' }, label: 'Auditoria' },
-        ...(auth.adminRole === 'super_admin'
-          ? [{ to: { name: 'admin.users' }, label: 'Usuários' }]
-          : []),
-      ]
+    ? (() => {
+        const role = auth.adminRole ?? 'super_admin'
+        const isSA = role === 'super_admin'
+        const isSupport = isSA || role === 'support'
+        const isBilling = isSA || role === 'billing'
+        const isPlans = isSA || role === 'plans' || role === 'billing'
+        const isViewer = true // all roles can view
+
+        return [
+          { to: { name: 'admin' }, label: 'Resumo' },
+          ...(isSupport ? [{ to: { name: 'admin.alerts' }, label: 'Alertas' }] : []),
+          ...(isViewer ? [{ to: { name: 'admin.companies' }, label: 'Empresas' }] : []),
+          ...(isViewer ? [{ to: { name: 'admin.subscriptions' }, label: 'Assinaturas' }] : []),
+          ...(isBilling ? [{ to: { name: 'admin.billing' }, label: 'Cobranças' }] : []),
+          ...(isPlans ? [{ to: { name: 'admin.plans' }, label: 'Planos' }] : []),
+          ...(isViewer ? [{ to: { name: 'admin.audit' }, label: 'Auditoria' }] : []),
+          ...(isSA ? [{ to: { name: 'admin.users' }, label: 'Usuários' }] : []),
+        ]
+      })()
     : [
         { to: tenantRoute('dashboard'), label: 'Dashboard' },
         { to: tenantRoute('reports'), label: 'Relatórios' },
