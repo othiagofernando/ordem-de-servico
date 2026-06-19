@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\Admin\AdminOverviewController;
 use App\Http\Controllers\Api\V1\Admin\AdminSubscriptionController;
 use App\Http\Controllers\Api\V1\Admin\AdminAdminRoleController;
 use App\Http\Controllers\Api\V1\Admin\AdminUserController;
+use App\Http\Controllers\Api\V1\RoleController;
 use App\Http\Controllers\Api\V1\BusinessAuditController;
 use App\Http\Controllers\Api\V1\CompanyOperationalSettingController;
 use App\Http\Controllers\Api\V1\CompanyLogoController;
@@ -176,10 +177,15 @@ Route::middleware('auth.token')->group(function (): void {
             Route::patch('/users/{user}', [AdminUserController::class, 'update'])->name('api.v1.admin.users.update');
             Route::delete('/users/{user}', [AdminUserController::class, 'destroy'])->name('api.v1.admin.users.destroy');
 
-            Route::get('/roles', [AdminAdminRoleController::class, 'index'])->name('api.v1.admin.roles.index');
-            Route::post('/roles', [AdminAdminRoleController::class, 'store'])->name('api.v1.admin.roles.store');
-            Route::put('/roles/{adminRole}', [AdminAdminRoleController::class, 'update'])->name('api.v1.admin.roles.update');
-            Route::delete('/roles/{adminRole}', [AdminAdminRoleController::class, 'destroy'])->name('api.v1.admin.roles.destroy');
+            // Global scope roles
+            Route::get('/roles', [RoleController::class, 'index'])->name('api.v1.admin.roles.index');
+            Route::post('/roles', [RoleController::class, 'store'])->name('api.v1.admin.roles.store');
+            Route::get('/roles/{role}', [RoleController::class, 'show'])->name('api.v1.admin.roles.show');
+            Route::put('/roles/{role}', [RoleController::class, 'update'])->name('api.v1.admin.roles.update');
+            Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('api.v1.admin.roles.destroy');
+            Route::post('/roles/{role}/permissions/assign', [RoleController::class, 'assignPermission'])->name('api.v1.admin.roles.permissions.assign');
+            Route::post('/roles/{role}/permissions/remove', [RoleController::class, 'removePermission'])->name('api.v1.admin.roles.permissions.remove');
+            Route::post('/roles/{role}/permissions/sync', [RoleController::class, 'syncPermissions'])->name('api.v1.admin.roles.permissions.sync');
         });
     });
     // Notifications
