@@ -71,6 +71,7 @@ class DevSeeder extends Seeder
         $company = Company::query()->create([
             'uuid'       => Str::uuid()->toString(),
             'name'       => 'TechFix Assistência Técnica',
+            'slug'       => 'techfix-assistencia-tecnica',
             'document'   => '12.345.678/0001-90',
             'email'      => 'contato@techfix.dev',
             'phone'      => '(11) 99999-0001',
@@ -217,6 +218,7 @@ class DevSeeder extends Seeder
         $company = Company::query()->create([
             'uuid' => Str::uuid()->toString(),
             'name' => $name,
+            'slug' => Str::slug($name),
             'document' => $document,
             'email' => $email,
             'phone' => $phone,
