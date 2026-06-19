@@ -74,6 +74,10 @@ function label(v: string | null, map: Record<string, string>) {
   return v ? (map[v] ?? v) : '—'
 }
 
+function printPage() {
+  window.print()
+}
+
 onMounted(async () => {
   try {
     const q = route.query
@@ -118,7 +122,7 @@ onMounted(async () => {
     <!-- Toolbar — hidden when printing -->
     <div class="toolbar print-hide">
       <span class="toolbar-title">{{ reportTitle }}</span>
-      <button class="btn-print" :disabled="loading" @click="window.print()">
+      <button class="btn-print" :disabled="loading" @click="printPage">
         Imprimir / Salvar PDF
       </button>
     </div>
