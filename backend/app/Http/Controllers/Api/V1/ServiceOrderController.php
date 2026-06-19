@@ -1107,11 +1107,17 @@ class ServiceOrderController extends Controller
         $companyId = currentCompany()->getKey();
         $from = now()->startOfMonth()->subMonths($months - 1);
 
+        // Use strftime (SQLite) or DATE_FORMAT (MySQL/MariaDB) depending on driver
+        $isSqlite = DB::getDriverName() === 'sqlite';
+        $monthFmt = fn (string $col): string => $isSqlite
+            ? "strftime('%Y-%m', {$col})"
+            : "DATE_FORMAT({$col}, '%Y-%m')";
+
         $opened = DB::table('service_orders')
             ->where('company_id', $companyId)
             ->where('opened_at', '>=', $from)
             ->whereNull('deleted_at')
-            ->select(DB::raw("DATE_FORMAT(opened_at, '%Y-%m') as month"), DB::raw('COUNT(*) as count'))
+            ->select(DB::raw($monthFmt('opened_at') . ' as month'), DB::raw('COUNT(*) as count'))
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -1122,7 +1128,7 @@ class ServiceOrderController extends Controller
             ->whereIn('status', [ServiceOrder::STATUS_DELIVERED, 'completed'])
             ->where('updated_at', '>=', $from)
             ->whereNull('deleted_at')
-            ->select(DB::raw("DATE_FORMAT(updated_at, '%Y-%m') as month"), DB::raw('COUNT(*) as count'))
+            ->select(DB::raw($monthFmt('updated_at') . ' as month'), DB::raw('COUNT(*) as count'))
             ->groupBy('month')
             ->orderBy('month')
             ->get()
@@ -1132,7 +1138,7 @@ class ServiceOrderController extends Controller
             ->join('service_orders', 'service_orders.id', '=', 'service_order_payments.service_order_id')
             ->where('service_orders.company_id', $companyId)
             ->where('service_order_payments.received_at', '>=', $from)
-            ->select(DB::raw("DATE_FORMAT(service_order_payments.received_at, '%Y-%m') as month"), DB::raw('SUM(service_order_payments.amount_cents) as total_cents'))
+            ->select(DB::raw($monthFmt('service_order_payments.received_at') . ' as month'), DB::raw('SUM(service_order_payments.amount_cents) as total_cents'))
             ->groupBy('month')
             ->orderBy('month')
             ->get()
