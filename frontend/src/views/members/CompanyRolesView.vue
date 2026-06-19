@@ -128,6 +128,8 @@ const permissionGroups = [
   { label: 'Clientes', prefix: 'customers' },
   { label: 'Equipamentos', prefix: 'equipments' },
   { label: 'Ordens de Serviço', prefix: 'service_orders' },
+  { label: 'Peças / Estoque', prefix: 'parts' },
+  { label: 'Avaliações', prefix: 'ratings' },
 ]
 
 const allPermissions = [
@@ -146,6 +148,9 @@ const allPermissions = [
   'service_orders.execute',
   'service_orders.finance',
   'service_orders.override_delivery_balance',
+  'parts.view_any',
+  'parts.manage',
+  'ratings.view_any',
 ]
 
 const permissionLabels: Record<string, string> = {
@@ -164,6 +169,9 @@ const permissionLabels: Record<string, string> = {
   'service_orders.execute': 'Executar',
   'service_orders.finance': 'Financeiro',
   'service_orders.override_delivery_balance': 'Liberar entrega com saldo',
+  'parts.view_any': 'Visualizar peças e estoque',
+  'parts.manage': 'Gerenciar peças e estoque',
+  'ratings.view_any': 'Visualizar avaliações',
 }
 
 function permsByGroup(prefix: string) {

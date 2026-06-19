@@ -66,6 +66,7 @@ use App\Http\Controllers\Api\V1\TenantMembershipListController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use App\Http\Controllers\Api\V1\RoleCatalogController;
+use App\Http\Controllers\Api\V1\CompanyRoleController;
 use App\Http\Controllers\Api\V1\CepLookupController;
 use App\Http\Controllers\Api\V1\UserNotificationController;
 use App\Http\Controllers\Api\V1\PartController;
@@ -208,6 +209,18 @@ Route::middleware('auth.token')->group(function (): void {
         ->name('api.v1.settings.logo');
     Route::get('/tenant/roles', RoleCatalogController::class)
         ->name('api.v1.tenant.roles.index');
+    Route::get('/tenant/company-roles', [CompanyRoleController::class, 'index'])
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.company-roles.index');
+    Route::post('/tenant/company-roles', [CompanyRoleController::class, 'store'])
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.company-roles.store');
+    Route::put('/tenant/company-roles/{companyRole}', [CompanyRoleController::class, 'update'])
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.company-roles.update');
+    Route::delete('/tenant/company-roles/{companyRole}', [CompanyRoleController::class, 'destroy'])
+        ->middleware('permission:memberships.manage')
+        ->name('api.v1.tenant.company-roles.destroy');
     Route::get('/tenant/memberships', TenantMembershipListController::class)
         ->name('api.v1.tenant.memberships.index');
     Route::get('/tenant/memberships/{membership}', TenantMembershipController::class)

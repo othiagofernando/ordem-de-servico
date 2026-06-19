@@ -8,8 +8,10 @@ import {
   resendInvitation,
   type Membership,
   type RolePreset,
+  type CompanyRole,
   updateMembershipAuthorization,
   updateMembershipStatus,
+  listCompanyRoles,
 } from '../../api/memberships'
 import { ApiError } from '../../api/client'
 import { phoneMask } from '../../utils/masks'
@@ -21,6 +23,7 @@ import { useSortable } from '../../composables/useSortable'
 const loading = ref(true)
 const members = ref<Membership[]>([])
 const roles = ref<RolePreset[]>([])
+const companyRoles = ref<CompanyRole[]>([])
 const error = ref('')
 
 // ── Filtros ───────────────────────────────────────────────────────────────────
@@ -51,6 +54,7 @@ const resentId = ref<number | null>(null)
 // ── Editor de perfil ──────────────────────────────────────────────────────────
 const editingId = ref<number | null>(null)
 const editRole = ref('')
+const editCompanyRoleId = ref<number | null>(null)
 const editCustomPerms = ref<string[]>([])
 const editLoading = ref(false)
 const editError = ref('')
@@ -156,9 +160,14 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const [membersRes, rolesRes] = await Promise.all([listMemberships(true), listRoles()])
+    const [membersRes, rolesRes, companyRolesRes] = await Promise.all([
+      listMemberships(true),
+      listRoles(),
+      listCompanyRoles(),
+    ])
     members.value = membersRes.data
     roles.value = rolesRes.data
+    companyRoles.value = companyRolesRes.data
   } catch {
     error.value = 'Não foi possível carregar os membros.'
   } finally {
@@ -168,7 +177,8 @@ async function load() {
 
 function startEditRole(member: Membership) {
   editingId.value = member.id
-  editRole.value = member.role
+  editRole.value = member.role ?? ''
+  editCompanyRoleId.value = member.company_role_id ?? null
   // custom permissions = resolved - preset (additions only)
   const preset = roles.value.find((r) => r.role === member.role)?.permissions ?? []
   editCustomPerms.value = (member.permissions ?? []).filter((p) => !preset.includes(p))
@@ -177,6 +187,8 @@ function startEditRole(member: Membership) {
 
 function cancelEditRole() {
   editingId.value = null
+  editRole.value = ''
+  editCompanyRoleId.value = null
   editCustomPerms.value = []
   editError.value = ''
 }
@@ -206,7 +218,11 @@ async function saveAuthorization(membershipId: number) {
   editLoading.value = true
   editError.value = ''
   try {
-    await updateMembershipAuthorization(membershipId, { role: editRole.value, company_role_id: null, permissions: editCustomPerms.value })
+    await updateMembershipAuthorization(membershipId, {
+      role: editRole.value || null,
+      company_role_id: editCompanyRoleId.value,
+      permissions: editCustomPerms.value
+    })
     await load()
     editingId.value = null
   } catch (e) {
@@ -434,13 +450,24 @@ function permsByGroup(group: { prefix: string }) {
             <!-- Editor de perfil + permissões ──────────────────────────── -->
             <div v-if="editingId === member.id" class="mt-4 space-y-4 border-t pt-4" style="border-color: var(--c-border)">
 
-              <!-- Seletor de role -->
+              <!-- Seletor de role base -->
               <div class="space-y-1.5">
                 <label class="field-label">Perfil base</label>
                 <select v-model="editRole" class="input" @change="onRoleChange">
+                  <option value="">— Nenhum perfil base</option>
                   <option v-for="(label, key) in roleLabels" :key="key" :value="key">{{ label }}</option>
                 </select>
-                <p class="text-xs" style="color: var(--c-text-dim)">{{ roleDescriptions[editRole] }}</p>
+                <p class="text-xs" style="color: var(--c-text-dim)">{{ editRole ? roleDescriptions[editRole] : 'Utilize apenas permissões customizadas' }}</p>
+              </div>
+
+              <!-- Seletor de role customizado -->
+              <div class="space-y-1.5">
+                <label class="field-label">Perfil customizado (opcional)</label>
+                <select v-model="editCompanyRoleId" class="input">
+                  <option :value="null">— Nenhum perfil customizado</option>
+                  <option v-for="role in companyRoles" :key="role.id" :value="role.id">{{ role.name }} ({{ role.permissions.length }} perms)</option>
+                </select>
+                <p class="text-xs" style="color: var(--c-text-dim)">Perfis criados na aba "Perfis Customizados"</p>
               </div>
 
               <!-- Editor de permissões por categoria -->

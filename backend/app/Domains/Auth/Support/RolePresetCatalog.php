@@ -28,6 +28,7 @@ class RolePresetCatalog
                 'service_orders.override_delivery_balance',
                 'parts.view_any',
                 'parts.manage',
+                'ratings.view_any',
             ],
             'manager' => [
                 'company_settings.manage',
@@ -46,6 +47,7 @@ class RolePresetCatalog
                 'service_orders.override_delivery_balance',
                 'parts.view_any',
                 'parts.manage',
+                'ratings.view_any',
             ],
             'attendant' => [
                 'customers.view_any',
