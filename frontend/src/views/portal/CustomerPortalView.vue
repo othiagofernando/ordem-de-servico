@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import { API_BASE } from '../../api/client'
+import { submitPortalRating } from '../../api/ratings'
 
 const route = useRoute()
 const token = route.params.token as string
@@ -48,6 +49,7 @@ interface PortalData {
     notes: string | null
     decisioned_at: string | null
   }
+  rating: { rating: number; comment: string | null; rated_at: string } | null
 }
 
 const statusLabels: Record<string, string> = {
@@ -79,6 +81,15 @@ const conflictMessage = ref('')
 const history = ref<PortalHistoryItem[]>([])
 const historyLoading = ref(false)
 
+// Rating state
+const ratingHover = ref(0)
+const ratingSelected = ref(0)
+const ratingComment = ref('')
+const ratingSubmitting = ref(false)
+const ratingSubmitted = ref(false)
+const ratingError = ref('')
+const existingRating = ref<{ rating: number; comment: string | null } | null>(null)
+
 async function load() {
   try {
     const res = await fetch(`${API_BASE}/portal/quotes/${token}`, {
@@ -96,6 +107,12 @@ async function load() {
 
     if (['approved', 'rejected'].includes(portalData.quote.status)) {
       decided.value = portalData.quote.status as 'approved' | 'rejected'
+    }
+
+    if (portalData.rating) {
+      existingRating.value = { rating: portalData.rating.rating, comment: portalData.rating.comment }
+      ratingSelected.value = portalData.rating.rating
+      ratingSubmitted.value = true
     }
   } catch {
     error.value = 'Não foi possível conectar ao servidor.'
@@ -200,6 +217,24 @@ async function loadHistory() {
     // silently ignore — history is supplemental
   } finally {
     historyLoading.value = false
+  }
+}
+
+async function submitRating() {
+  if (!ratingSelected.value) return
+  ratingSubmitting.value = true
+  ratingError.value = ''
+  try {
+    await submitPortalRating(token, {
+      rating: ratingSelected.value,
+      comment: ratingComment.value.trim() || undefined,
+    })
+    existingRating.value = { rating: ratingSelected.value, comment: ratingComment.value.trim() || null }
+    ratingSubmitted.value = true
+  } catch (e: unknown) {
+    ratingError.value = (e as { data?: { message?: string } })?.data?.message ?? 'Erro ao enviar avaliação.'
+  } finally {
+    ratingSubmitting.value = false
   }
 }
 
@@ -357,6 +392,59 @@ onMounted(async () => {
         <div v-if="data.portal.footer_text || data.company.customer_contact_line" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-5 text-sm text-stone-400">
           <p v-if="data.portal.footer_text">{{ data.portal.footer_text }}</p>
           <p v-if="data.company.customer_contact_line" class="mt-2 text-stone-300">Contato: {{ data.company.customer_contact_line }}</p>
+        </div>
+
+        <!-- Avaliação (só exibida quando status = delivered) -->
+        <div v-if="data.service_order.status === 'delivered'" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">
+          <h2 class="mb-1 text-sm font-semibold text-stone-300">Avalie o atendimento</h2>
+          <p class="mb-4 text-xs text-stone-500">Sua opinião é muito importante para melhorarmos nosso serviço.</p>
+
+          <!-- Já avaliado -->
+          <div v-if="ratingSubmitted && existingRating" class="text-center">
+            <p class="text-2xl text-amber-400 leading-none">
+              {{ '★'.repeat(existingRating.rating) }}{{ '☆'.repeat(5 - existingRating.rating) }}
+            </p>
+            <p class="mt-2 text-sm font-medium text-emerald-400">Avaliação enviada! Obrigado.</p>
+            <p v-if="existingRating.comment" class="mt-1 text-xs italic text-stone-400">"{{ existingRating.comment }}"</p>
+          </div>
+
+          <!-- Formulário -->
+          <div v-else class="space-y-4">
+            <div class="flex justify-center gap-1">
+              <button
+                v-for="n in [1, 2, 3, 4, 5]"
+                :key="n"
+                class="text-3xl leading-none transition-transform hover:scale-110 focus:outline-none"
+                :class="n <= (ratingHover || ratingSelected) ? 'text-amber-400' : 'text-stone-600'"
+                @mouseenter="ratingHover = n"
+                @mouseleave="ratingHover = 0"
+                @click="ratingSelected = n"
+              >★</button>
+            </div>
+            <p v-if="ratingSelected" class="text-center text-xs text-stone-500">
+              {{ ['', 'Muito ruim', 'Ruim', 'Regular', 'Bom', 'Excelente'][ratingSelected] }}
+            </p>
+
+            <textarea
+              v-model="ratingComment"
+              rows="3"
+              placeholder="Comentário (opcional)..."
+              class="w-full resize-none rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-stone-200 placeholder:text-stone-600 outline-none focus:border-amber-500/40"
+            />
+
+            <p v-if="ratingError" class="text-xs text-red-400">{{ ratingError }}</p>
+
+            <button
+              :disabled="!ratingSelected || ratingSubmitting"
+              class="w-full rounded-2xl py-3 text-sm font-semibold transition disabled:opacity-40"
+              :class="ratingSelected
+                ? 'bg-amber-500 text-stone-900 hover:bg-amber-400'
+                : 'bg-stone-700 text-stone-400 cursor-not-allowed'"
+              @click="submitRating"
+            >
+              {{ ratingSubmitting ? 'Enviando…' : 'Enviar avaliação' }}
+            </button>
+          </div>
         </div>
 
         <div v-if="history.length > 0" class="mt-6 rounded-2xl border border-white/10 bg-white/5 p-6">

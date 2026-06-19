@@ -304,6 +304,7 @@ class CustomerQuotePortalController extends Controller
                 'serviceOrder.payments',
                 'serviceOrder.charges',
                 'serviceOrder.timelineEvents',
+                'serviceOrder.rating',
             ])
             ->where('portal_token_hash', hash('sha256', $token))
             ->first();
@@ -391,6 +392,11 @@ class CustomerQuotePortalController extends Controller
                 'valid_until' => $quote->valid_until?->toIso8601String(),
                 'submitted_at' => $quote->submitted_at?->toIso8601String(),
                 'decisioned_at' => $quote->decisioned_at?->toIso8601String(),
+            ],
+            'rating' => $serviceOrder->rating === null ? null : [
+                'rating' => $serviceOrder->rating->rating,
+                'comment' => $serviceOrder->rating->comment,
+                'rated_at' => $serviceOrder->rating->rated_at?->toIso8601String(),
             ],
         ];
     }

@@ -203,4 +203,9 @@ class ServiceOrder extends Model
     {
         return $this->hasMany(ServiceOrderPart::class);
     }
+
+    public function rating(): HasOne
+    {
+        return $this->hasOne(ServiceOrderRating::class);
+    }
 }

@@ -138,6 +138,12 @@ const tenantChildren: RouteRecordRaw[] = [
     meta: { tenantOnly: true },
   },
   {
+    path: 'avaliacoes',
+    name: 'ratings',
+    component: () => import('../views/ratings/RatingsView.vue'),
+    meta: { tenantOnly: true },
+  },
+  {
     path: 'aprendizado',
     name: 'learning',
     component: () => import('../views/learning/PlaybooksView.vue'),

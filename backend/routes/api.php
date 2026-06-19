@@ -74,6 +74,8 @@ use App\Http\Controllers\Api\V1\SearchController;
 use App\Http\Controllers\Api\V1\ServiceOrderPartController;
 use App\Http\Controllers\Api\V1\Admin\AdminPlaybookController;
 use App\Http\Controllers\Api\V1\Admin\AdminSearchController;
+use App\Http\Controllers\Api\V1\PortalRatingController;
+use App\Http\Controllers\Api\V1\RatingsController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -114,6 +116,8 @@ Route::prefix('portal')->group(function (): void {
         ->name('api.v1.portal.quotes.documents.delivery');
     Route::get('/quotes/{token}/history', [CustomerQuotePortalController::class, 'history'])
         ->name('api.v1.portal.quotes.history');
+    Route::post('/quotes/{token}/rating', [PortalRatingController::class, 'store'])
+        ->name('api.v1.portal.quotes.rating');
 });
 
 Route::post('/billing/webhooks/asaas', [BillingWebhookController::class, 'asaas'])
@@ -390,5 +394,7 @@ Route::middleware('auth.token')->group(function (): void {
     Route::patch('/parts/{part}/stock', [PartController::class, 'adjustStock'])->middleware('permission:parts.manage')->name('api.v1.parts.stock.adjust');
     Route::post('/service-orders/{serviceOrder}/parts', [ServiceOrderPartController::class, 'store'])->middleware('permission:parts.manage')->name('api.v1.service-orders.parts.store');
     Route::delete('/service-orders/{serviceOrder}/parts/{serviceOrderPart}', [ServiceOrderPartController::class, 'destroy'])->middleware('permission:parts.manage')->name('api.v1.service-orders.parts.destroy');
+    // Avaliações do cliente
+    Route::get('/ratings', [RatingsController::class, 'index'])->middleware('permission:service_orders.view_any')->name('api.v1.ratings.index');
     });
 });
