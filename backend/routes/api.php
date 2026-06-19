@@ -164,6 +164,10 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/notifications', [UserNotificationController::class, 'index'])->name('api.v1.notifications.index');
     Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('api.v1.notifications.read');
     Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllRead'])->name('api.v1.notifications.read-all');
+    // Broadcasting channel auth — uses our Bearer-token middleware instead of session auth
+    Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
+        return \Illuminate\Support\Facades\Broadcast::auth($request);
+    })->name('api.v1.broadcasting.auth');
 
     Route::middleware('subscription.active')->group(function (): void {
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])

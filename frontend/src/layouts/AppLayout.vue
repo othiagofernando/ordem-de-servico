@@ -28,12 +28,15 @@ function onDocClick(e: MouseEvent) {
 onMounted(() => document.addEventListener('click', onDocClick))
 onUnmounted(() => document.removeEventListener('click', onDocClick))
 
-// Polling: start when authenticated and not super admin
+// Real-time: connect Reverb when authenticated as a tenant user
 watch(
-  () => auth.isAuthenticated,
-  (authed) => {
-    if (authed && !auth.isSuperAdmin) notifStore.startPolling()
-    else notifStore.stopPolling()
+  () => [auth.isAuthenticated, auth.isSuperAdmin, auth.token, auth.company?.slug, auth.membership?.id] as const,
+  ([authed, isSA, token, slug, membershipId]) => {
+    if (authed && !isSA && token && slug && membershipId != null) {
+      notifStore.startListening(token, slug, membershipId)
+    } else {
+      notifStore.stopListening()
+    }
   },
   { immediate: true },
 )
@@ -65,7 +68,7 @@ const accountRoute = computed(() => {
 })
 
 async function logout() {
-  notifStore.stopPolling()
+  notifStore.stopListening()
   await auth.logout()
   try {
     await router.push(tenantLoginRoute() || { name: 'login' })

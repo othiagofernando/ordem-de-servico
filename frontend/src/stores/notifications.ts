@@ -6,12 +6,14 @@ import {
   markAllNotificationsRead,
   type AppNotification,
 } from '../api/notifications'
+import { createEcho } from '../echo'
+import type Echo from 'laravel-echo'
 
 export const useNotificationsStore = defineStore('notifications', () => {
   const items = ref<AppNotification[]>([])
   const unreadCount = ref(0)
   const loading = ref(false)
-  let pollInterval: ReturnType<typeof setInterval> | null = null
+  let echoInstance: Echo | null = null
 
   async function fetch() {
     loading.value = true
@@ -20,7 +22,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
       items.value = res.data
       unreadCount.value = res.meta.unread_count
     } catch {
-      // silent — polling should not crash the app
+      // silent
     } finally {
       loading.value = false
     }
@@ -43,17 +45,26 @@ export const useNotificationsStore = defineStore('notifications', () => {
     unreadCount.value = 0
   }
 
-  function startPolling() {
+  function startListening(token: string, slug: string, membershipId: number) {
+    stopListening()
     fetch()
-    pollInterval = setInterval(fetch, 30_000)
+
+    echoInstance = createEcho(token, slug)
+    echoInstance
+      .private(`membership.${membershipId}`)
+      .listen('.notification.created', (data: AppNotification) => {
+        items.value.unshift(data)
+        if (items.value.length > 30) items.value.pop()
+        unreadCount.value += 1
+      })
   }
 
-  function stopPolling() {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      pollInterval = null
+  function stopListening() {
+    if (echoInstance) {
+      echoInstance.disconnect()
+      echoInstance = null
     }
   }
 
-  return { items, unreadCount, loading, fetch, readOne, readAll, startPolling, stopPolling }
+  return { items, unreadCount, loading, fetch, readOne, readAll, startListening, stopListening }
 })

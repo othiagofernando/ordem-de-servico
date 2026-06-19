@@ -2,6 +2,7 @@
 
 namespace App\Domains\Notifications\Actions;
 
+use App\Events\UserNotificationCreated;
 use App\Models\UserNotification;
 
 class CreateUserNotification
@@ -14,7 +15,7 @@ class CreateUserNotification
         string $body,
         ?string $actionUrl = null,
     ): UserNotification {
-        return UserNotification::create([
+        $notification = UserNotification::create([
             'company_id'    => $companyId,
             'membership_id' => $membershipId,
             'type'          => $type,
@@ -22,5 +23,9 @@ class CreateUserNotification
             'body'          => $body,
             'action_url'    => $actionUrl,
         ]);
+
+        UserNotificationCreated::dispatch($notification);
+
+        return $notification;
     }
 }
