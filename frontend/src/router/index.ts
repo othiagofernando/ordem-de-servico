@@ -120,6 +120,18 @@ const tenantChildren: RouteRecordRaw[] = [
     meta: { tenantOnly: true },
   },
   {
+    path: 'aprendizado',
+    name: 'learning',
+    component: () => import('../views/learning/PlaybooksView.vue'),
+    meta: { tenantOnly: true },
+  },
+  {
+    path: 'aprendizado/:id',
+    name: 'learning.detail',
+    component: () => import('../views/learning/PlaybookDetailView.vue'),
+    meta: { tenantOnly: true },
+  },
+  {
     path: 'minha-conta',
     name: 'account',
     component: () => import('../views/account/AccountView.vue'),
@@ -276,6 +288,24 @@ const router = createRouter({
           path: 'permissoes',
           name: 'admin.permissions',
           component: () => import('../views/admin/AdminPermissionsView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
+          path: 'playbooks',
+          name: 'admin.playbooks',
+          component: () => import('../views/admin/AdminPlaybooksView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
+          path: 'playbooks/novo',
+          name: 'admin.playbooks.create',
+          component: () => import('../views/admin/AdminPlaybookFormView.vue'),
+          meta: { requiresAuth: true, superAdminOnly: true },
+        },
+        {
+          path: 'playbooks/:id/editar',
+          name: 'admin.playbooks.edit',
+          component: () => import('../views/admin/AdminPlaybookFormView.vue'),
           meta: { requiresAuth: true, superAdminOnly: true },
         },
         {

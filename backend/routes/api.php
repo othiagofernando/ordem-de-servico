@@ -68,6 +68,10 @@ use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use App\Http\Controllers\Api\V1\RoleCatalogController;
 use App\Http\Controllers\Api\V1\CepLookupController;
 use App\Http\Controllers\Api\V1\UserNotificationController;
+use App\Http\Controllers\Api\V1\PlaybookController;
+use App\Http\Controllers\Api\V1\SearchController;
+use App\Http\Controllers\Api\V1\Admin\AdminPlaybookController;
+use App\Http\Controllers\Api\V1\Admin\AdminSearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -150,6 +154,15 @@ Route::middleware('auth.token')->group(function (): void {
         Route::delete('/companies/{company}', [AdminCompanyController::class, 'destroy'])->name('api.v1.admin.companies.destroy');
         Route::get('/companies/{company}/memberships', [AdminImpersonationController::class, 'memberships'])->name('api.v1.admin.companies.memberships.index');
         Route::post('/companies/{company}/memberships/{membership}/impersonate', [AdminImpersonationController::class, 'impersonate'])->name('api.v1.admin.companies.memberships.impersonate');
+        // Busca unificada admin
+        Route::get('/search', AdminSearchController::class)->name('api.v1.admin.search');
+        // Playbooks — gerenciados pelo admin da plataforma
+        Route::get('/playbooks', [AdminPlaybookController::class, 'index'])->name('api.v1.admin.playbooks.index');
+        Route::post('/playbooks', [AdminPlaybookController::class, 'store'])->name('api.v1.admin.playbooks.store');
+        Route::get('/playbooks/{playbook}', [AdminPlaybookController::class, 'show'])->name('api.v1.admin.playbooks.show');
+        Route::put('/playbooks/{playbook}', [AdminPlaybookController::class, 'update'])->name('api.v1.admin.playbooks.update');
+        Route::delete('/playbooks/{playbook}', [AdminPlaybookController::class, 'destroy'])->name('api.v1.admin.playbooks.destroy');
+
         Route::middleware('super_admin:super_admin')->group(function (): void {
             Route::get('/users', [AdminUserController::class, 'index'])->name('api.v1.admin.users.index');
             Route::post('/users', [AdminUserController::class, 'store'])->name('api.v1.admin.users.store');
@@ -359,5 +372,12 @@ Route::middleware('auth.token')->group(function (): void {
     Route::get('/service-orders', [ServiceOrderController::class, 'index'])->name('api.v1.service-orders.index');
     Route::get('/service-orders/{serviceOrder}', [ServiceOrderController::class, 'show'])
         ->name('api.v1.service-orders.show');
+    // Busca unificada tenant
+    Route::get('/search', SearchController::class)->name('api.v1.search');
+    // Playbooks — consulta (somente leitura) para usuários da empresa
+    Route::get('/playbooks', [PlaybookController::class, 'index'])
+        ->name('api.v1.playbooks.index');
+    Route::get('/playbooks/{playbook}', [PlaybookController::class, 'show'])
+        ->name('api.v1.playbooks.show');
     });
 });
