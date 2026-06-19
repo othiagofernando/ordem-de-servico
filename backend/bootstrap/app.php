@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuthenticateApiToken;
 use App\Http\Middleware\AuthorizeMembershipPermission;
+use App\Http\Middleware\CheckRoutePermission;
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EstablishStructuredLogContext;
@@ -31,6 +32,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'auth.token' => AuthenticateApiToken::class,
             'permission' => AuthorizeMembershipPermission::class,
+            'check-route-permission' => CheckRoutePermission::class,
             'super_admin' => EnsureSuperAdmin::class,
             'subscription.active' => EnsureActiveSubscription::class,
         ]);
