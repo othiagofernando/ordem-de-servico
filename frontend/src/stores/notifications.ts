@@ -49,14 +49,19 @@ export const useNotificationsStore = defineStore('notifications', () => {
     stopListening()
     fetch()
 
-    echoInstance = createEcho(token, slug)
-    echoInstance
-      .private(`membership.${membershipId}`)
-      .listen('.notification.created', (data: AppNotification) => {
-        items.value.unshift(data)
-        if (items.value.length > 30) items.value.pop()
-        unreadCount.value += 1
-      })
+    try {
+      echoInstance = createEcho(token, slug)
+      echoInstance
+        .private(`membership.${membershipId}`)
+        .listen('.notification.created', (data: AppNotification) => {
+          items.value.unshift(data)
+          if (items.value.length > 30) items.value.pop()
+          unreadCount.value += 1
+        })
+    } catch (err) {
+      console.warn('[notifications] WebSocket connection failed:', err)
+      echoInstance = null
+    }
   }
 
   function stopListening() {
