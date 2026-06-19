@@ -35,30 +35,31 @@ async function exitImpersonation() {
   await router.push({ name: 'admin' })
 }
 
+function buildAdminNav() {
+  const role = auth.adminRole ?? 'super_admin'
+  const isSA = role === 'super_admin'
+  const isSupport = isSA || role === 'support'
+  const isBilling = isSA || role === 'billing'
+  const isPlans = isSA || role === 'plans' || role === 'billing'
+
+  return [
+    { to: { name: 'admin' as const }, label: 'Resumo' },
+    ...(isSupport ? [{ to: { name: 'admin.alerts' as const }, label: 'Alertas' }] : []),
+    { to: { name: 'admin.companies' as const }, label: 'Empresas' },
+    { to: { name: 'admin.subscriptions' as const }, label: 'Assinaturas' },
+    ...(isBilling ? [{ to: { name: 'admin.billing' as const }, label: 'Cobranças' }] : []),
+    ...(isPlans ? [{ to: { name: 'admin.plans' as const }, label: 'Planos' }] : []),
+    { to: { name: 'admin.audit' as const }, label: 'Auditoria' },
+    ...(isSA ? [{ to: { name: 'admin.users' as const }, label: 'Usuários' }] : []),
+  ]
+}
+
 const navLinks = computed(() => {
   if (!auth.isAuthenticated) {
     return []
   }
   return auth.isSuperAdmin
-    ? (() => {
-        const role = auth.adminRole ?? 'super_admin'
-        const isSA = role === 'super_admin'
-        const isSupport = isSA || role === 'support'
-        const isBilling = isSA || role === 'billing'
-        const isPlans = isSA || role === 'plans' || role === 'billing'
-        const isViewer = true // all roles can view
-
-        return [
-          { to: { name: 'admin' }, label: 'Resumo' },
-          ...(isSupport ? [{ to: { name: 'admin.alerts' }, label: 'Alertas' }] : []),
-          ...(isViewer ? [{ to: { name: 'admin.companies' }, label: 'Empresas' }] : []),
-          ...(isViewer ? [{ to: { name: 'admin.subscriptions' }, label: 'Assinaturas' }] : []),
-          ...(isBilling ? [{ to: { name: 'admin.billing' }, label: 'Cobranças' }] : []),
-          ...(isPlans ? [{ to: { name: 'admin.plans' }, label: 'Planos' }] : []),
-          ...(isViewer ? [{ to: { name: 'admin.audit' }, label: 'Auditoria' }] : []),
-          ...(isSA ? [{ to: { name: 'admin.users' }, label: 'Usuários' }] : []),
-        ]
-      })()
+    ? buildAdminNav()
     : [
         { to: tenantRoute('dashboard'), label: 'Dashboard' },
         { to: tenantRoute('reports'), label: 'Relatórios' },
