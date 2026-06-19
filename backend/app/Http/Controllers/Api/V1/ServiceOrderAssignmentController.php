@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auth\Models\Membership;
+use App\Domains\Notifications\Actions\CreateUserNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
 use App\Domains\ServiceOrders\Models\ServiceOrder;
@@ -25,6 +26,7 @@ class ServiceOrderAssignmentController extends Controller
         ServiceOrder $serviceOrder,
         VisibleServiceOrders $visibleServiceOrders,
         RecordServiceOrderTimelineEvent $recordTimelineEvent,
+        CreateUserNotification $createUserNotification,
     ): JsonResponse {
         $membership = currentMembership();
 
@@ -77,6 +79,24 @@ class ServiceOrderAssignmentController extends Controller
                     'assigned_membership_id' => $assignedMembership->getKey(),
                 ],
             );
+
+            // Notify newly assigned technician (skip if self-assignment)
+            if ($assignedMembership->getKey() !== $membership->getKey()) {
+                try {
+                    $visible->loadMissing('company');
+                    $companySlug = $visible->company->slug ?? '';
+                    $createUserNotification->handle(
+                        companyId: $visible->company_id,
+                        membershipId: $assignedMembership->getKey(),
+                        type: 'os_assigned',
+                        title: 'OS atribuída a você',
+                        body: "Você foi designado para a O.S. {$visible->reference}.",
+                        actionUrl: "/{$companySlug}/ordens-de-servico/{$visible->id}",
+                    );
+                } catch (\Throwable) {
+                    // Notification failure must not break the main flow
+                }
+            }
         } else {
             $visible->forceFill([
                 'assigned_membership_id' => null,

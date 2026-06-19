@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
+use App\Domains\Notifications\Actions\CreateUserNotification;
 use App\Domains\Notifications\Actions\QueueCriticalServiceOrderNotification;
 use App\Domains\ServiceOrders\Actions\RecordServiceOrderTimelineEvent;
 use App\Domains\ServiceOrders\Actions\VisibleServiceOrders;
@@ -63,6 +64,32 @@ class ServiceOrderClosureController extends Controller
                 'status' => $fresh->status,
             ],
         );
+
+        // Notify all admins/managers in the company
+        try {
+            $companySlug = $fresh->company->slug ?? '';
+            $adminMemberships = \App\Domains\Auth\Models\Membership::query()
+                ->withoutGlobalScopes()
+                ->where('company_id', $fresh->company_id)
+                ->whereIn('role', ['administrator', 'manager'])
+                ->where('status', 'active')
+                ->get();
+
+            $createUserNotification = app(CreateUserNotification::class);
+
+            foreach ($adminMemberships as $adminMembership) {
+                $createUserNotification->handle(
+                    companyId: $fresh->company_id,
+                    membershipId: $adminMembership->getKey(),
+                    type: 'ready_for_pickup',
+                    title: 'OS pronta para retirada',
+                    body: "A O.S. {$fresh->reference} está pronta para retirada pelo cliente.",
+                    actionUrl: "/{$companySlug}/ordens-de-servico/{$fresh->id}",
+                );
+            }
+        } catch (\Throwable) {
+            // Notification failure must not break the main flow
+        }
 
         return response()->json([
             'data' => $this->serializeServiceOrder($fresh),

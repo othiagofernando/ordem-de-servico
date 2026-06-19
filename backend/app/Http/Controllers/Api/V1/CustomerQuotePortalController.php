@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Domains\Auditing\Actions\RecordBusinessAudit;
 use App\Domains\Companies\Actions\ResolveCompanyOperationalSettings;
+use App\Domains\Notifications\Actions\CreateUserNotification;
 use App\Domains\Companies\Models\CompanyOperationalSetting;
 use App\Domains\ServiceOrders\Actions\BuildOperationalDocumentPayload;
 use App\Domains\ServiceOrders\Actions\NormalizeQuoteRevisionStates;
@@ -196,6 +197,58 @@ class CustomerQuotePortalController extends Controller
                 'decision_idempotency_key' => $quote->decision_idempotency_key,
             ],
         );
+
+        // Notify relevant memberships about customer's decision
+        try {
+            $serviceOrder = $quote->serviceOrder->loadMissing('company');
+            $companySlug = $serviceOrder->company->slug ?? '';
+            $actionUrl = "/{$companySlug}/ordens-de-servico/{$serviceOrder->id}";
+            $isApproved = $requestedStatus === QuoteRevision::STATUS_APPROVED;
+            $notifType = $isApproved ? 'quote_approved' : 'quote_rejected';
+            $notifTitle = $isApproved ? 'Orçamento aprovado' : 'Orçamento recusado';
+            $notifBody = $isApproved
+                ? "Cliente aprovou o orçamento da O.S. {$serviceOrder->reference}."
+                : "Cliente recusou o orçamento da O.S. {$serviceOrder->reference}.";
+
+            $createUserNotification = app(CreateUserNotification::class);
+
+            // Notify assigned technician (if any)
+            if ($serviceOrder->assigned_membership_id !== null) {
+                $createUserNotification->handle(
+                    companyId: $serviceOrder->company_id,
+                    membershipId: $serviceOrder->assigned_membership_id,
+                    type: $notifType,
+                    title: $notifTitle,
+                    body: $notifBody,
+                    actionUrl: $actionUrl,
+                );
+            }
+
+            // Notify all admins/managers in the company
+            $adminMemberships = \App\Domains\Auth\Models\Membership::query()
+                ->withoutGlobalScopes()
+                ->where('company_id', $serviceOrder->company_id)
+                ->whereIn('role', ['administrator', 'manager'])
+                ->where('status', 'active')
+                ->get();
+
+            foreach ($adminMemberships as $adminMembership) {
+                // Skip if already notified as assigned tech
+                if ($adminMembership->getKey() === $serviceOrder->assigned_membership_id) {
+                    continue;
+                }
+                $createUserNotification->handle(
+                    companyId: $serviceOrder->company_id,
+                    membershipId: $adminMembership->getKey(),
+                    type: $notifType,
+                    title: $notifTitle,
+                    body: $notifBody,
+                    actionUrl: $actionUrl,
+                );
+            }
+        } catch (\Throwable) {
+            // Notification failure must not break the main flow
+        }
 
         return response()->json([
             'data' => $this->serializePortalQuote($quote->fresh(), $settings),

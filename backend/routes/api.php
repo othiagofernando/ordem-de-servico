@@ -67,6 +67,7 @@ use App\Http\Controllers\Api\V1\TenantMembershipUserPasswordController;
 use App\Http\Controllers\Api\V1\TenantMembershipUserUpdateController;
 use App\Http\Controllers\Api\V1\RoleCatalogController;
 use App\Http\Controllers\Api\V1\CepLookupController;
+use App\Http\Controllers\Api\V1\UserNotificationController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/health', HealthController::class)->name('api.v1.health');
@@ -159,6 +160,11 @@ Route::middleware('auth.token')->group(function (): void {
             Route::delete('/roles/{adminRole}', [AdminAdminRoleController::class, 'destroy'])->name('api.v1.admin.roles.destroy');
         });
     });
+    // Notifications
+    Route::get('/notifications', [UserNotificationController::class, 'index'])->name('api.v1.notifications.index');
+    Route::post('/notifications/{notification}/read', [UserNotificationController::class, 'markRead'])->name('api.v1.notifications.read');
+    Route::post('/notifications/read-all', [UserNotificationController::class, 'markAllRead'])->name('api.v1.notifications.read-all');
+
     Route::middleware('subscription.active')->group(function (): void {
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
         ->middleware('permission:company_settings.manage')
