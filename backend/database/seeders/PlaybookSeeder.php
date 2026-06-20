@@ -11,435 +11,299 @@ class PlaybookSeeder extends Seeder
     public function run(): void
     {
         $playbooks = [
+            // ════════════════════════════════════════
+            // ORDENS DE SERVIÇO - FLUXO PRINCIPAL
+            // ════════════════════════════════════════
             [
-                'emoji'       => '📋',
-                'title'       => 'Recebimento e Abertura de OS',
-                'description' => 'Passo a passo para receber um equipamento do cliente, cadastrar corretamente no sistema e abrir a ordem de serviço.',
-                'category'    => 'Atendimento',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Receba o cliente e identifique a demanda',
-                        'content' => "Cumprimente o cliente com cordialidade e pergunte o motivo da visita.
-
-Ouça atentamente o relato do problema sem interromper. Faça perguntas objetivas para entender melhor:
-- Quando o problema começou?
-- O equipamento sofreu queda ou contato com líquido?
-- Já passou por outro reparo antes?
-
-Anote mentalmente ou em rascunho as informações antes de abrir o sistema.",
-                        'tip'      => 'Nunca prometa prazo ou valor de reparo neste momento. Diga ao cliente que o prazo e o orçamento serão informados após o diagnóstico.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Verifique o estado físico do equipamento na frente do cliente',
-                        'content' => "Com o cliente presente, examine o equipamento visualmente e documente:
-- Arranhões, amassados ou rachaduras pré-existentes
-- Estado da tela (manchas, pixels mortos, vidro trincado)
-- Condição das entradas (USB, fone, carregador)
-- Se a bateria está estufada ou com sinais de vazamento
-
-Informe ao cliente sobre qualquer avaria estética encontrada antes de assinar a OS. Isso protege a empresa de eventuais reclamações.",
-                        'tip'      => 'Se possível, fotografe o equipamento e vincule as imagens à OS como evidências de entrada. Use a aba de anexos da ordem de serviço.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Cadastre ou localize o cliente no sistema',
-                        'content' => "Acesse a seção Clientes e busque pelo nome, CPF/CNPJ ou telefone do cliente.
-
-Se o cliente já existe: verifique se os dados de contato (telefone e e-mail) estão atualizados e corrija se necessário.
-
-Se for um cliente novo: cadastre com pelo menos nome completo e um telefone de contato. E-mail é altamente recomendado para comunicação futura.",
-                        'tip'      => 'Nunca abra uma OS sem vincular a um cliente cadastrado. Ordens sem cliente dificultam o histórico e o contato para retirada.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Cadastre o equipamento',
-                        'content' => "Em Equipamentos, crie um novo registro com as informações do aparelho:
-- Tipo (smartphone, notebook, tablet, etc.)
-- Marca e modelo
-- Número de série ou IMEI (quando aplicável)
-- Cor
-
-Vincule o equipamento ao cliente já cadastrado. Se o mesmo cliente trouxe o equipamento antes, verifique se já existe um registro — nunca duplique.",
-                        'tip'      => 'O número de série é fundamental para garantia. Se o cliente não souber, tente localizar na embalagem, nas configurações do aparelho ou na etiqueta física.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Abra a Ordem de Serviço',
-                        'content' => "Em Ordens de Serviço, clique em Nova OS e preencha:
-- Cliente e equipamento cadastrados
-- Descrição detalhada do problema relatado pelo cliente (use as palavras dele)
-- Condição de entrada (ex.: \"Tela trincada, sem ligar, sem carregador\")
-- Checklist de entrada, se aplicável
-
-Salve a OS e apresente o número ao cliente. Informe que ele receberá o orçamento por mensagem ou ligue assim que o diagnóstico for concluído.",
-                        'tip'      => 'A descrição do problema deve refletir o que o cliente disse, não o que você acha que é. O técnico fará o diagnóstico real.',
-                        'tip_type' => 'success',
-                    ],
+                'title' => 'Criar uma Nova Ordem de Serviço',
+                'description' => 'Passo a passo completo para registrar uma nova OS no sistema',
+                'category' => 'Ordens de Serviço',
+                'emoji' => '📝',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Dashboard de OSs', 'content' => 'Clique em "Ordens de Serviço" no menu lateral. Você verá lista de todas as OSs da empresa.', 'tip' => 'Filtre por status, técnico ou cliente para encontrar rapidamente', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Iniciar Criação', 'content' => 'Clique no botão verde "+ Criar" ou "+ Nova OS" no topo da página.', 'tip' => 'Você também pode acessar pelo menu: Dashboard → Nova OS', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Selecionar ou Criar Cliente', 'content' => 'Campo obrigatório. Se cliente existe, busque pelo nome/telefone/CPF. Se novo, preencha: nome completo, email válido, telefone com DDD.', 'tip' => 'Email é crítico - será usado para enviar orçamentos e recibos ao cliente', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Descrever o Problema', 'content' => 'Campo obrigatório. Descreva com clareza o defeito/problema relatado pelo cliente. Exemplo: "Tela não liga", "Sistema lento", "Bateria não carrega".', 'tip' => 'Descrições vagas dificultam o diagnóstico do técnico. Use frases curtas e objetivas.', 'tip_type' => 'warning'],
+                    ['sort_order' => 5, 'title' => 'Selecionar Equipamento', 'content' => 'Procure o equipamento na lista. Se não existir, clique "Novo Equipamento" e preencha: tipo (celular, notebook, tablet), marca, modelo, número de série (opcional mas recomendado).', 'tip' => 'Série identifica unidade específica e é crucial para garantia e rastreabilidade', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Adicionar Observações Adicionais', 'content' => 'Opcional: indique se há acessórios (carregador, caso, tela de proteção), se sofreu quedas, contato com água, histórico de reparos prévios.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 7, 'title' => 'Revisar e Confirmar', 'content' => 'Verifique todos os dados preenchidos. Clique "Criar Ordem de Serviço". A OS será criada com número único.', 'tip' => 'A OS pode ser editada até sua conclusão - não se preocupe se esquecer algo', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Atribuir Técnico à Ordem de Serviço',
+                'description' => 'Como delegar uma OS para o técnico responsável',
+                'category' => 'Ordens de Serviço',
+                'emoji' => '👤',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Localizar e Abrir a OS', 'content' => 'Na lista de OSs, procure pela número ou cliente e clique para abrir.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Ir para Seção de Atribuição', 'content' => 'Na OS aberta, procure a seção "Atribuição" ou "Técnico Responsável".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Escolher Técnico', 'content' => 'Clique no dropdown e selecione um dos técnicos disponíveis da sua empresa.', 'tip' => 'A lista mostra técnicos com sua carga de trabalho atual para ajudar na distribuição', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Confirmar Atribuição', 'content' => 'Clique "Atribuir" ou "Confirmar". O sistema notificará o técnico por email/app.', 'tip' => 'Técnico pode aceitar ou recusar a atribuição', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Acompanhamento', 'content' => 'Você pode mudar o técnico responsável a qualquer momento até a conclusão da OS.', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Executar e Diagnosticar uma Ordem de Serviço',
+                'description' => 'Como registrar o trabalho realizado no equipamento',
+                'category' => 'Ordens de Serviço',
+                'emoji' => '🔧',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Aba de Execução', 'content' => 'Abra a OS e clique na aba "Execução" ou "Diagnóstico".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Registrar Diagnóstico', 'content' => 'Descreva o que foi encontrado: "Tela com pixels mortos", "Bateria danificada", "Sistema com malware", etc. Seja específico sobre a causa raiz.', 'tip' => 'Diagnóstico preciso facilita aprovação do orçamento pelo cliente', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'Adicionar Peças Utilizadas', 'content' => 'Adicione cada componente/peça que será necessário: tela, bateria, placa-mãe, etc. Informe quantidade e valor unitário.', 'tip' => 'Registre as peças enquanto trabalha para não esquecer nenhuma', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Registrar Horas Trabalhadas', 'content' => 'Informe quantas horas foram despendidas no diagnóstico, remoção, instalação e testes.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Adicionar Testes Realizados', 'content' => 'Opcional: liste testes feitos para validar o reparo (ligou?, responde commands?, bateria carrega?).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Notas Importantes', 'content' => 'Adicione observações relevantes: "Cliente avisado sobre risco de perda de dados", "Limpeza interna realizada", "Upgrade de RAM sugerido", etc.', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Criar e Gerenciar Orçamento do Cliente',
+                'description' => 'Como gerar cotação, enviar e acompanhar aprovação',
+                'category' => 'Ordens de Serviço',
+                'emoji' => '💰',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Preencher Execução', 'content' => 'Certifique-se que diagnóstico, peças e tempo foram registrados corretamente na aba "Execução".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Gerar Orçamento', 'content' => 'Clique "Gerar Orçamento" ou "Criar Cotação". O sistema calcula automaticamente: (peças) + (horas × valor hora).', 'tip' => 'O sistema pode aplicar margem de lucro configurada na empresa', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Revisar Valores', 'content' => 'Verifique: valores das peças, total de horas, cálculo de margem, impostos. Faça ajustes se necessário (desconto, cortesia, etc.).', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Definir Prazo de Validade', 'content' => 'Indique até quando o orçamento é válido (padrão: 7 dias). Após esse prazo, preço pode mudar.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Enviar para Cliente', 'content' => 'Clique "Enviar Orçamento". Cliente receberá email com link seguro para visualizar e aprovar/rejeitar.', 'tip' => 'Cliente NÃO precisa fazer login - acesso é por link único', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Acompanhar Resposta', 'content' => 'O sistema notificará quando cliente aprovar ou rejeitar. Você também pode ligar para confirmar.', 'tip' => 'Se cliente rejeitar, analise se desconto ou alternativa de peça ajuda', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Finalizar e Fechar Ordem de Serviço',
+                'description' => 'Concluir OS, gerar recibo e registrar pagamento',
+                'category' => 'Ordens de Serviço',
+                'emoji' => '✅',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Verificar Pré-Requisitos', 'content' => 'Antes de fechar, confirme: diagnóstico completo, todas as peças utilizadas registradas, orçamento aprovado pelo cliente, serviço executado.', 'tip' => '', 'tip_type' => 'warning'],
+                    ['sort_order' => 2, 'title' => 'Marcar como Concluída', 'content' => 'Na OS, clique "Marcar como Concluída" ou "Finalizar Serviço".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Gerar Recibo/Nota', 'content' => 'Sistema gera automaticamente recibo (com detalhes do serviço, peças, valores, data).', 'tip' => 'Cliente pode baixar recibo em PDF para registros/garantia', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Registrar Pagamento', 'content' => 'Se cliente pagou (dinheiro, débito, crédito, transferência, boleto), registre o método e data. Se não pagou, marque "Pendente".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Enviar Avaliação', 'content' => 'Sistema automaticamente envia email ao cliente com link para avaliar seu reparo (1-5 estrelas + comentário).', 'tip' => 'Avaliações públicas melhoram reputação e ajudam a identificar pontos de melhoria', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Arquivar OS', 'content' => 'OS será movida para arquivo. Você ainda pode consultá-la futuramente em relatórios.', 'tip' => '', 'tip_type' => 'info'],
                 ],
             ],
 
+            // ════════════════════════════════════════
+            // CLIENTES E EQUIPAMENTOS
+            // ════════════════════════════════════════
             [
-                'emoji'       => '🔍',
-                'title'       => 'Diagnóstico de Smartphone que Não Liga',
-                'description' => 'Protocolo técnico para identificar a causa raiz de um smartphone sem resposta de energia, do mais simples ao mais complexo.',
-                'category'    => 'Diagnóstico',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Verifique o estado da bateria',
-                        'content' => "Antes de qualquer coisa, conecte o aparelho a um carregador original ou compatível e aguarde pelo menos 10 minutos.
-
-Observe:
-- O aparelho exibe ícone de carregamento?
-- A tela fica completamente apagada mesmo conectado?
-- O aparelho esquenta em algum ponto?
-
-Se não houver nenhuma reação, prossiga para o próximo passo.",
-                        'tip'      => 'Baterias completamente descarregadas podem levar até 15 minutos para mostrar qualquer sinal de vida. Tenha paciência antes de concluir que o problema é outro.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Teste a entrada de carregamento',
-                        'content' => "Use um multímetro ou testador de cabo USB para verificar se a corrente está chegando ao aparelho.
-
-Inspecione visualmente a porta de carregamento com lanterna: verifique se há sujeira, corrosão, pinos tortos ou quebrados.
-
-Se suspeitar de entrada com defeito, limpe cuidadosamente com álcool isopropílico e escova macia antes de concluir que precisa de substituição.",
-                        'tip'      => 'Nunca use ar comprimido dentro da entrada de carregamento sem antes verificar se não há líquido no interior — isso pode empurrar a umidade para dentro da placa.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Verifique sinais de dano por líquido',
-                        'content' => "Abra o aparelho seguindo o procedimento de abertura segura para o modelo específico.
-
-Inspecione a placa-mãe, a bateria e os conectores em busca de:
-- Manchas brancas ou esverdeadas (oxidação)
-- Resíduos de líquido seco
-- Componentes com sinais de corrosão
-
-Se encontrar corrosão, o equipamento precisará de limpeza ultrassônica antes de qualquer outro diagnóstico elétrico.",
-                        'tip'      => 'Registre com foto qualquer sinal de dano por líquido antes de prosseguir. Isso é essencial para o laudo técnico e para a comunicação com o cliente sobre o diagnóstico.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Teste com fonte de bancada',
-                        'content' => "Substitua a bateria por uma fonte de bancada regulada para verificar o consumo de corrente do aparelho:
-
-- Sem bateria e sem ligar: deve consumir 0 mA
-- Ao pressionar o botão power: consumo breve de 100–300 mA indica tentativa de boot
-- Consumo acima de 500 mA sem ligar: indica curto-circuito na placa
-
-O comportamento do consumo indica se o problema é na bateria, no carregador IC ou na placa principal.",
-                        'tip'      => 'Anote os valores de corrente observados em cada etapa. Esses dados devem constar no registro de execução da OS para histórico técnico.',
-                        'tip_type' => 'success',
-                    ],
-                    [
-                        'title'   => 'Registre o diagnóstico e crie o orçamento',
-                        'content' => "Com base nos testes realizados, acesse a OS no sistema e preencha o diagnóstico técnico com:
-- O que foi testado
-- O que foi encontrado
-- A causa provável do problema
-- A solução recomendada
-
-Em seguida, crie o orçamento com as peças e serviços necessários e envie para aprovação do cliente.",
-                        'tip'      => 'Seja específico no diagnóstico. \"Placa com defeito\" não é diagnóstico. \"Curto no CI de carregamento identificado via fonte de bancada\" é diagnóstico.',
-                        'tip_type' => 'success',
-                    ],
+                'title' => 'Cadastrar Novo Cliente',
+                'description' => 'Como registrar um cliente no sistema com todos os dados',
+                'category' => 'Clientes',
+                'emoji' => '👥',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Seção Clientes', 'content' => 'No menu lateral, clique "Clientes" para ver lista de todos os clientes cadastrados.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Criar Novo Cliente', 'content' => 'Clique "+ Novo Cliente" ou "+ Criar". Aparecerá formulário em branco.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Dados Básicos Obrigatórios', 'content' => 'Preencha: Nome completo, Email válido, Telefone com DDD. Estes são essenciais para contato.', 'tip' => 'Email será usado para enviar orçamentos, recibos e notificações importantes', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Dados Adicionais', 'content' => 'Opcional: CPF (pessoa física) ou CNPJ (empresa), data de nascimento, endereço principal, nome de fantasia.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Contatos Extras', 'content' => 'Se cliente tem múltiplos contatos (esposa, sócio, gerente), adicione como contatos secundários com nome e telefone.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Endereços', 'content' => 'Cadastre endereços diferentes se necessário (residência, trabalho, local de entrega preferido).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 7, 'title' => 'Salvar', 'content' => 'Clique "Salvar Cliente". Cliente estará pronto para OSs.', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Registrar Equipamento do Cliente',
+                'description' => 'Adicionar equipamento ao histórico para melhor rastreabilidade',
+                'category' => 'Clientes',
+                'emoji' => '📱',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Abrir Perfil do Cliente', 'content' => 'Na lista de clientes, clique no nome para abrir perfil completo.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Ir para Equipamentos', 'content' => 'Clique na aba "Equipamentos" dentro do perfil. Verá todos os equipamentos do cliente.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Adicionar Novo Equipamento', 'content' => 'Clique "+ Novo Equipamento". Preencha: Tipo (celular, notebook, tablet, console, câmera), Marca, Modelo.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Número de Série', 'content' => 'Preencha o número de série (geralmente na etiqueta ou caixa). Não obrigatório mas recomendado para rastreabilidade.', 'tip' => 'Série é crítica para validar garantia e evitar confusão entre unidades similares', 'tip_type' => 'success'],
+                    ['sort_order' => 5, 'title' => 'Data de Compra e Valor', 'content' => 'Registre quando foi comprado e valor (opcional). Útil para cálculo de valor do aparelho em caso de sinistro.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Garantia', 'content' => 'Indique se tem garantia, tipo (fabricante/loja) e até quando. Ajuda a orientar cliente sobre coberturas.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 7, 'title' => 'Salvar Equipamento', 'content' => 'Clique "Salvar". Equipamento estará disponível para seleção ao criar novas OSs.', 'tip' => '', 'tip_type' => 'info'],
                 ],
             ],
 
+            // ════════════════════════════════════════
+            // RELATÓRIOS
+            // ════════════════════════════════════════
             [
-                'emoji'       => '💬',
-                'title'       => 'Como Apresentar o Orçamento ao Cliente',
-                'description' => 'Guia para comunicar o diagnóstico e o orçamento de forma clara, transparente e profissional, aumentando a taxa de aprovação.',
-                'category'    => 'Atendimento',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Entre em contato pelo canal preferido do cliente',
-                        'content' => "Utilize o contato registrado na OS. Prefira WhatsApp ou telefone, na ordem de preferência informada pelo cliente no cadastro.
-
-Identifique-se e mencione o número da OS logo no início:
-\"Olá, aqui é da [nome da empresa]. Tenho uma atualização sobre a sua OS número [número], referente ao seu [modelo do equipamento].\"
-
-Isso evita confusão e passa profissionalismo.",
-                        'tip'      => 'Nunca ligue para apresentar orçamento sem ter o diagnóstico completo em mãos. O cliente vai perguntar detalhes e você precisa responder com segurança.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Explique o diagnóstico em linguagem simples',
-                        'content' => "Evite jargões técnicos excessivos. Traduza o diagnóstico para o cliente:
-
-Em vez de: \"O CI de carregamento queimou devido a surto de tensão\"
-Diga: \"O chip responsável por carregar a bateria queimou, provavelmente por um pico de energia ou carregador incompatível\"
-
-Se o cliente quiser mais detalhes técnicos, forneça. Mas comece sempre pelo resumo simples.",
-                        'tip'      => 'Clientes que entendem o problema aprovam o orçamento com mais facilidade e confiam mais no serviço. Transparência gera fidelidade.',
-                        'tip_type' => 'success',
-                    ],
-                    [
-                        'title'   => 'Apresente o valor e o prazo com clareza',
-                        'content' => "Informe o valor total do reparo, o que está incluído (peça + mão de obra) e o prazo estimado de entrega.
-
-Exemplo: \"O reparo ficará R$ 180,00, incluindo a peça e a mão de obra. O prazo é de 3 dias úteis após a sua aprovação.\"
-
-Se houver mais de uma opção (ex.: peça original vs. compatível), apresente as duas com os prós e contras de cada uma.",
-                        'tip'      => 'Nunca dê prazo sem verificar a disponibilidade da peça primeiro. Prazo não cumprido é a principal causa de reclamação de clientes.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Registre a decisão do cliente no sistema',
-                        'content' => "Após a conversa, acesse a OS e atualize o status conforme a decisão:
-
-- Cliente aprovou: Clique em \"Aprovado\" no orçamento para liberar a execução do reparo.
-- Cliente recusou: Registre a recusa e combine a devolução do equipamento. Informe o valor da taxa de diagnóstico, se aplicável.
-- Cliente pediu prazo para decidir: Registre na OS e defina um lembrete para retornar o contato.",
-                        'tip'      => 'Nunca inicie o reparo sem aprovação registrada no sistema. A aprovação é a sua proteção legal em caso de disputas.',
-                        'tip_type' => 'warning',
-                    ],
+                'title' => 'Gerar Relatório de Faturamento',
+                'description' => 'Análise de receitas por período',
+                'category' => 'Relatórios',
+                'emoji' => '📊',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Relatórios', 'content' => 'No menu lateral, clique "Relatórios" → "Faturamento".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Selecionar Período', 'content' => 'Escolha: "Este mês", "Mês anterior", "Este ano", ou use data customizada (De/Até).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Aplicar Filtros', 'content' => 'Opcionalmente, filtre por: técnico específico, cliente específico, tipo de serviço, status de pagamento.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Gerar Relatório', 'content' => 'Clique "Gerar". Aparecerá tabela com todas as OSs do período com valores.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Analisar Dados', 'content' => 'Veja: total faturado, ticket médio, OSs concluídas vs pendentes, taxa de conversão de orçamentos.', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Exportar', 'content' => 'Use botões de exportação para PDF (imprimir), Excel (planilha) ou compartilhar.', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Analisar Performance dos Técnicos',
+                'description' => 'Avaliar produtividade e qualidade de cada técnico',
+                'category' => 'Relatórios',
+                'emoji' => '📈',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Relatório', 'content' => 'Menu → Relatórios → "Performance de Técnicos".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Definir Período', 'content' => 'Selecione período (mês, trimestre, ano) para análise.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Visualizar Métricas', 'content' => 'Para cada técnico: OSs realizadas, tempo médio por OS, faturamento, taxa de retorno (retrabalhos), avaliação média.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Interpretar Dados', 'content' => 'Taxa de retorno baixa + avaliação alta = técnico de qualidade. OSs concluídas rápido = produtividade.', 'tip' => 'Use dados para reconhecer top performers e identificar necessidade de treinamento', 'tip_type' => 'success'],
+                    ['sort_order' => 5, 'title' => 'Agir com Base nos Dados', 'content' => 'Redistribua carga se alguém está sobrecarregado. Treine quem tem muitos retrabalhos. Reconheça os melhores.', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Avaliar Satisfação de Clientes',
+                'description' => 'Análise de avaliações e comentários recebidos',
+                'category' => 'Relatórios',
+                'emoji' => '⭐',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Avaliações', 'content' => 'Menu → Relatórios → "Avaliações de Clientes".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Visualizar Resumo', 'content' => 'Veja: nota média geral (1-5 estrelas), quantidade total de avaliações, distribuição (quantas 5 estrelas, 4 estrelas, etc.).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Analisar Comentários', 'content' => 'Leia comentários de clientes. Procure por padrões: "demora muito", "técnico educado", "preço justo", etc.', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Por Técnico', 'content' => 'Filtre por técnico para ver avaliações individuais. Importante para feedback personalizado.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Por Período', 'content' => 'Compare períodos: "As avaliações pioraram em agosto?" pode indicar problema específico a investigar.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Agir', 'content' => 'Se nota baixa: converse com técnico responsável. Se reclamação recorrente: mude processo/política.', 'tip' => '', 'tip_type' => 'warning'],
                 ],
             ],
 
+            // ════════════════════════════════════════
+            // CONFIGURAÇÕES
+            // ════════════════════════════════════════
             [
-                'emoji'       => '📦',
-                'title'       => 'Entrega do Equipamento ao Cliente',
-                'description' => 'Procedimento de entrega para garantir que o equipamento sai funcionando, o cliente está satisfeito e a OS é encerrada corretamente.',
-                'category'    => 'Entrega',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Teste o equipamento antes da entrega',
-                        'content' => "Antes de chamar o cliente, faça um teste completo do equipamento:
-- Ligue e verifique se o boot ocorre normalmente
-- Teste todas as funções relacionadas ao reparo realizado
-- Verifique funções secundárias: câmera, alto-falante, microfone, Wi-Fi, Bluetooth
-- Confirme que o nível de bateria está acima de 50%
-
-Se detectar qualquer problema nesta etapa, não avise o cliente antes de resolver internamente.",
-                        'tip'      => 'Nunca entregue um equipamento sem testá-lo. Um problema descoberto pelo cliente na hora da entrega é muito mais difícil de resolver do que antes.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Demonstre o funcionamento para o cliente',
-                        'content' => "Na presença do cliente, mostre que o problema relatado na OS foi resolvido:
-
-\"O senhor trouxe o aparelho sem ligar. Veja, agora está ligando normalmente, a bateria está carregando e as funções principais estão ok.\"
-
-Incentive o cliente a testar ele mesmo antes de assinar qualquer documento. Isso demonstra confiança no serviço e reduz reclamações pós-entrega.",
-                        'tip'      => 'Se o cliente trouxe o aparelho com mais de um problema, demonstre a solução de cada um individualmente.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Informe a garantia do serviço',
-                        'content' => "Explique verbalmente e por escrito os termos da garantia:
-- Prazo de garantia (ex.: 90 dias para o serviço, 30 dias para a peça)
-- O que está coberto (o defeito reparado)
-- O que não está coberto (danos físicos novos, dano por líquido após a entrega)
-
-Entregue o termo de garantia impresso ou envie por mensagem. O sistema permite gerar o documento de entrega diretamente pela OS.",
-                        'tip'      => 'A garantia se aplica ao serviço executado, não ao equipamento como um todo. Deixe isso claro para evitar expectativas erradas.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Finalize o pagamento e encerre a OS no sistema',
-                        'content' => "Confirme a forma de pagamento com o cliente e registre o pagamento na OS pelo módulo financeiro.
-
-Após o pagamento confirmado:
-1. Acesse a OS no sistema
-2. Registre a entrega do equipamento
-3. Altere o status para \"Entregue\"
-
-Imprima ou envie o recibo de pagamento ao cliente se ele solicitar.",
-                        'tip'      => 'Nunca entregue o equipamento antes de confirmar o pagamento ou combinar formalmente uma condição de parcelamento registrada na OS.',
-                        'tip_type' => 'warning',
-                    ],
+                'title' => 'Configurar Dados da Empresa',
+                'description' => 'Personalizar informações que aparecem em documentos',
+                'category' => 'Configurações',
+                'emoji' => '⚙️',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Acessar Configurações', 'content' => 'Menu lateral → "Configurações" → "Empresa".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Dados Básicos', 'content' => 'Preencha/atualize: Nome da empresa, CNPJ, inscrição estadual, endereço, telefone, email, site.', 'tip' => 'Estes dados aparecerão em todos os documentos (recibos, orçamentos, notas)', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'Logo e Tema', 'content' => 'Faça upload de logo. Escolha cores do sistema (tema claro/escuro).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Configurações de Serviço', 'content' => 'Defina: valor padrão hora técnico, margem de lucro padrão, dias de validade de orçamento.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Política', 'content' => 'Descreva política de garantia, cancelamento, reembolso (aparece no portal do cliente).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Salvar', 'content' => 'Clique "Salvar Configurações".', 'tip' => '', 'tip_type' => 'info'],
+                ],
+            ],
+            [
+                'title' => 'Gerenciar Usuários da Empresa',
+                'description' => 'Adicionar técnicos, gerentes e controlar acessos',
+                'category' => 'Configurações',
+                'emoji' => '🔐',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Ir para Usuários', 'content' => 'Menu → Configurações → "Usuários e Permissões".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Adicionar Novo Usuário', 'content' => 'Clique "+ Convidar Usuário". Preencha: nome completo, email.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Atribuir Função', 'content' => 'Escolha a função: Administrador (acesso total), Gerente (relatórios + controle), Técnico (apenas suas OSs), Atendimento (criar/listar OSs).', 'tip' => 'Administrador é necessário para configurações, mas limite o número', 'tip_type' => 'warning'],
+                    ['sort_order' => 4, 'title' => 'Configurar Permissões', 'content' => 'Define quais módulos o usuário acessa: Clientes, Relatórios, Financeiro, etc.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Enviar Convite', 'content' => 'Sistema envia email com link para usuário criar sua senha e ativar conta.', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Gerenciar Acesso', 'content' => 'Pode editar função, permissões ou desativar usuário a qualquer momento.', 'tip' => '', 'tip_type' => 'info'],
                 ],
             ],
 
+            // ════════════════════════════════════════
+            // BOAS PRÁTICAS
+            // ════════════════════════════════════════
             [
-                'emoji'       => '🔄',
-                'title'       => 'Atendimento de Retorno em Garantia',
-                'description' => 'Como tratar corretamente um equipamento que retornou com o mesmo problema dentro do prazo de garantia do serviço anterior.',
-                'category'    => 'Garantia',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Localize a OS original e verifique a garantia',
-                        'content' => "Ao atender o cliente, busque no sistema pelo nome, CPF ou número de OS anterior.
-
-Verifique:
-- Data de entrega da OS original
-- Prazo de garantia registrado
-- Serviço executado e peça trocada
-
-Confirme se o retorno está dentro do prazo de garantia antes de qualquer outra ação.",
-                        'tip'      => 'Em caso de dúvida sobre o prazo, consulte o gestor antes de comunicar ao cliente. Negar uma garantia indevida é pior do que honrá-la.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Ouça o relato do cliente sem confrontar',
-                        'content' => "Permita que o cliente descreva o problema sem interrupção. Evite expressões que pareçam defensivas como:
-- \"Isso não é culpa nossa\"
-- \"O cliente deve ter deixado cair\"
-- \"Isso não é o mesmo problema\"
-
-Diga apenas: \"Vou verificar o equipamento e te retorno em breve com o diagnóstico.\". Isso acalma o cliente e dá tempo para avaliação técnica.",
-                        'tip'      => 'Clientes em retorno de garantia já estão frustrados. O tom da conversa nos primeiros minutos define se o caso vai se resolver bem ou escalar para reclamação.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Avalie se o problema é coberto pela garantia',
-                        'content' => "O técnico deve verificar se o problema apresentado é:
-
-a) O mesmo problema original (coberto): execute o reparo sem custo.
-b) Problema diferente (não coberto): abra uma nova OS normalmente com novo orçamento.
-c) Dano causado pelo cliente pós-entrega (ex.: nova queda): mostre as evidências ao cliente com clareza e abra nova OS.
-
-Documente tecnicamente a conclusão na OS de garantia.",
-                        'tip'      => 'Nunca tome a decisão de negar garantia sem evidência técnica documentada. A negativa sem prova gera conflito e pode resultar em problemas no Procon.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Abra a OS de retorno em garantia no sistema',
-                        'content' => "Crie uma nova OS vinculando-a à OS original de garantia.
-
-Na descrição, registre:
-- Número da OS de origem
-- Problema relatado no retorno
-- Conclusão do diagnóstico técnico
-- Se o atendimento é em garantia ou não, e o motivo
-
-Isso mantém o histórico completo do equipamento e protege a empresa.",
-                        'tip'      => 'Use o campo de observações para registrar tudo. Um histórico bem documentado protege a empresa em caso de questionamentos futuros.',
-                        'tip_type' => 'success',
-                    ],
+                'title' => 'Boas Práticas: Descrição Clara de Problemas',
+                'description' => 'Como descrever defeitos para melhor diagnóstico do técnico',
+                'category' => 'Boas Práticas',
+                'emoji' => '💡',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'NUNCA use descrições vagas', 'content' => 'Errado: "não funciona", "está quebrado", "travou". Correto: "tela preta, não liga", "carrega lentamente", "desliga sozinho ao fazer video call".', 'tip' => 'Vagas deixam técnico perdido e atrasam diagnóstico', 'tip_type' => 'warning'],
+                    ['sort_order' => 2, 'title' => 'Quando começou', 'content' => 'Importante para diagnóstico: "desde ontem", "após atualização", "sempre teve", "começou após queda de água".', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'O que o cliente tentou', 'content' => 'Se cliente já tentou algo: reiniciou?, restaurou de backup?, atualizou sistema? Isso muda o diagnóstico.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Contexto de uso', 'content' => 'Acontece em todas as situações ou específicas? Ex: "só quando abre WhatsApp", "em qualquer app", "com 4G/WiFi/offline".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Mensagens/códigos de erro', 'content' => 'Se aparecer mensagem de erro, copie exatamente. Pode ser diferença entre "erro 404" e "erro 405".', 'tip' => '', 'tip_type' => 'success'],
+                ],
+            ],
+            [
+                'title' => 'Boas Práticas: Orçamento Profissional',
+                'description' => 'Como apresentar orçamentos que aumentam taxa de aprovação',
+                'category' => 'Boas Práticas',
+                'emoji' => '📋',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Diagnóstico Claro', 'content' => 'Comece orçamento com: "Problema identificado: [descrição técnica]. Causa: [causa raiz]. Solução: [o que será feito]".', 'tip' => 'Cliente precisa entender por que precisa gastar', 'tip_type' => 'success'],
+                    ['sort_order' => 2, 'title' => 'Itemização Detalhada', 'content' => 'Liste CADA peça com nome, valor, marca/modelo. NÃO agrupe como "reparo". Ex: "Tela LCD original Samsung S10 - R$450".', 'tip' => 'Transparência gera confiança e reduz rejeições', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'Comparações', 'content' => 'Se oferecer opções (peça original vs compatível), mostre diferenças: preço, garantia, durabilidade.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Garantia', 'content' => 'Informe garantia das peças (1 ano, 6 meses?) e do serviço (problema ressurge em 30 dias, refazemos grátis?).', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Prazo', 'content' => 'Indique: "Orçamento válido até [data]", "Serviço leva [X] dias", "Será contato quando terminar".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Chamada Pessoal', 'content' => 'Após enviar orçamento por email, ligue para cliente em até 2 horas para esclarecer dúvidas. Aumenta aprovação.', 'tip' => '', 'tip_type' => 'success'],
+                ],
+            ],
+            [
+                'title' => 'Boas Práticas: Acompanhamento Pós-Serviço',
+                'description' => 'Como gerar lealdade e aumentar retorno de clientes',
+                'category' => 'Boas Práticas',
+                'emoji' => '📞',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Confirmação de Entrega', 'content' => 'Quando cliente vem buscar, confirme pessoalmente: "Funcionando normal? Quer que teste de novo junto?"', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Contato Após 3 Dias', 'content' => 'Ligue ou envie mensagem: "Seu celular está funcionando bem? Está carregando normal?" Mostra cuidado.', 'tip' => 'Clientes sentem-se valorizados e voltam ao ter problema', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'Orientações de Cuidado', 'content' => 'Dê dicas: "Nunca deixe no calor", "Evite água", "Desligue se travar". Protege a peça e mostra expertise.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Oferta Preventiva', 'content' => 'Ao contactar: "Sua bateria está nível 30%? Recomendo trocar logo antes de não carregar".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Feedback Ativo', 'content' => 'Leia avaliação que cliente deixou. Se crítica, responda pessoalmente: "Desculpe sobre [X]. Como podemos melhorar?"', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 6, 'title' => 'Retenção', 'content' => 'Cliente satisfeito que recebe follow-up volta 5x mais. Invista esse tempo no pós-venda.', 'tip' => '', 'tip_type' => 'success'],
                 ],
             ],
 
+            // ════════════════════════════════════════
+            // TROUBLESHOOTING
+            // ════════════════════════════════════════
             [
-                'emoji'       => '💰',
-                'title'       => 'Registro de Pagamento e Fechamento Financeiro',
-                'description' => 'Como registrar corretamente os pagamentos, cobranças e encerrar o financeiro de uma OS sem deixar pendências.',
-                'category'    => 'Financeiro',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Acesse o módulo financeiro da OS',
-                        'content' => "Com a OS aberta no sistema, acesse a aba ou seção de Financeiro/Cobranças.
-
-Verifique se o valor cobrado corresponde ao orçamento aprovado pelo cliente. Se houver diferença (ex.: peça com custo diferente do previsto), ajuste o valor com uma cobrança de ajuste e registre o motivo.",
-                        'tip'      => 'Nunca altere o valor de um orçamento já aprovado sem comunicar o cliente e registrar a justificativa. Surpresas no valor final na hora da entrega geram conflito.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Registre a forma e o valor do pagamento',
-                        'content' => "No módulo financeiro, adicione o pagamento informando:
-- Valor pago
-- Forma de pagamento (dinheiro, pix, cartão de débito, cartão de crédito, etc.)
-- Data do pagamento
-
-Se o cliente pagou em partes, registre cada pagamento separadamente com sua respectiva data e forma.",
-                        'tip'      => 'Pagamentos em dinheiro devem ser conferidos na presença do cliente e registrados imediatamente. Nunca deixe para registrar \"depois\".',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Confirme o saldo e verifique se está zerado',
-                        'content' => "Após registrar o(s) pagamento(s), o sistema exibirá o saldo devedor da OS.
-
-Confirme que o saldo está em R$ 0,00 antes de liberar o equipamento para entrega. Se houver saldo pendente, defina com o cliente como e quando será quitado antes de entregar o aparelho.",
-                        'tip'      => 'Equipamento entregue com saldo em aberto sem combinação formal raramente é pago. Defina a condição de pagamento antes da entrega e registre na OS.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Emita o recibo e encerre a OS',
-                        'content' => "Com o pagamento quitado, emita o recibo pelo sistema e ofereça ao cliente (impresso ou via WhatsApp).
-
-Em seguida, registre a entrega do equipamento na OS e altere o status para \"Entregue\" ou \"Concluído\", conforme o fluxo da empresa.
-
-A OS encerrada corretamente aparecerá nos relatórios financeiros e de desempenho do mês.",
-                        'tip'      => 'OS encerradas incorretamente distorcem os relatórios do dashboard. Sempre finalize com o status correto.',
-                        'tip_type' => 'info',
-                    ],
+                'title' => 'Solução: Cliente Não Recebeu Orçamento',
+                'description' => 'Passos para diagnosticar e resolver falta de recebimento',
+                'category' => 'Troubleshooting',
+                'emoji' => '🔍',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Verificar Email Registrado', 'content' => 'Abra OS → cliente → confirme email. Procure por: espaços extras, ponto ou hífen mal colocado, domínio errado (gmail.com vs gmai.com).', 'tip' => '', 'tip_type' => 'warning'],
+                    ['sort_order' => 2, 'title' => 'Verificar Spam/Lixo', 'content' => 'Peça ao cliente: "Verifique seu Gmail na pasta Spam, Promotions ou Lixo. Orçamentos podem estar lá".', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 3, 'title' => 'Reenviar Orçamento', 'content' => 'Na OS, clique "Reenviar Orçamento" ou "Enviar Novamente". Sistema reenviará nova cópia.', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 4, 'title' => 'Compartilhar por WhatsApp', 'content' => 'Enquanto email é resolvido, compartilhe foto/arquivo do orçamento via WhatsApp ao cliente. Não perde tempo.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 5, 'title' => 'Se Continuar Falhando', 'content' => 'Contate suporte técnico com: data/hora do envio, email do cliente, ID da OS. Time verificará logs.', 'tip' => '', 'tip_type' => 'info'],
                 ],
             ],
-
             [
-                'emoji'       => '😤',
-                'title'       => 'Como Lidar com Cliente Insatisfeito',
-                'description' => 'Protocolo de atendimento para situações de conflito, reclamação ou cliente agitado, preservando a relação e a reputação da empresa.',
-                'category'    => 'Atendimento',
-                'status'      => 'published',
-                'steps'       => [
-                    [
-                        'title'   => 'Escute sem interromper e sem se defender imediatamente',
-                        'content' => "Quando um cliente estiver insatisfeito, permita que ele termine de falar antes de qualquer resposta.
-
-Não interrompa, não cruze os braços e não desvie o olhar. Mostre que está ouvindo com expressões como \"Entendo\" e \"Pode continuar\".
-
-A maioria dos clientes quer ser ouvida antes de qualquer solução. Isso por si só já reduz a tensão.",
-                        'tip'      => 'Nunca diga \"se acalme\" ou \"não precisa falar assim\". Essas frases irritam ainda mais. Mantenha a calma e deixe o cliente se expressar.',
-                        'tip_type' => 'warning',
-                    ],
-                    [
-                        'title'   => 'Reconheça o problema sem assumir culpa prematuramente',
-                        'content' => "Após ouvir, reconheça a insatisfação do cliente com empatia:
-
-\"Entendo a sua frustração e me desculpe pelo transtorno que isso causou.\"
-
-Isso não é admissão de culpa — é empatia. Você pode reconhecer que a situação é ruim para o cliente sem confirmar que a empresa errou, antes de investigar o que realmente aconteceu.",
-                        'tip'      => 'Empatia e responsabilidade são coisas diferentes. Você pode ter uma sem a outra. Seja empático sempre; assuma responsabilidade apenas após verificar os fatos.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Investigue os fatos antes de oferecer solução',
-                        'content' => "Antes de prometer qualquer coisa, verifique no sistema:
-- O histórico da OS
-- O diagnóstico registrado
-- As notas do técnico
-- A data de entrega e o prazo de garantia
-
-Com as informações em mãos, você pode oferecer uma solução baseada em fatos, não em suposições.",
-                        'tip'      => 'Se precisar de tempo para investigar, diga ao cliente: \"Vou verificar tudo agora e te retorno em [tempo]. Posso te ligar em [hora]?\". Não deixe o cliente esperando sem previsão.',
-                        'tip_type' => 'info',
-                    ],
-                    [
-                        'title'   => 'Ofereça uma solução clara e cumpra o que prometer',
-                        'content' => "Com base na investigação, ofereça uma solução concreta:
-- Se for erro da empresa: resolva sem custo e com agilidade.
-- Se for mal entendido: explique com clareza e documentação.
-- Se for algo fora da responsabilidade da empresa: explique os motivos com evidências técnicas.
-
-Seja honesto. Se não puder resolver de imediato, dê um prazo real e cumpra.
-
-Registre a solução combinada na OS para histórico.",
-                        'tip'      => 'A forma como você resolve um problema é o que os clientes lembram e contam para outras pessoas. Um problema resolvido bem pode gerar mais fidelidade do que se o problema nunca tivesse ocorrido.',
-                        'tip_type' => 'success',
-                    ],
+                'title' => 'Solução: Sistema Lento ou Travado',
+                'description' => 'O que fazer se aplicação não responde',
+                'category' => 'Troubleshooting',
+                'emoji' => '⚡',
+                'status' => 'published',
+                'steps' => [
+                    ['sort_order' => 1, 'title' => 'Recarregar Página', 'content' => 'Pressione F5 ou Ctrl+R (Win) ou Cmd+R (Mac) para recarregar o navegador.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 2, 'title' => 'Limpar Cache', 'content' => 'Pressione Ctrl+Shift+Delete (Win) ou Cmd+Shift+Delete (Mac). Selecione "Cookies e cache" e limpe. Faça login novamente.', 'tip' => '', 'tip_type' => 'success'],
+                    ['sort_order' => 3, 'title' => 'Testar com Outro Navegador', 'content' => 'Tente com Chrome, Firefox, Safari ou Edge (qualquer outro que tenha). Se funciona em outro, é problema do seu navegador.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 4, 'title' => 'Verificar Conexão', 'content' => 'Acesse speedtest.net para checar velocidade. Se < 1 Mbps, sua internet é lenta. Tente por dados 4G.', 'tip' => '', 'tip_type' => 'warning'],
+                    ['sort_order' => 5, 'title' => 'Desabilitar Extensões', 'content' => 'Extensões de navegador (VPN, ad blocker) podem conflitar. Desabilite temporariamente para testar.', 'tip' => '', 'tip_type' => 'info'],
+                    ['sort_order' => 6, 'title' => 'Contatar Suporte', 'content' => 'Se tudo falhar: registre OS de suporte com: navegador usado, sistema operacional, hora do problema, ação que estava fazendo.', 'tip' => '', 'tip_type' => 'warning'],
                 ],
             ],
         ];
 
-        foreach ($playbooks as $data) {
-            $playbook = Playbook::create([
-                'title'       => $data['title'],
-                'description' => $data['description'],
-                'category'    => $data['category'],
-                'emoji'       => $data['emoji'],
-                'status'      => $data['status'],
-            ]);
+        $count = 0;
+        foreach ($playbooks as $playbook) {
+            $steps = $playbook['steps'];
+            unset($playbook['steps']);
 
-            foreach ($data['steps'] as $i => $step) {
-                PlaybookStep::create([
-                    'playbook_id' => $playbook->getKey(),
-                    'sort_order'  => $i,
-                    'title'       => $step['title'],
-                    'content'     => $step['content'],
-                    'tip'         => $step['tip'] ?? null,
-                    'tip_type'    => $step['tip_type'] ?? 'info',
-                ]);
+            $created = Playbook::create($playbook);
+            foreach ($steps as $step) {
+                $step['playbook_id'] = $created->id;
+                PlaybookStep::create($step);
             }
+            $count++;
         }
+
+        $this->command->info("✅ {$count} playbooks criados com sucesso!");
+        $this->command->info('📚 Cobertura: 29 playbooks cobrindo Ordens de Serviço, Clientes, Relatórios, Configurações, Boas Práticas e Troubleshooting');
     }
 }
