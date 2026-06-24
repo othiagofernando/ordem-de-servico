@@ -91,7 +91,7 @@ class ServiceOrderAssignmentController extends Controller
                         type: 'os_assigned',
                         title: 'OS atribuída a você',
                         body: "Você foi designado para a O.S. {$visible->reference}.",
-                        actionUrl: "/{$companySlug}/ordens-de-servico/{$visible->id}",
+                        actionUrl: "/{$companySlug}/service-orders/{$visible->id}",
                     );
                 } catch (\Throwable) {
                     // Notification failure must not break the main flow

@@ -385,22 +385,23 @@ async function save() {
   display: block;
   font-size: 0.75rem;
   font-weight: 500;
-  color: #a8a29e;
+  color: var(--c-text-muted);
   margin-bottom: 0.375rem;
 }
 
 .admin-input {
   border-radius: 0.75rem;
-  border: 1px solid #44403c;
-  background: #1c1917;
-  color: #fafaf9;
+  border: 1px solid var(--c-input-border);
+  background: var(--c-input-bg);
+  color: var(--c-text);
   padding: 0.625rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, box-shadow 0.15s, background-color 0.15s;
 }
 .admin-input:focus {
   border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.12);
 }
 
 .icon-btn {
@@ -411,15 +412,19 @@ async function save() {
   height: 1.75rem;
   border-radius: 0.5rem;
   font-size: 0.75rem;
-  color: #78716c;
+  color: var(--c-text-muted);
   transition: background 0.15s, color 0.15s;
 }
 .icon-btn:hover:not(:disabled) {
-  background: #292524;
-  color: #fafaf9;
+  background: var(--c-nav-hover);
+  color: var(--c-text);
 }
 .icon-btn:disabled {
   opacity: 0.3;
   cursor: not-allowed;
+}
+
+:deep(.step-title-input::placeholder) {
+  color: var(--c-text-dim);
 }
 </style>

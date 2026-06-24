@@ -135,20 +135,42 @@ html.light .text-stone-400 {
 /* Dark background surfaces → light in light mode */
 html.light .bg-black\/20,
 html.light .bg-black\/30 {
-  background-color: rgba(0, 0, 0, 0.04) !important;
+  background-color: var(--c-surface-hover) !important;
 }
 
 html.light .bg-white\/5 {
-  background-color: rgba(255, 255, 255, 0.80) !important;
+  background-color: var(--c-surface) !important;
 }
 
 html.light .bg-white\/10 {
-  background-color: rgba(255, 255, 255, 0.90) !important;
+  background-color: var(--c-surface-hover) !important;
+}
+
+html.light .bg-stone-700 {
+  background-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+html.light .bg-stone-800,
+html.light .bg-stone-800\/20,
+html.light .bg-stone-800\/30,
+html.light .bg-stone-800\/40,
+html.light .bg-stone-800\/50,
+html.light .bg-stone-800\/60,
+html.light .bg-stone-900,
+html.light .bg-stone-900\/20,
+html.light .bg-stone-900\/30,
+html.light .bg-stone-900\/60,
+html.light .bg-stone-950 {
+  background-color: var(--c-surface) !important;
 }
 
 /* Borders */
 html.light .border-white\/10 {
   border-color: rgba(0, 0, 0, 0.09) !important;
+}
+
+html.light .border-white\/5 {
+  border-color: rgba(0, 0, 0, 0.05) !important;
 }
 
 html.light .border-white\/\[0\.06\] {
@@ -163,6 +185,16 @@ html.light .border-white\/\[0\.08\] {
   border-color: rgba(0, 0, 0, 0.08) !important;
 }
 
+html.light .border-stone-700,
+html.light .border-stone-800,
+html.light .border-stone-900 {
+  border-color: var(--c-border) !important;
+}
+
+html.light .divide-stone-800 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--c-border) !important;
+}
+
 /* Placeholder */
 html.light .placeholder-stone-500::placeholder {
   color: #a8a29e;
@@ -171,13 +203,18 @@ html.light .placeholder-stone-500::placeholder {
 /* Badge / accent text — pastel variants → saturated in light mode */
 html.light .text-sky-300    { color: #0369a1 !important; }   /* sky-700 */
 html.light .text-amber-300  { color: #b45309 !important; }   /* amber-700 */
+html.light .text-amber-200  { color: #92400e !important; }   /* amber-800 */
 html.light .text-emerald-300{ color: #047857 !important; }   /* emerald-700 */
 html.light .text-emerald-400{ color: #047857 !important; }
 html.light .text-violet-300 { color: #6d28d9 !important; }   /* violet-700 */
+html.light .text-violet-400 { color: #5b21b6 !important; }   /* violet-800 */
 html.light .text-red-300    { color: #b91c1c !important; }   /* red-700 */
 html.light .text-red-400    { color: #b91c1c !important; }
 html.light .text-orange-300 { color: #c2410c !important; }   /* orange-700 */
 html.light .text-orange-400 { color: #c2410c !important; }
+html.light .hover\:text-amber-200:hover { color: #b45309 !important; }
+html.light .hover\:text-sky-200:hover { color: #0369a1 !important; }
+html.light .hover\:text-violet-200:hover { color: #6d28d9 !important; }
 
 /* Badge backgrounds — keep the tint visible but not washed out */
 html.light .bg-sky-500\/20     { background-color: rgba(14, 165, 233, 0.12) !important; }
@@ -207,3 +244,10 @@ html.light .hover\:border-white\/20:hover { border-color: rgba(0, 0, 0, 0.15) !i
 /* Hover de fundo (linhas de tabela, cards clicáveis) */
 html.light .hover\:bg-white\/5:hover  { background-color: rgba(0, 0, 0, 0.03) !important; }
 html.light .hover\:bg-white\/10:hover { background-color: rgba(0, 0, 0, 0.05) !important; }
+html.light .hover\:bg-stone-800:hover,
+html.light .hover\:bg-stone-800\/40:hover,
+html.light .hover\:bg-stone-800\/50:hover,
+html.light .hover\:bg-stone-900\/40:hover,
+html.light .hover\:bg-stone-900\/60:hover {
+  background-color: var(--c-nav-hover) !important;
+}

@@ -84,7 +84,7 @@ class ServiceOrderClosureController extends Controller
                     type: 'ready_for_pickup',
                     title: 'OS pronta para retirada',
                     body: "A O.S. {$fresh->reference} está pronta para retirada pelo cliente.",
-                    actionUrl: "/{$companySlug}/ordens-de-servico/{$fresh->id}",
+                    actionUrl: "/{$companySlug}/service-orders/{$fresh->id}",
                 );
             }
         } catch (\Throwable) {

@@ -131,7 +131,7 @@ class CustomerQuotePortalController extends Controller
             ->with(['payments'])
             ->get();
 
-        $data = $orders->map(fn (ServiceOrder $order): array => [
+        $data = $orders->map(fn(ServiceOrder $order): array => [
             'id' => $order->getKey(),
             'reference' => $order->reference,
             'order_number' => $order->order_number,
@@ -240,7 +240,7 @@ class CustomerQuotePortalController extends Controller
         try {
             $serviceOrder = $quote->serviceOrder->loadMissing('company');
             $companySlug = $serviceOrder->company->slug ?? '';
-            $actionUrl = "/{$companySlug}/ordens-de-servico/{$serviceOrder->id}";
+            $actionUrl = "/{$companySlug}/service-orders/{$serviceOrder->id}";
             $isApproved = $requestedStatus === QuoteRevision::STATUS_APPROVED;
             $notifType = $isApproved ? 'quote_approved' : 'quote_rejected';
             $notifTitle = $isApproved ? 'Orçamento aprovado' : 'Orçamento recusado';
@@ -326,7 +326,7 @@ class CustomerQuotePortalController extends Controller
             ->where('visibility', ServiceOrderTimelineEvent::VISIBILITY_CUSTOMER)
             ->values();
         $paymentDocuments = $serviceOrder->payments
-            ->map(fn (ServiceOrderPayment $payment): array => [
+            ->map(fn(ServiceOrderPayment $payment): array => [
                 'payment_id' => $payment->getKey(),
                 'amount_cents' => $payment->amount_cents,
                 'currency' => $payment->currency,
@@ -365,7 +365,7 @@ class CustomerQuotePortalController extends Controller
                     'brand' => $serviceOrder->equipment?->brand,
                     'model' => $serviceOrder->equipment?->model,
                 ],
-                'timeline' => $customerTimeline->map(fn (ServiceOrderTimelineEvent $event): array => [
+                'timeline' => $customerTimeline->map(fn(ServiceOrderTimelineEvent $event): array => [
                     'id' => $event->getKey(),
                     'type' => $event->type,
                     'title' => $event->title,
