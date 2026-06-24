@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ApiError } from '../../api/client'
 import { listAdminAudits, type AdminAuditEntry } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 
 const audits = ref<AdminAuditEntry[]>([])
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 const companyId = ref('')
 const category = ref('')
 const eventType = ref('')
@@ -28,7 +29,6 @@ function fmtDateTime(value: string | null | undefined) {
 
 async function load() {
   loading.value = true
-  error.value = ''
 
   try {
     audits.value = (await listAdminAudits({
@@ -38,7 +38,7 @@ async function load() {
       limit: 100,
     })).data
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao carregar auditoria global.'
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -83,9 +83,7 @@ watch(
       </p>
     </div>
 
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <form class="grid gap-3 rounded-2xl border border-white/10 bg-white/5 p-4 lg:grid-cols-[180px_1fr_1fr_auto]" @submit.prevent="submitFilters">
       <input

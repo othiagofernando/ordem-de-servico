@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import type { QuoteRevision } from '../../../api/serviceOrders'
 
 defineProps<{
@@ -13,6 +14,20 @@ defineEmits<{
   generatePortalToken: [quoteId: number]
   copyLink: [link: string]
 }>()
+
+const copiedQuoteId = ref<number | null>(null)
+
+async function handleCopyLink(link: string, quoteId: number) {
+  try {
+    await navigator.clipboard.writeText(link)
+    copiedQuoteId.value = quoteId
+    setTimeout(() => {
+      copiedQuoteId.value = null
+    }, 3000)
+  } catch {
+    console.error('Erro ao copiar link')
+  }
+}
 </script>
 
 <template>
@@ -42,7 +57,13 @@ defineEmits<{
         </div>
         <div v-if="portalLinks[q.id]" class="mb-3 flex items-center gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
           <span class="flex-1 truncate font-mono text-xs text-amber-300">{{ portalLinks[q.id] }}</span>
-          <button class="text-xs text-stone-400 hover:text-stone-200" @click="$emit('copyLink', portalLinks[q.id])">Copiar</button>
+          <button
+            class="text-xs font-medium transition-colors"
+            :class="copiedQuoteId === q.id ? 'text-emerald-400' : 'text-stone-400 hover:text-stone-200'"
+            @click="handleCopyLink(portalLinks[q.id], q.id)"
+          >
+            {{ copiedQuoteId === q.id ? '✓ Copiado!' : 'Copiar' }}
+          </button>
         </div>
         <div class="space-y-1">
           <div

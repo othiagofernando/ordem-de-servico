@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ApiError } from '../../api/client'
 import { useSortable } from '../../composables/useSortable'
+import { useApiError } from '../../composables/useApiError'
 import AppPagination from '../../components/AppPagination.vue'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 import {
   activateAdminCompany,
   extendAdminCompanySubscription,
@@ -20,7 +21,7 @@ const subscriptions = ref<AdminSubscriptionListEntry[]>([])
 const summary = ref<AdminSubscriptionSummary | null>(null)
 const plans = ref<AdminPlan[]>([])
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 const notice = ref('')
 const search = ref('')
 const status = ref('')
@@ -75,7 +76,6 @@ function fmtMoney(cents: number, currency = 'BRL') {
 
 async function load() {
   loading.value = true
-  error.value = ''
 
   try {
     const [plansResponse, subscriptionsResponse] = await Promise.all([
@@ -92,7 +92,7 @@ async function load() {
     subscriptions.value = subscriptionsResponse.data
     summary.value = subscriptionsResponse.summary
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao carregar assinaturas globais.'
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -104,7 +104,6 @@ function isRunning(key: string) {
 
 async function renewCompany(companyId: number) {
   actionKey.value = `renew:${companyId}`
-  error.value = ''
   notice.value = ''
 
   try {
@@ -112,7 +111,7 @@ async function renewCompany(companyId: number) {
     notice.value = 'Assinatura renovada em 30 dias.'
     await load()
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao renovar assinatura.'
+    handleError(e)
   } finally {
     actionKey.value = ''
   }
@@ -120,7 +119,6 @@ async function renewCompany(companyId: number) {
 
 async function toggleCompanyStatus(companyId: number, nextStatus: 'activate' | 'suspend') {
   actionKey.value = `${nextStatus}:${companyId}`
-  error.value = ''
   notice.value = ''
 
   try {
@@ -134,7 +132,7 @@ async function toggleCompanyStatus(companyId: number, nextStatus: 'activate' | '
 
     await load()
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao atualizar status da empresa.'
+    handleError(e)
   } finally {
     actionKey.value = ''
   }
@@ -182,9 +180,7 @@ watch(
       </p>
     </div>
 
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <div v-if="notice" class="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
       {{ notice }}

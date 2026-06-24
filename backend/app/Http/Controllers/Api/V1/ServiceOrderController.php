@@ -136,8 +136,8 @@ class ServiceOrderController extends Controller
         $membership = $resolveDiagnosableServiceOrder->membership();
 
         $payload = $request->validate([
-            'internal_notes' => ['required', 'string'],
-            'customer_summary' => ['required', 'string'],
+            'internal_notes' => ['nullable', 'string'],
+            'customer_summary' => ['nullable', 'string'],
         ]);
 
         $diagnosable = $recordServiceOrderDiagnosis->handle(
@@ -912,10 +912,10 @@ class ServiceOrderController extends Controller
             'customer_id' => ['required', 'integer'],
             'customer_contact_id' => ['required', 'integer'],
             'equipment_id' => ['required', 'integer'],
-            'intake_checklist_template_id' => ['required', 'integer'],
-            'equipment_description' => ['required', 'string'],
+            'intake_checklist_template_id' => ['nullable', 'integer'],
+            'equipment_description' => ['nullable', 'string'],
             'reported_problem' => ['required', 'string'],
-            'intake_checklist' => ['required', 'array', 'min:1'],
+            'intake_checklist' => ['nullable', 'array'],
         ]);
 
         if ($validator->fails()) {

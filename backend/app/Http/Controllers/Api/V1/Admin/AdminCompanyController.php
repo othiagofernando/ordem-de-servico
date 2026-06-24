@@ -280,7 +280,7 @@ class AdminCompanyController extends Controller
                 'actor_super_admin' => true,
             ],
             beforeValues: $before,
-            afterValues: $this->serializeLifecycle($company->fresh()),
+            afterValues: $this->serializeLifecycle($company),
         );
 
         return response()->json([], Response::HTTP_NO_CONTENT);

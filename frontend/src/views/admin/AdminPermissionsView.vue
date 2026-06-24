@@ -7,11 +7,13 @@ import {
   listAdminRoles,
   ADMIN_ROLE_LABELS,
 } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 
 const users = ref<AdminUser[]>([])
 const globalRoles = ref<AdminGlobalRole[]>([])
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 
 const activeTab = ref<'matrix' | string>('matrix')
 
@@ -75,8 +77,8 @@ onMounted(async () => {
     const [usersRes, rolesRes] = await Promise.all([listAdminUsers(), listAdminRoles()])
     users.value = usersRes.data
     globalRoles.value = rolesRes.data
-  } catch {
-    error.value = 'Erro ao carregar dados de permissões.'
+  } catch (e) {
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -111,9 +113,7 @@ onMounted(async () => {
     </div>
 
     <!-- ── Erro ───────────────────────────────────────────── -->
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <!-- ── Loading ────────────────────────────────────────── -->
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando permissões…</div>

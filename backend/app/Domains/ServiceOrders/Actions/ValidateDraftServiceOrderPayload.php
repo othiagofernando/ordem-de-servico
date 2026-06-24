@@ -21,9 +21,7 @@ class ValidateDraftServiceOrderPayload
             'customer_contact_id' => ['nullable', 'integer'],
             'equipment_id' => ['nullable', 'integer'],
             'intake_checklist_template_id' => ['nullable', 'integer'],
-            'equipment_description' => $requireMinimumIntakeContext
-                ? ['nullable', 'string', 'required_without:equipment_id']
-                : ['nullable', 'string'],
+            'equipment_description' => ['nullable', 'string', 'required_without:equipment_id'],
             'reported_problem' => $requireMinimumIntakeContext ? ['required', 'string'] : ['nullable', 'string'],
             'intake_checklist' => ['nullable', 'array'],
             'intake_checklist.*.label' => ['required_with:intake_checklist', 'string', 'max:255'],

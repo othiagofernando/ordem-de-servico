@@ -73,12 +73,6 @@ class QuoteRevisionController extends Controller
             ], Response::HTTP_FORBIDDEN);
         }
 
-        if ($visible->diagnosis_completed_at === null) {
-            throw ValidationException::withMessages([
-                'diagnosis_completed_at' => 'Diagnosis must be completed before sending a quote.',
-            ]);
-        }
-
         $payload = $request->validate([
             'line_items' => ['required', 'array', 'min:1'],
             'line_items.*.description' => ['required', 'string', 'max:255'],

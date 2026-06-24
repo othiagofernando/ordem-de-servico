@@ -7,12 +7,35 @@ export const API_BASE = `${apiBase}/api/v1`
 export class ApiError extends Error {
   status: number
   data: unknown
+  isForbidden: boolean
 
-  constructor(status: number, data: unknown, message: string) {
-    super(message)
+  constructor(status: number, data: unknown, message?: string) {
+    const isForbidden = status === 403
+    const finalMessage = message ?? getDefaultErrorMessage(status, isForbidden)
+    super(finalMessage)
     this.status = status
     this.data = data
+    this.isForbidden = isForbidden
   }
+}
+
+function getDefaultErrorMessage(status: number, isForbidden: boolean): string {
+  if (isForbidden) {
+    return 'Você não tem permissão para acessar este recurso'
+  }
+  if (status === 401) {
+    return 'Sua sessão expirou. Faça login novamente'
+  }
+  if (status === 404) {
+    return 'Recurso não encontrado'
+  }
+  if (status === 422) {
+    return 'Dados inválidos'
+  }
+  if (status >= 500) {
+    return 'Erro no servidor. Tente novamente mais tarde'
+  }
+  return `Erro na requisição (HTTP ${status})`
 }
 
 function getToken(): string | null {
@@ -48,7 +71,7 @@ export async function apiFetch<T>(
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, data, (data as { message?: string }).message ?? `HTTP ${res.status}`)
+    throw new ApiError(res.status, data, (data as { message?: string }).message)
   }
 
   if (res.status === 204) return undefined as T
@@ -88,7 +111,7 @@ export async function apiPostForm<T>(path: string, formData: FormData): Promise<
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, data, (data as { message?: string }).message ?? `HTTP ${res.status}`)
+    throw new ApiError(res.status, data, (data as { message?: string }).message)
   }
 
   return res.json() as Promise<T>
@@ -118,7 +141,7 @@ export async function apiDownload(path: string, filename: string, accept = 'text
 
   if (!res.ok) {
     const data = await res.json().catch(() => ({}))
-    throw new ApiError(res.status, data, (data as { message?: string }).message ?? `HTTP ${res.status}`)
+    throw new ApiError(res.status, data, (data as { message?: string }).message)
   }
 
   const blob = await res.blob()

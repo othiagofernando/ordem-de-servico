@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { ApiError } from '../../api/client'
 import { listAdminPlans, type AdminPlan } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 
 const plans = ref<AdminPlan[]>([])
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 
 const summary = computed(() => ({
   plans: plans.value.length,
@@ -27,12 +28,11 @@ function limitLabel(value: number | null | undefined, suffix = '') {
 
 async function load() {
   loading.value = true
-  error.value = ''
 
   try {
     plans.value = (await listAdminPlans()).data
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao carregar catálogo de planos.'
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -59,9 +59,7 @@ onMounted(load)
       </RouterLink>
     </div>
 
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       <div class="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-5">

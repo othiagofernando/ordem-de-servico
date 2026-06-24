@@ -8,6 +8,7 @@ const { tenantRoute } = useTenantRouting()
 
 const playbooks = ref<Playbook[]>([])
 const loading = ref(true)
+const error = ref<string | null>(null)
 const q = ref('')
 const selectedCategory = ref('')
 
@@ -33,8 +34,15 @@ const filtered = computed(() => {
 
 onMounted(async () => {
   try {
+    console.log('[PlaybooksView] Carregando playbooks...')
     const res = await listPlaybooks()
-    playbooks.value = res.data
+    console.log('[PlaybooksView] Resposta recebida:', res)
+    playbooks.value = res.data || []
+    console.log('[PlaybooksView] Playbooks atribuídos:', playbooks.value.length)
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[PlaybooksView] Erro ao carregar playbooks:', message)
+    error.value = message
   } finally {
     loading.value = false
   }
@@ -76,6 +84,23 @@ function stepLabel(n: number): string {
     <!-- Loading -->
     <div v-if="loading" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <div v-for="i in 6" :key="i" class="h-44 rounded-2xl card-skeleton" />
+    </div>
+
+    <!-- Erro -->
+    <div
+      v-if="error"
+      class="flex flex-col items-center gap-3 rounded-2xl border border-dashed py-16 text-center"
+      style="border-color: #ff6b6b; background: rgba(255, 107, 107, 0.05)"
+    >
+      <span class="text-5xl">⚠️</span>
+      <div>
+        <p class="font-medium" style="color: #ff6b6b">
+          Erro ao carregar playbooks
+        </p>
+        <p class="mt-1 text-sm" style="color: var(--c-text-muted)">
+          {{ error }}
+        </p>
+      </div>
     </div>
 
     <!-- Vazio -->

@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import { ApiError } from '../../api/client'
 import { getAdminOverview, type AdminOverviewPayload } from '../../api/admin'
+import { useApiError } from '../../composables/useApiError'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 import { documentMask } from '../../utils/masks'
 
 const overview = ref<AdminOverviewPayload | null>(null)
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 const route = useRoute()
 const router = useRouter()
 const focus = ref<'expiring' | 'recent' | 'suspended' | ''>('')
@@ -37,12 +38,11 @@ async function setFocus(nextFocus: 'expiring' | 'recent' | 'suspended' | '') {
 
 async function load() {
   loading.value = true
-  error.value = ''
 
   try {
     overview.value = await getAdminOverview()
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao carregar resumo global.'
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -94,9 +94,7 @@ watch(
       </div>
     </div>
 
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando resumo…</div>
 

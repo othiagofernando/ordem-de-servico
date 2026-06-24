@@ -104,6 +104,14 @@ class Company extends Model
         return $this->status === self::STATUS_ACTIVE && $this->is_active && $this->deleted_at === null;
     }
 
+    public function resolveRouteBinding($value, $field = null)
+    {
+        return $this->newQuery()
+            ->where($field ?? $this->getRouteKeyName(), $value)
+            ->withTrashed()
+            ->firstOrFail();
+    }
+
     public function memberships(): HasMany
     {
         return $this->hasMany(Membership::class);

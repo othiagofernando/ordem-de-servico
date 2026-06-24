@@ -128,20 +128,6 @@ class ServiceOrderClosureController extends Controller
             'balance_override_reason' => ['nullable', 'string'],
         ]);
 
-        $hasApprovedQuote = $visible->quoteRevisions()
-            ->where('status', QuoteRevision::STATUS_APPROVED)
-            ->exists();
-
-        $hasDerivedApprovedQuoteCharge = $visible->charges()
-            ->where('charge_type', ServiceOrderCharge::TYPE_APPROVED_QUOTE)
-            ->exists();
-
-        if ($hasApprovedQuote && ! $hasDerivedApprovedQuoteCharge) {
-            throw ValidationException::withMessages([
-                'charge_type' => 'Approved quote charges must be derived before delivery can be completed.',
-            ]);
-        }
-
         $outstandingBalanceCents = $this->outstandingBalanceCents($visible);
         $allowBalanceOverride = (bool) ($payload['allow_balance_override'] ?? false);
         $visible->loadMissing('company');

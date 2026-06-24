@@ -159,7 +159,6 @@ const startExecutionBlockers = computed(() => {
 
   const blockers: string[] = []
 
-  if (!os.value.diagnosis_completed_at) blockers.push('Registre o diagnóstico antes de iniciar a execução.')
   if (os.value.assigned_membership_id === null) blockers.push('Atribua um técnico responsável antes de iniciar a execução.')
   if (!hasApprovedQuote.value) blockers.push('É necessário ter ao menos um orçamento aprovado antes de iniciar a execução.')
 
@@ -344,10 +343,6 @@ async function doAssign() {
   } finally {
     assignLoading.value = false
   }
-}
-
-function copyLink(link: string) {
-  navigator.clipboard.writeText(link).catch(() => {})
 }
 
 async function saveCharge(type: 'diagnostic_fee' | 'adjustment') {
@@ -1063,7 +1058,6 @@ async function downloadAttachment(attachmentId: number) {
             :format-date-time="fmt"
             :format-money="fmtMoney"
             @generate-portal-token="doGeneratePortalToken"
-            @copy-link="copyLink"
           />
 
           <!-- Financeiro -->

@@ -47,12 +47,12 @@ class EnsureSuperAdmin
                     }
                 }
 
-                abort(Response::HTTP_FORBIDDEN, 'Permissão insuficiente.');
+                abort(Response::HTTP_FORBIDDEN, 'Você não tem permissão para acessar esta seção.');
             }
 
             // Fixed role check
             if (! in_array($adminRole, $allowedRoles, true)) {
-                abort(Response::HTTP_FORBIDDEN, 'Permissão insuficiente.');
+                abort(Response::HTTP_FORBIDDEN, 'Você não tem permissão para acessar esta seção.');
             }
         }
 

@@ -172,18 +172,6 @@ class ServiceOrderFinancialController extends Controller
 
         $financials = $this->summarizeFinancials($visible->loadMissing(['charges', 'payments']));
 
-        if ($financials['outstanding_balance_cents'] <= 0) {
-            throw ValidationException::withMessages([
-                'amount_cents' => 'There is no outstanding balance to receive.',
-            ]);
-        }
-
-        if ($payload['amount_cents'] > $financials['outstanding_balance_cents']) {
-            throw ValidationException::withMessages([
-                'amount_cents' => 'Payment amount cannot exceed the outstanding balance.',
-            ]);
-        }
-
         DB::transaction(function () use (
             $visible,
             $membership,

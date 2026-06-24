@@ -15,6 +15,10 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(DevSeeder::class);
+        $this->call([
+            // BulkDataSeeder::class,
+            DevSeeder::class,
+            PlaybookSeeder::class,
+        ]);
     }
 }

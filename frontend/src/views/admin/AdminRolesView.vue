@@ -7,14 +7,15 @@ import {
   updateAdminRole,
   deleteAdminRole,
 } from '../../api/admin'
-import { ApiError } from '../../api/client'
 import { useSortable } from '../../composables/useSortable'
+import { useApiError } from '../../composables/useApiError'
 import ThSort from '../../components/ThSort.vue'
 import AppPagination from '../../components/AppPagination.vue'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 
 const roles = ref<AdminGlobalRole[]>([])
 const loading = ref(true)
-const error = ref('')
+const { error, handleError } = useApiError()
 
 const page = ref(1)
 const perPage = ref(15)
@@ -65,19 +66,18 @@ const modalMode = ref<'create' | 'edit'>('create')
 const selectedRole = ref<AdminGlobalRole | null>(null)
 const form = ref({ name: '', permissions: [] as string[] })
 const formLoading = ref(false)
-const formError = ref('')
+const { error: formError, handleError: handleFormError } = useApiError()
 
 // ── modal excluir ────────────────────────────────────────
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref<AdminGlobalRole | null>(null)
 const deleteLoading = ref(false)
-const deleteError = ref('')
+const { error: deleteError, handleError: handleDeleteError } = useApiError()
 
 function openCreate() {
   modalMode.value = 'create'
   selectedRole.value = null
   form.value = { name: '', permissions: [] }
-  formError.value = ''
   showModal.value = true
 }
 
@@ -85,7 +85,6 @@ function openEdit(role: AdminGlobalRole) {
   modalMode.value = 'edit'
   selectedRole.value = role
   form.value = { name: role.name, permissions: [...role.permissions] }
-  formError.value = ''
   showModal.value = true
 }
 
@@ -99,7 +98,6 @@ function togglePermission(perm: string) {
 }
 
 async function submitForm() {
-  formError.value = ''
   formLoading.value = true
   try {
     if (modalMode.value === 'create') {
@@ -118,7 +116,7 @@ async function submitForm() {
     }
     showModal.value = false
   } catch (e) {
-    formError.value = e instanceof ApiError ? e.message : 'Erro inesperado. Tente novamente.'
+    handleFormError(e)
   } finally {
     formLoading.value = false
   }
@@ -126,20 +124,18 @@ async function submitForm() {
 
 function confirmDelete(role: AdminGlobalRole) {
   deleteTarget.value = role
-  deleteError.value = ''
   showDeleteConfirm.value = true
 }
 
 async function doDelete() {
   if (!deleteTarget.value) return
   deleteLoading.value = true
-  deleteError.value = ''
   try {
     await deleteAdminRole(deleteTarget.value.id)
     roles.value = roles.value.filter((r) => r.id !== deleteTarget.value!.id)
     showDeleteConfirm.value = false
   } catch (e) {
-    deleteError.value = e instanceof ApiError ? e.message : 'Erro inesperado. Tente novamente.'
+    handleDeleteError(e)
   } finally {
     deleteLoading.value = false
   }
@@ -158,8 +154,8 @@ onMounted(async () => {
   try {
     const { data } = await listAdminRoles()
     roles.value = data
-  } catch {
-    error.value = 'Erro ao carregar perfis de acesso.'
+  } catch (e) {
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -187,9 +183,7 @@ onMounted(async () => {
     </div>
 
     <!-- ── Erro ───────────────────────────────────────────── -->
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <!-- ── Loading ────────────────────────────────────────── -->
     <div v-if="loading" class="py-16 text-center text-stone-500">Carregando perfis…</div>
@@ -289,12 +283,7 @@ onMounted(async () => {
           <button type="button" class="text-stone-500 hover:text-stone-300" @click="showModal = false">✕</button>
         </div>
 
-        <div
-          v-if="formError"
-          class="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-        >
-          {{ formError }}
-        </div>
+        <ApiErrorAlert :error="formError" class="mt-4" />
 
         <form class="mt-5 space-y-5" @submit.prevent="submitForm">
           <div>
@@ -361,12 +350,7 @@ onMounted(async () => {
           Esta ação não pode ser desfeita.
         </p>
 
-        <div
-          v-if="deleteError"
-          class="mt-4 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300"
-        >
-          {{ deleteError }}
-        </div>
+        <ApiErrorAlert :error="deleteError" class="mt-4" />
 
         <div class="mt-5 flex flex-wrap gap-3">
           <button

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ApiError } from '../../api/client'
 import { useSortable } from '../../composables/useSortable'
+import { useApiError } from '../../composables/useApiError'
 import ThSort from '../../components/ThSort.vue'
 import AppPagination from '../../components/AppPagination.vue'
+import ApiErrorAlert from '../../components/ApiErrorAlert.vue'
 import {
   activateAdminCompany,
   deleteAdminCompany,
@@ -22,10 +23,10 @@ import { documentMask } from '../../utils/masks'
 
 const route = useRoute()
 const router = useRouter()
+const { error, handleError } = useApiError()
 const companies = ref<AdminCompany[]>([])
 const summary = ref<AdminCompanySummary | null>(null)
 const loading = ref(true)
-const error = ref('')
 const search = ref('')
 const selectedCompany = ref<AdminCompany | null>(null)
 const action = ref<'suspend' | 'activate' | 'delete' | 'subscription' | 'extend' | null>(null)
@@ -117,7 +118,6 @@ function fmtDate(value: string | null | undefined) {
 
 async function loadCompanies(query = search.value) {
   loading.value = true
-  error.value = ''
   try {
     const res = await listAdminCompanies({
       query,
@@ -126,7 +126,7 @@ async function loadCompanies(query = search.value) {
     companies.value = res.data
     summary.value = res.summary
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao carregar empresas.'
+    handleError(e)
   } finally {
     loading.value = false
   }
@@ -169,7 +169,6 @@ async function submitAction() {
   if (!selectedCompany.value || !action.value || !canConfirm.value) return
 
   actionLoading.value = true
-  error.value = ''
 
   try {
     if (action.value === 'suspend') {
@@ -187,14 +186,15 @@ async function submitAction() {
       await extendAdminCompanySubscription(selectedCompany.value.id, {
         months: Number(subscriptionForm.value.extend_months || '1'),
       })
-    } else {
+    } else if (action.value === 'delete') {
       await deleteAdminCompany(selectedCompany.value.id, confirmation.value)
     }
 
     closeAction()
     await loadCompanies(search.value)
   } catch (e) {
-    error.value = e instanceof ApiError ? e.message : 'Erro ao executar ação administrativa.'
+    console.error('Erro ao executar ação:', e)
+    handleError(e)
   } finally {
     actionLoading.value = false
   }
@@ -264,9 +264,7 @@ async function clearPlanFilter() {
       </div>
     </div>
 
-    <div v-if="error" class="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">
-      {{ error }}
-    </div>
+    <ApiErrorAlert :error="error" />
 
     <div
       v-if="activePlan"
