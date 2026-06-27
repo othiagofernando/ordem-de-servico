@@ -1,10 +1,14 @@
 const RESERVED_SEGMENTS = new Set([
   'login',
-  'cadastro',
-  'selecionar-empresa',
+  'register',
+  'select-company',
   'portal',
   'admin',
   'auth',
+  'billing',
+  // Portuguese aliases kept for safe fallback
+  'cadastro',
+  'selecionar-empresa',
   'convites',
   'assinatura-suspensa',
   'ordens-de-servico',

@@ -83,7 +83,7 @@ class Company extends Model
                 'company_id' => $company->getKey(),
                 'plan_id' => $starterPlan->getKey(),
                 'started_at' => now(),
-                'expires_at' => now()->addDays(30),
+                'expires_at' => now()->addDays(5),
                 'status' => Subscription::STATUS_ACTIVE,
             ]);
         });

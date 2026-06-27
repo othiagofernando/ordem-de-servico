@@ -167,6 +167,9 @@ const navLinks = computed(() => {
           ? [{ to: tenantRoute("audit"), label: "Auditoria" }]
           : []),
         { to: tenantRoute("settings"), label: "Configurações" },
+        ...(auth.role === "administrator"
+          ? [{ to: tenantRoute("billing.plan"), label: "Assinatura" }]
+          : []),
         { to: tenantRoute("learning"), label: "Ajuda" },
       ];
 });
@@ -464,6 +467,32 @@ const navLinks = computed(() => {
           </button>
         </div>
 
+        <!-- Banner: período de avaliação gratuita (> 7 dias restantes) -->
+        <div
+          v-if="
+            auth.role === 'administrator' &&
+            auth.subscription &&
+            auth.subscription.status === 'active' &&
+            auth.subscription.plan.slug === 'starter' &&
+            auth.subscription.days_until_expiration > 7
+          "
+          class="mb-6 flex items-center justify-between gap-4 rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3"
+        >
+          <p class="text-sm" style="color: var(--c-text)">
+            <strong class="font-semibold text-sky-400">Período de avaliação gratuita.</strong>
+            Você tem
+            <strong class="text-sky-400">{{ auth.subscription.days_until_expiration }} dias</strong>
+            para experimentar o sistema sem custo.
+          </p>
+          <RouterLink
+            :to="tenantRoute('billing.plan')"
+            class="shrink-0 rounded-lg border border-sky-500/30 bg-sky-500/10 px-3 py-1.5 text-xs font-semibold text-sky-400 transition hover:bg-sky-500/20"
+          >
+            Ver planos
+          </RouterLink>
+        </div>
+
+        <!-- Banner: vencimento próximo (≤ 7 dias) -->
         <div
           v-if="
             !auth.isSuperAdmin &&

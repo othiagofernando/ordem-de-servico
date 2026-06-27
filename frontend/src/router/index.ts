@@ -494,7 +494,19 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guest && auth.isAuthenticated) {
-    return auth.isSuperAdmin ? { name: 'admin' } : tenantTarget(auth, 'dashboard')
+    if (!auth.context) {
+      try {
+        await auth.loadContext()
+      } catch {
+        auth.logout()
+        return
+      }
+    }
+    if (auth.isSuperAdmin) return { name: 'admin' }
+    const slug = auth.company?.slug
+    if (slug) return { name: 'dashboard', params: { tenantSlug: slug } }
+    auth.logout()
+    return
   }
 
   if (to.meta.superAdminOnly && !auth.isSuperAdmin) {
