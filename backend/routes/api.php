@@ -197,7 +197,7 @@ Route::middleware('auth.token')->group(function (): void {
         return \Illuminate\Support\Facades\Broadcast::auth($request);
     })->name('api.v1.broadcasting.auth');
 
-    Route::middleware('subscription.active')->group(function (): void {
+    // Settings are accessible even when subscription is suspended (needed to fill in CPF/CNPJ for checkout)
     Route::get('/company/settings', [CompanyOperationalSettingController::class, 'show'])
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.company.settings.show');
@@ -213,6 +213,8 @@ Route::middleware('auth.token')->group(function (): void {
     Route::post('/settings/logo', CompanyLogoController::class)
         ->middleware('permission:company_settings.manage')
         ->name('api.v1.settings.logo');
+
+    Route::middleware('subscription.active')->group(function (): void {
     Route::get('/tenant/roles', RoleCatalogController::class)
         ->name('api.v1.tenant.roles.index');
     Route::get('/tenant/company-roles', [CompanyRoleController::class, 'index'])

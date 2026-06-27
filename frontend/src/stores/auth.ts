@@ -13,6 +13,7 @@ import {
   type TenantContext,
 } from '../api/auth'
 import type { LoginMultiResult } from '../api/auth'
+import { getSubscriptionBilling } from '../api/billing'
 import { setStoredTenantSlug } from '../tenant'
 
 export interface ImpersonationMeta {
@@ -154,6 +155,16 @@ export const useAuthStore = defineStore('auth', {
         return 'authenticated' as const
       } finally {
         this.loading = false
+      }
+    },
+
+    async refreshSubscription() {
+      if (!this.token || this.isSuperAdmin) return
+      try {
+        const res = await getSubscriptionBilling()
+        this.subscription = res.data
+      } catch {
+        // silently ignore — stale state is better than a crash
       }
     },
 

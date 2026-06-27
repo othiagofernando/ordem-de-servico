@@ -21,14 +21,23 @@ class BillingCheckoutController extends Controller
             'plan_id' => ['required', 'integer', 'exists:plans,id'],
         ]);
 
+        $document = preg_replace('/\D+/', '', (string) $company->document);
+        abort_if(
+            empty($document),
+            Response::HTTP_UNPROCESSABLE_ENTITY,
+            'missing_document',
+        );
+
         $plan = Plan::query()->findOrFail($data['plan_id']);
         $subscription = $company->subscription()->first() ?? $company->subscriptions()->create([
             'plan_id' => $plan->getKey(),
             'started_at' => now(),
             'expires_at' => now()->addDays(config('billing.asaas.default_cycle_days', 30)),
-            'status' => Subscription::STATUS_SUSPENDED,
+            'status' => Subscription::STATUS_ACTIVE,
             'gateway_name' => config('billing.gateway'),
         ]);
+
+        $previousStatus = $subscription->status;
 
         $subscription->forceFill([
             'plan_id' => $plan->getKey(),
@@ -39,15 +48,20 @@ class BillingCheckoutController extends Controller
         $frontendBase = (string) config('app.frontend_url', '');
         $isPublicUrl = filled($frontendBase) && ! str_contains($frontendBase, 'localhost') && ! str_contains($frontendBase, '127.0.0.1');
         $frontendCallbackUrl = $isPublicUrl
-            ? rtrim($frontendBase, '/') . '/' . $company->slug . '/configuracoes/plano'
+            ? rtrim($frontendBase, '/') . '/' . $company->slug . '/settings/billing'
             : null;
 
-        $created = $gateway->createSubscription(
-            company: $company,
-            plan: $plan,
-            dueDate: now()->addDays(3)->toDateString(),
-            callbackUrl: $frontendCallbackUrl ?? '',
-        );
+        try {
+            $created = $gateway->createSubscription(
+                company: $company,
+                plan: $plan,
+                dueDate: now()->addDays(3)->toDateString(),
+                callbackUrl: $frontendCallbackUrl ?? '',
+            );
+        } catch (\Throwable $e) {
+            $subscription->forceFill(['status' => $previousStatus])->save();
+            throw $e;
+        }
 
         $subscription->forceFill([
             'gateway_customer_id' => $created['customer'] ?? $subscription->gateway_customer_id,

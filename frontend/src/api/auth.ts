@@ -109,6 +109,7 @@ export interface BootstrapMembership {
 export interface SubscriptionSnapshot {
   id: number
   status: string
+  is_trial: boolean
   started_at: string | null
   expires_at: string | null
   days_until_expiration: number

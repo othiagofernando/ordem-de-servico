@@ -44,6 +44,12 @@ class SyncBillingSubscriptionsCommand extends Command
                 }
             });
 
+        // Suspend active subscriptions that have passed the grace period (covers trial and manual subscriptions)
+        Subscription::query()
+            ->where('status', Subscription::STATUS_ACTIVE)
+            ->where('expires_at', '<', now()->subDays(Subscription::GRACE_DAYS))
+            ->update(['status' => Subscription::STATUS_SUSPENDED]);
+
         Subscription::query()
             ->with(['company', 'plan'])
             ->where('status', Subscription::STATUS_ACTIVE)

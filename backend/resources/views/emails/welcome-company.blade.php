@@ -1,39 +1,15 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bem-vindo</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; margin: 0; padding: 40px 20px; color: #1a1a1a; }
-        .container { max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
-        .header { background: #1c1917; padding: 32px 40px; }
-        .header h1 { color: #fbbf24; margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.3px; }
-        .body { padding: 40px; }
-        .body p { margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #374151; }
-        .btn-wrap { text-align: center; margin: 32px 0; }
-        .btn { display: inline-block; background: #f59e0b; color: #1c1917; font-size: 15px; font-weight: 700; text-decoration: none; padding: 14px 36px; border-radius: 8px; }
-        .footer { background: #f9fafb; border-top: 1px solid #f3f4f6; padding: 20px 40px; font-size: 12px; color: #9ca3af; }
-        .footer p { margin: 0; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h1>{{ $companyName }}</h1>
-        </div>
-        <div class="body">
-            <p>Olá,</p>
-            <p>Sua empresa <strong>{{ $companyName }}</strong> foi cadastrada com sucesso.</p>
-            <p>Você já pode acessar a plataforma com o e-mail e a senha informados no cadastro.</p>
-            <div class="btn-wrap">
-                <a href="{{ $loginUrl }}" class="btn">Acessar plataforma</a>
-            </div>
-            <p>Se você não reconhece este cadastro, ignore este e-mail.</p>
-        </div>
-        <div class="footer">
-            <p>Este é um e-mail automático. Não responda a esta mensagem.</p>
-        </div>
+@extends('emails.layout')
+
+@section('title', 'Bem-vindo ao ' . config('app.name'))
+@section('preheader', 'Sua empresa ' . $companyName . ' foi cadastrada com sucesso. Acesse a plataforma agora.')
+@section('header', $companyName)
+
+@section('content')
+    <p>Olá,</p>
+    <p>Sua empresa <strong>{{ $companyName }}</strong> foi cadastrada com sucesso na plataforma.</p>
+    <p>Você já pode acessar o sistema com o e-mail cadastrado.</p>
+    <div class="btn-wrap">
+        <a href="{{ $loginUrl }}" class="btn">Acessar plataforma</a>
     </div>
-</body>
-</html>
+    <p>Se você não reconhece este cadastro, ignore este e-mail.</p>
+@endsection

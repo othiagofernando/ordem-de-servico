@@ -40,6 +40,7 @@ class SerializeSubscription
         return [
             'id' => $subscription->getKey(),
             'status' => $subscription->status,
+            'is_trial' => $subscription->gateway_subscription_id === null,
             'started_at' => $subscription->started_at?->toIso8601String(),
             'expires_at' => $subscription->expires_at?->toIso8601String(),
             'days_until_expiration' => $subscription->daysUntilExpiration(),

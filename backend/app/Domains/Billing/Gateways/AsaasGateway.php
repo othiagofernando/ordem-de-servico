@@ -49,18 +49,19 @@ class AsaasGateway
             return ['id' => 'local-'.$company->getKey()];
         }
 
-        if ($company->subscription?->gateway_customer_id) {
-            return ['id' => $company->subscription->gateway_customer_id];
-        }
-
-        $response = $this->client()->post('/customers', [
+        $payload = [
             'name' => $company->trade_name ?: $company->name,
             'email' => $company->email,
             'cpfCnpj' => preg_replace('/\D+/', '', (string) $company->document) ?: null,
             'phone' => preg_replace('/\D+/', '', (string) $company->phone) ?: null,
-        ])->throw()->json();
+        ];
 
-        return $response;
+        if ($existingId = $company->subscription?->gateway_customer_id) {
+            // Update the existing customer to ensure the latest document is on file
+            return $this->client()->post('/customers/' . $existingId, $payload)->throw()->json();
+        }
+
+        return $this->client()->post('/customers', $payload)->throw()->json();
     }
 
     public function createSubscription(Company $company, Plan $plan, string $dueDate, string $callbackUrl): array
@@ -78,7 +79,7 @@ class AsaasGateway
 
         $payload = [
             'customer' => $customer['id'],
-            'billingType' => 'BOLETO',
+            'billingType' => 'UNDEFINED',
             'cycle' => 'MONTHLY',
             'nextDueDate' => $dueDate,
             'value' => $this->referenceValue($plan),

@@ -524,7 +524,7 @@ router.beforeEach(async (to) => {
           : tenantTarget(auth, 'dashboard')
       }
 
-      if (!hasAccessibleSubscription(auth) && !['subscription-suspended', 'billing.plan'].includes(String(to.name ?? ''))) {
+      if (!hasAccessibleSubscription(auth) && !['subscription-suspended', 'billing.plan', 'settings'].includes(String(to.name ?? ''))) {
         return tenantTarget(auth, 'subscription-suspended')
       }
     }

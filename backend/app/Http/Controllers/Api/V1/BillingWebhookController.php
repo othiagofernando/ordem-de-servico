@@ -24,9 +24,24 @@ class BillingWebhookController extends Controller
         $payload = $request->all();
         $event = strtoupper((string) ($payload['event'] ?? $payload['type'] ?? ''));
 
-        $gatewaySubscriptionId = data_get($payload, 'subscription.id') ?? data_get($payload, 'data.subscription.id') ?? data_get($payload, 'subscriptionId') ?? null;
-        $gatewayCustomerId = data_get($payload, 'payment.customer.id') ?? data_get($payload, 'customer.id') ?? data_get($payload, 'data.customer.id') ?? null;
-        $gatewayInvoiceId = data_get($payload, 'payment.id') ?? data_get($payload, 'data.payment.id') ?? data_get($payload, 'id') ?? null;
+        // Asaas sends subscription ID at different paths depending on event type:
+        // - subscription events: subscription.id
+        // - payment events: payment.subscription (plain string)
+        $gatewaySubscriptionId = data_get($payload, 'subscription.id')
+            ?? data_get($payload, 'payment.subscription')
+            ?? data_get($payload, 'data.subscription.id')
+            ?? data_get($payload, 'subscriptionId')
+            ?? null;
+
+        // Asaas sends customer ID as a plain string in payment.customer, not a nested object
+        $gatewayCustomerId = data_get($payload, 'payment.customer')
+            ?? data_get($payload, 'payment.customer.id')
+            ?? data_get($payload, 'customer.id')
+            ?? data_get($payload, 'data.customer.id')
+            ?? null;
+
+        // Only treat as invoice if there is an actual payment ID (not an event/subscription ID)
+        $gatewayInvoiceId = data_get($payload, 'payment.id') ?? data_get($payload, 'data.payment.id') ?? null;
 
         $subscription = Subscription::query()
             ->with(['company', 'plan'])

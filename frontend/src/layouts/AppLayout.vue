@@ -35,14 +35,35 @@ function onGlobalKeydown(e: KeyboardEvent) {
   }
 }
 
+async function onVisibilityChange() {
+  if (!document.hidden) {
+    await auth.refreshSubscription();
+  }
+}
+
 onMounted(() => {
   document.addEventListener("click", onDocClick);
   document.addEventListener("keydown", onGlobalKeydown);
+  document.addEventListener("visibilitychange", onVisibilityChange);
 });
 onUnmounted(() => {
   document.removeEventListener("click", onDocClick);
   document.removeEventListener("keydown", onGlobalKeydown);
+  document.removeEventListener("visibilitychange", onVisibilityChange);
 });
+
+// Quando assinatura ativa após estar suspensa, redireciona para o dashboard
+watch(
+  () => auth.subscription?.status,
+  (newStatus, oldStatus) => {
+    if (oldStatus && oldStatus !== "active" && newStatus === "active") {
+      const route = router.currentRoute.value;
+      if (route.name === "subscription-suspended") {
+        router.replace(tenantRoute("dashboard"));
+      }
+    }
+  },
+);
 
 // Real-time: connect Reverb when authenticated as a tenant user
 watch(
@@ -472,6 +493,7 @@ const navLinks = computed(() => {
           v-if="
             auth.role === 'administrator' &&
             auth.subscription &&
+            auth.subscription.is_trial &&
             auth.subscription.status === 'active' &&
             auth.subscription.plan.slug === 'starter' &&
             auth.subscription.days_until_expiration > 7
@@ -492,20 +514,56 @@ const navLinks = computed(() => {
           </RouterLink>
         </div>
 
-        <!-- Banner: vencimento próximo (≤ 7 dias) -->
+        <!-- Banner: assinatura vencida ou suspensa -->
         <div
           v-if="
             !auth.isSuperAdmin &&
             auth.subscription &&
+            (auth.subscription.status === 'suspended' || auth.subscription.days_until_expiration < 0)
+          "
+          class="banner-expired mb-6 flex items-center justify-between gap-4 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3"
+        >
+          <p class="banner-expired-text text-sm text-rose-300">
+            <strong class="font-semibold">Assinatura vencida.</strong>
+            <template v-if="auth.role === 'administrator'">
+              Renove o plano para restaurar o acesso completo.
+            </template>
+            <template v-else>
+              Entre em contato com o administrador da empresa para regularizar.
+            </template>
+          </p>
+          <RouterLink
+            v-if="auth.role === 'administrator'"
+            :to="tenantRoute('billing.plan')"
+            class="banner-expired-btn shrink-0 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+          >
+            Renovar agora
+          </RouterLink>
+        </div>
+
+        <!-- Banner: vencimento próximo (0–7 dias) -->
+        <div
+          v-if="
+            !auth.isSuperAdmin &&
+            auth.subscription &&
+            auth.subscription.status === 'active' &&
+            auth.subscription.days_until_expiration >= 0 &&
             auth.subscription.days_until_expiration <= 7
           "
-          class="mb-6 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+          class="banner-expiring mb-6 flex items-center justify-between gap-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3"
         >
-          <strong class="font-semibold">Assinatura perto do vencimento.</strong>
-          Vence em {{ auth.subscription.days_until_expiration }} dia(s).
-          <span v-if="auth.subscription.plan.name"
-            >Plano atual: {{ auth.subscription.plan.name }}.</span
+          <p class="banner-expiring-text text-sm text-amber-300">
+            <strong class="font-semibold">Assinatura perto do vencimento.</strong>
+            Vence em <strong>{{ auth.subscription.days_until_expiration }} dia(s)</strong>.
+            <span v-if="auth.subscription.plan.name">Plano atual: {{ auth.subscription.plan.name }}.</span>
+          </p>
+          <RouterLink
+            v-if="auth.role === 'administrator'"
+            :to="tenantRoute('billing.plan')"
+            class="banner-expiring-btn shrink-0 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-500/20"
           >
+            Renovar agora
+          </RouterLink>
         </div>
         <RouterView />
       </main>

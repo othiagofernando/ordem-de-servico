@@ -251,3 +251,36 @@ html.light .hover\:bg-stone-900\/40:hover,
 html.light .hover\:bg-stone-900\/60:hover {
   background-color: var(--c-nav-hover) !important;
 }
+
+/* ─── Banners de status da assinatura (light mode) ────── */
+html.light .banner-expired {
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+html.light .banner-expired-text {
+  color: #9f1239 !important;
+}
+html.light .banner-expired-btn {
+  background-color: #ffe4e6 !important;
+  border-color: #fda4af !important;
+  color: #be123c !important;
+}
+html.light .banner-expired-btn:hover {
+  background-color: #fecdd3 !important;
+}
+
+html.light .banner-expiring {
+  background-color: #fffbeb !important;
+  border-color: #fde68a !important;
+}
+html.light .banner-expiring-text {
+  color: #92400e !important;
+}
+html.light .banner-expiring-btn {
+  background-color: #fef3c7 !important;
+  border-color: #fcd34d !important;
+  color: #b45309 !important;
+}
+html.light .banner-expiring-btn:hover {
+  background-color: #fde68a !important;
+}
