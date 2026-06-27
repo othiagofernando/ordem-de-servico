@@ -10,7 +10,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-COPY . .
+COPY backend/ .
 
 RUN composer install --no-dev --optimize-autoloader --no-interaction --no-scripts \
     && rm -f config/scribe.php \
@@ -20,9 +20,9 @@ RUN mkdir -p storage/framework/{sessions,views,cache} storage/logs bootstrap/cac
     && chown -R www-data:www-data storage bootstrap/cache \
     && chmod -R 775 storage bootstrap/cache
 
-COPY docker/nginx-site.conf /etc/nginx/sites-enabled/default
-COPY docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
-COPY docker/entrypoint.sh /entrypoint.sh
+COPY backend/docker/nginx-site.conf /etc/nginx/sites-enabled/default
+COPY backend/docker/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+COPY backend/docker/entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 EXPOSE 80
