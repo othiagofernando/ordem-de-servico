@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->json('permissions')->default('[]');
+            $table->json('permissions')->nullable();
             $table->timestamps();
 
             $table->index('company_id');

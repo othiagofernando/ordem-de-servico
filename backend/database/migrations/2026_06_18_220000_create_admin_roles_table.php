@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('admin_roles', function (Blueprint $table) {
             $table->id();
             $table->string('name');
-            $table->json('permissions')->default('[]');
+            $table->json('permissions')->nullable();
             $table->timestamps();
         });
 
