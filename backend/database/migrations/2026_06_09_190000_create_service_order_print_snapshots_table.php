@@ -14,9 +14,11 @@ return new class extends Migration
             $table->foreignId('service_order_id')->constrained()->cascadeOnDelete();
             $table->unsignedInteger('version')->default(1);
             $table->json('payload');
-            $table->foreignId('first_issued_by_membership_id')->nullable()->constrained('memberships')->nullOnDelete();
+            $table->unsignedBigInteger('first_issued_by_membership_id')->nullable();
+            $table->foreign('first_issued_by_membership_id', 'sops_first_issued_membership_fk')->references('id')->on('memberships')->nullOnDelete();
             $table->timestamp('first_issued_at')->nullable();
-            $table->foreignId('last_issued_by_membership_id')->nullable()->constrained('memberships')->nullOnDelete();
+            $table->unsignedBigInteger('last_issued_by_membership_id')->nullable();
+            $table->foreign('last_issued_by_membership_id', 'sops_last_issued_membership_fk')->references('id')->on('memberships')->nullOnDelete();
             $table->timestamp('last_issued_at')->nullable();
             $table->unsignedInteger('issue_count')->default(1);
             $table->timestamps();
