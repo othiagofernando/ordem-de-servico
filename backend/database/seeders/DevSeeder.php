@@ -456,7 +456,7 @@ class DevSeeder extends Seeder
         $os2 = ServiceOrder::query()->create([
             'company_id'          => $company->id,
             'reference'           => 'OS-2026-00002',
-            'order_number'        => 'OS-2026-00002',
+            'order_number'        => 2,
             'title'               => 'Celular com tela trincada',
             'status'              => ServiceOrder::STATUS_OPEN,
             'customer_id'         => $maria->id,
@@ -491,7 +491,7 @@ class DevSeeder extends Seeder
         $os3 = ServiceOrder::query()->create([
             'company_id'             => $company->id,
             'reference'              => 'OS-2026-00003',
-            'order_number'           => 'OS-2026-00003',
+            'order_number'           => 3,
             'title'                  => 'Desktop não inicializa (GD-001)',
             'status'                 => ServiceOrder::STATUS_OPEN,
             'customer_id'            => $empresa->id,
@@ -554,7 +554,7 @@ class DevSeeder extends Seeder
         $os4 = ServiceOrder::query()->create([
             'company_id'             => $company->id,
             'reference'              => 'OS-2026-00004',
-            'order_number'           => 'OS-2026-00004',
+            'order_number'           => 4,
             'title'                  => 'Impressora sem comunicação na rede',
             'status'                 => ServiceOrder::STATUS_IN_PROGRESS,
             'customer_id'            => $empresa->id,
@@ -611,7 +611,7 @@ class DevSeeder extends Seeder
         $os5 = ServiceOrder::query()->create([
             'company_id'             => $company->id,
             'reference'              => 'OS-2026-00005',
-            'order_number'           => 'OS-2026-00005',
+            'order_number'           => 5,
             'title'                  => 'Desktop formatação e limpeza (GD-002)',
             'status'                 => ServiceOrder::STATUS_READY_FOR_PICKUP,
             'customer_id'            => $empresa->id,
