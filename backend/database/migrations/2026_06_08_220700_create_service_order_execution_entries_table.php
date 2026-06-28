@@ -19,7 +19,7 @@ return new class extends Migration
             $table->text('notes')->nullable();
             $table->timestamps();
 
-            $table->index(['service_order_id', 'entry_type']);
+            $table->index(['service_order_id', 'entry_type'], 'soee_so_id_entry_type_idx');
         });
     }
 
