@@ -13,8 +13,8 @@ fi
 chown -R www-data:www-data /var/www/storage /var/www/bootstrap/cache
 chmod -R 775 /var/www/storage /var/www/bootstrap/cache
 
-# Migrations automáticas
-php artisan migrate --force --no-interaction
+# Migrations automáticas (fresh: limpa banco existente com tabelas órfãs)
+php artisan migrate:fresh --force --no-interaction
 
 # Limpa cache de config compilado para refletir as env vars do container
 php artisan config:clear
